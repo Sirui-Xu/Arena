@@ -184,7 +184,7 @@ class WaterWorldMaze(PyGameWrapper):
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
-                        'speed': self.AGENT_SPEED,
+                        'speed': self.AGENT_SPEED * self.wall_width,
                         'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
                        }
 
@@ -197,7 +197,7 @@ class WaterWorldMaze(PyGameWrapper):
                            'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
-                           'speed': self.CREEP_SPEED,
+                           'speed': c.speed,
                            'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
                           }
             state.append(creep_state)
@@ -306,7 +306,7 @@ class WaterWorldMaze(PyGameWrapper):
                     self.creep_counts[creep.TYPE] -= 1
                     self.score += creep.reward
                     creep.kill()
-                    
+
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
@@ -335,7 +335,7 @@ if __name__ == "__main__":
         dt = game.clock.tick_busy_loop(5)
         game.step(dt)
         pygame.display.update()
-        # print(game.getGameState())
+        print(game.getGameState())
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))
             break
