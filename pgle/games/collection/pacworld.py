@@ -146,7 +146,7 @@ class PacWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, None
+        return state, (self.ticks * self.AGENT_SPEED, self.width + self.height)
 
     def getScore(self):
         return self.score
