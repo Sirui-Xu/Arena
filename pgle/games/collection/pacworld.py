@@ -1,6 +1,6 @@
 import pygame
 import sys
-sys.path.append("..")
+sys.path.append("..") 
 import math
 
 from base import PyGameWrapper, Player, Creep
@@ -11,7 +11,7 @@ from pygame.constants import K_w, K_a, K_s, K_d
 
 class PacWorld(PyGameWrapper):
     """
-    The size of the node is related to the score. You should get a high score as soon as possible
+    The lighter the color, the higher the score
     Parameters
     ----------
     width : int
@@ -39,16 +39,14 @@ class PacWorld(PyGameWrapper):
             "right": K_d,
             "down": K_s
         }
-        if min(width, height) < 50:
-            width = int(50 / min(width, height) * width) + 1
-            height = int(50 / min(width, height) * height) + 1
+
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD"]
-        self.CREEP_COLORS = [(40, 240, 40)]
+        self.CREEP_TYPES = ["GOOD", "BAD"]
+        self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
         radius = percent_round_int(min(width, height), 0.047)
-        self.CREEP_RADII = [percent_round_int(min(width, height), 0.020), percent_round_int(min(width, height), 0.080)]
+        self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
             self.rewards["positive"],
             self.rewards["negative"]]
@@ -59,16 +57,17 @@ class PacWorld(PyGameWrapper):
         self.AGENT_COLOR = (30, 30, 30)
         self.AGENT_SPEED = width
         self.AGENT_RADIUS = radius
-        self.AGENT_INIT_POS = (self.width // 2, self.height // 2)
+        self.AGENT_INIT_POS = None
         self.UNIFORM_SPEED = UNIFORM_SPEED
         self.creep_counts = {
-            "GOOD": 0
+            "GOOD": 0,
+            "BAD": 0
         }
-
         self.dx = 0
         self.dy = 0
         self.player = None
         self.creeps = None
+        self.assigned_values = None
 
     def _handle_player_events(self):
         self.dx = 0
@@ -93,30 +92,31 @@ class PacWorld(PyGameWrapper):
                 if key == self.actions["down"]:
                     self.dy += self.AGENT_SPEED
 
-    def _add_creep(self, creep_type, radius):
+    def _add_creep(self, creep_type, idx, color, sum_color):
         # creep_type = self.rng.choice([0, 1])
 
         creep = None
         pos = (0, 0)
         dist = 0.0
 
-        while dist < self.AGENT_RADIUS + self.CREEP_RADII[-1] + 1:
-            d = self.CREEP_RADII[-1] * 1.5
-            pos = self.rng.uniform(d, self.height - d, size=2)
+        while dist < self.AGENT_RADIUS + self.CREEP_RADII[creep_type] + 1:
+            radius = self.CREEP_RADII[creep_type] * 1.5
+            pos = self.rng.uniform(radius, self.height - radius, size=2)
             dist = math.sqrt(
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            self.CREEP_COLORS[creep_type],
-            radius,
+            (40 + 200*color, 40 + 200*color, 40 + 200*color),
+            self.CREEP_RADII[creep_type],
             pos,
             self.rng.choice([-1, 1], 2),
             self.rng.rand() * self.CREEP_SPEED,
-            self.CREEP_REWARD[creep_type] * radius,
+            self.CREEP_REWARD[creep_type] * color / sum_color * self.N_CREEPS,
             self.CREEP_TYPES[creep_type],
             self.width,
             self.height,
-            self.rng.rand()
+            self.rng.rand(),
+            idx
         )
 
         self.creeps.add(creep)
@@ -124,52 +124,29 @@ class PacWorld(PyGameWrapper):
         self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
 
     def getGameState(self):
-        """
-        Returns
-        -------
-        dict
-            * player x position.
-            * player y position.
-            * player x velocity.
-            * player y velocity.
-            * player distance to each creep
-        """
-        if self.UNIFORM_SPEED:
-            state = {
-                "player_x": self.player.pos.x,
-                "player_y": self.player.pos.y,
-                "creep_dist": {
-                    "GOOD": [],
-                    "BAD": []
-                },
-                "creep_pos": {
-                    "GOOD": [],
-                    "BAD": []
-                }
-            }
-        else:
-            state = {
-                "player_x": self.player.pos.x,
-                "player_y": self.player.pos.y,
-                "player_velocity_x": self.player.vel.x,
-                "player_velocity_y": self.player.vel.y,
-                "creep_dist": {
-                    "GOOD": [],
-                    "BAD": []
-                },
-                "creep_pos": {
-                    "GOOD": [],
-                    "BAD": []
-                }
-            }
+        player_state = {'type':'player', 
+                        'type_index': 0, 
+                        'position': [self.player.pos.x, self.player.pos.y],
+                        'velocity': [self.player.vel.x, self.player.vel.y],
+                        'speed': self.AGENT_SPEED,
+                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
+                       }
 
-        for c in self.creeps:
-            dist = math.sqrt((self.player.pos.x - c.pos.x) **
-                             2 + (self.player.pos.y - c.pos.y)**2)
-            state["creep_dist"][c.TYPE].append(dist)
-            state["creep_pos"][c.TYPE].append([c.pos.x, c.pos.y])
+        state = [player_state]
+        order = list(range(len(self.creeps.sprites())))
+        # self.rng.shuffle(order)
+        for i in order:
+            c = self.creeps.sprites()[i]
+            creep_state = {'type':'creep', 
+                           'type_index': c.idx + 1,  
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                           'speed': c.speed,
+                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
+                          }
+            state.append(creep_state)
 
-        return state
+        return state, None
 
     def getScore(self):
         return self.score
@@ -178,13 +155,15 @@ class PacWorld(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0)
+        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0) or self.ticks * self.AGENT_SPEED >= self.width + self.height
 
     def init(self):
         """
             Starts/Resets the game to its inital state
         """
-        self.creep_counts = {"GOOD": 0}
+        self.assigned_values = self.rng.rand((self.N_CREEPS))
+        self.assigned_values.sort()
+        self.creep_counts = {"GOOD": 0, "BAD": 0}
         self.AGENT_INIT_POS = self.rng.uniform(self.AGENT_RADIUS, self.height - self.AGENT_RADIUS, size=2)
 
         if self.player is None:
@@ -205,13 +184,14 @@ class PacWorld(PyGameWrapper):
         else:
             self.creeps.empty()
 
+        sum_assigned_values = sum(self.assigned_values)
         for i in range(self.N_CREEPS):
-
-            self._add_creep(0, self.rng.randint(self.CREEP_RADII[0], self.CREEP_RADII[1]))
+            self._add_creep(0, i, self.assigned_values[i], sum_assigned_values)
 
         self.score = 0
         self.ticks = 0
         self.lives = -1
+
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
@@ -233,15 +213,13 @@ class PacWorld(PyGameWrapper):
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
             self.score += creep.reward
-            # self._add_creep(1)
-
-        if self.creep_counts["GOOD"] == 0:
-            self.score += self.rewards["win"]
 
         self.creeps.update(dt)
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
+        self.ticks += dt
+        # print(self.creep_counts["GOOD"], self.creep_counts["BAD"])
 
 if __name__ == "__main__":
     import numpy as np
