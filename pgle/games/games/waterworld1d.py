@@ -9,7 +9,7 @@ from utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d
 
 
-class WaterWorld(PyGameWrapper):
+class WaterWorld1d(PyGameWrapper):
     """
     Based Karpthy's WaterWorld in `REINFORCEjs`_.
     .. _REINFORCEjs: https://github.com/karpathy/reinforcejs
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     import numpy as np
 
     pygame.init()
-    game = WaterWorld(width=512, height=512, num_creeps=10)
+    game = WaterWorld1d(width=512, height=512, num_creeps=10)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)

@@ -8,7 +8,7 @@ from base import PyGameWrapper, Player, Creep, Wall
 from utils import vec2d, percent_round_int, generate_random_maze
 from pygame.constants import K_w, K_a, K_s, K_d
 
-class BilliardWorldMaze(PyGameWrapper):
+class PacWorldMaze(PyGameWrapper):
     """
     Need to collect node in order
     Parameters
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     import numpy as np
 
     pygame.init()
-    game = BilliardWorldMaze(width=512, maze_width=15, num_creeps=5)
+    game = PacWorldMaze(width=512, maze_width=15, num_creeps=5)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
