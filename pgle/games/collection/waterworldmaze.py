@@ -226,7 +226,7 @@ class WaterWorldMaze(PyGameWrapper):
         if self.player is None:
             self.player = Player(
                 self.AGENT_RADIUS, self.AGENT_COLOR,
-                self.AGENT_SPEED, self.AGENT_INIT_POS,
+                self.AGENT_SPEED * self.wall_width, self.AGENT_INIT_POS,
                 self.width, self.height,
                 self.UNIFORM_SPEED
             )

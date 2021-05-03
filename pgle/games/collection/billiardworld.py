@@ -146,7 +146,7 @@ class BilliardWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state
+        return state, None
 
     def getScore(self):
         return self.score
