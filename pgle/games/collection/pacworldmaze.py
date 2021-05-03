@@ -106,7 +106,7 @@ class BilliardWorldMaze(PyGameWrapper):
                 if key == self.actions["down"]:
                     self.dy += self.AGENT_SPEED / self.AGENT_SPEED * self.wall_width
 
-    def _add_creep(self, creep_type, idx, color):
+    def _add_creep(self, creep_type, idx, color, sum_color):
         # creep_type = self.rng.choice([0, 1])
 
         creep = None
@@ -127,7 +127,7 @@ class BilliardWorldMaze(PyGameWrapper):
             pos,
             (0, 0),
             self.CREEP_SPEED * self.wall_width,
-            self.CREEP_REWARD[creep_type],
+            self.CREEP_REWARD[creep_type] * color / sum_color * self.N_CREEPS,
             self.CREEP_TYPES[creep_type],
             self.width,
             self.height,
@@ -194,7 +194,7 @@ class BilliardWorldMaze(PyGameWrapper):
         for i in order:
             c = self.creeps.sprites()[i]
             creep_state = {'type':'creep', 
-                           'type_index': c.idx + 1,  
+                           'type_index': c.reward,  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
@@ -202,7 +202,7 @@ class BilliardWorldMaze(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, self.maze
+        return state, [self.maze, (self.ticks * self.wall_width, 2 * (self.width + self.height))]
 
     def getScore(self):
         return self.score
@@ -211,7 +211,7 @@ class BilliardWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0)
+        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0) or self.ticks * self.wall_width >= 2 * (self.width + self.height)
 
     def init(self):
         """
@@ -249,9 +249,9 @@ class BilliardWorldMaze(PyGameWrapper):
         else:
             self.walls.empty()
 
-        self._add_creep(0, 0, self.assigned_values[0])
-        for i in range(self.N_CREEPS - 1):
-            self._add_creep(1, i+1, self.assigned_values[i+1])
+        sum_assigned_values = sum(self.assigned_values)
+        for i in range(self.N_CREEPS):
+            self._add_creep(0, i, self.assigned_values[i], sum_assigned_values)
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):
@@ -297,64 +297,21 @@ class BilliardWorldMaze(PyGameWrapper):
             #     self.player.vel.x = 0
             #     self.player.vel.y = 0
             # player_movement = (vir_player_pos[0], vir_player_pos[1], vir_player_pos_new[0], vir_player_pos_new[1])
-        if self.ticks % self.AGENT_SPEED == self.CREEP_SPEED:  
+        if self.ticks % self.AGENT_SPEED == self.CREEP_SPEED:
             creep_movement_list = self._direction_adjustment()
             self.creeps.update(dt)
-        
+
             for creep, creep_movement in creep_movement_list:
                 if creep_movement == player_movement:
-                    if creep.TYPE == "GOOD":
-                        self.creep_counts["GOOD"] -= 1
-                        self.score += 1
-                        creep.kill()
-                    else:
-                        self.score += -1
-                        self._add_creep(1, creep.idx, self.assigned_values[creep.idx])
-                        creep.kill()
-                        self.creep_counts["BAD"] -= 1
+                    self.creep_counts[creep.TYPE] -= 1
+                    self.score += creep.reward
+                    creep.kill()
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
-            if creep.TYPE == "GOOD":
-                self.creep_counts["GOOD"] -= 1
-                self.score += 1
-                creep.kill()
-            else:
-                self.score += -1
-                self._add_creep(1, creep.idx, self.assigned_values[creep.idx])
-                creep.kill()
-                self.creep_counts["BAD"] -= 1
-
-
-        if self.creep_counts["GOOD"] == 0 and self.creep_counts["BAD"] != 0:
-            
-            find_min = False
-            for creep in self.creeps.sprites():
-                assert creep.idx >= self.N_CREEPS - self.creep_counts["BAD"]
-                if creep.idx == self.N_CREEPS - self.creep_counts["BAD"]:
-                    find_min = True
-                    break
-            assert find_min
-            # print(self.creeps.sprites()[0].idx, creep.idx)
-            # creep = self.creeps.sprites()[0]
-            creep_new = Creep(
-                (self.assigned_values[creep.idx]*200 + 40, self.assigned_values[creep.idx]*200 + 40, self.assigned_values[creep.idx]*200 + 40),
-                self.CREEP_RADII[0],
-                (creep.pos.x, creep.pos.y),
-                (creep.direction.x, creep.direction.y),
-                creep.speed,
-                self.CREEP_REWARD[0],
-                self.CREEP_TYPES[0],
-                self.width,
-                self.height,
-                creep.jitter_speed,
-                creep.idx
-            )
-            # self.creeps.sprites()[0] = creep_new
+            self.creep_counts[creep.TYPE] -= 1
+            self.score += creep.reward
             creep.kill()
-            self.creeps.add(creep_new)
-            self.creep_counts["GOOD"] += 1
-            self.creep_counts["BAD"] -= 1
 
         if self.creep_counts["GOOD"] == 0:
             self.score += self.rewards["win"]

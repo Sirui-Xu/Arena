@@ -138,7 +138,7 @@ class PacWorld(PyGameWrapper):
         for i in order:
             c = self.creeps.sprites()[i]
             creep_state = {'type':'creep', 
-                           'type_index': c.idx + 1,  
+                           'type_index': c.reward,  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
