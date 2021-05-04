@@ -11,7 +11,7 @@ from pygame.constants import K_w, K_a, K_s, K_d
 
 class PacWorld(PyGameWrapper):
     """
-    The lighter the color, the higher the score
+    The lighter the color, the higher the score. Need to collect node with limited time.
     Parameters
     ----------
     width : int

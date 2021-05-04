@@ -11,8 +11,7 @@ from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 class ShootWorld1d(PyGameWrapper):
     """
-    Based Karpthy's WaterWorld in `REINFORCEjs`_.
-    .. _REINFORCEjs: https://github.com/karpathy/reinforcejs
+    Move in a line. Shot minus 1 point, hit plus 2 points.
     Parameters
     ----------
     width : int

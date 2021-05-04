@@ -10,7 +10,7 @@ from pygame.constants import K_w, K_a, K_s, K_d
 
 class PacWorldMaze(PyGameWrapper):
     """
-    Need to collect node in order
+    The lighter the color, the higher the score. Need to collect node with limited time.
     Parameters
     ----------
     width : int
@@ -19,8 +19,6 @@ class PacWorldMaze(PyGameWrapper):
         Maze width.
     num_creeps : int (default: 3)
         The number of creeps on the screen at once.
-    UNIFORM_SPEED : bool (default: false)
-        The agent has an uniform speed or not
     NO_SPEED : bool (default: false)
         whether the node can move.
     """
@@ -29,7 +27,6 @@ class PacWorldMaze(PyGameWrapper):
                  width=48,
                  maze_width=7,
                  num_creeps=3,
-                 UNIFORM_SPEED=True,
                  NO_SPEED=False,
                  fps=3):
 
@@ -62,7 +59,7 @@ class PacWorldMaze(PyGameWrapper):
         self.AGENT_SPEED = 2
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = (0, 0)
-        self.UNIFORM_SPEED = UNIFORM_SPEED
+        self.UNIFORM_SPEED = True
         self.creep_counts = {
             "GOOD": 0,
             "BAD": 0
