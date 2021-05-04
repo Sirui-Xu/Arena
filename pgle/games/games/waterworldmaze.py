@@ -199,7 +199,7 @@ class WaterWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0)
+        return (self.creep_counts['GOOD'] == 0) or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -258,7 +258,6 @@ class WaterWorldMaze(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        dt = 1
         self.screen.fill(self.BG_COLOR)
 
         if self.ticks % self.fps == 0:
@@ -284,8 +283,8 @@ class WaterWorldMaze(PyGameWrapper):
         else:
             pygame.event.pump()
 
-        self.player.update(self.dx, self.dy, dt / self.fps)                    
-        self.creeps.update(dt / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
+        self.player.update(self.dx, self.dy, 1 / self.fps)                    
+        self.creeps.update(1 / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1

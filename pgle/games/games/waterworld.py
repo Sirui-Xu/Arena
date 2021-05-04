@@ -155,7 +155,7 @@ class WaterWorld(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0)
+        return (self.creep_counts['GOOD'] == 0) or self.ticks > self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -221,6 +221,7 @@ class WaterWorld(PyGameWrapper):
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
+        self.ticks += self.AGENT_SPEED * dt
 
 
 if __name__ == "__main__":

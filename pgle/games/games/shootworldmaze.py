@@ -227,7 +227,7 @@ class ShootWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0)
+        return (self.creep_counts['GOOD'] == 0) or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """

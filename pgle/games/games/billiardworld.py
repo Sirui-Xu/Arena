@@ -155,7 +155,7 @@ class BilliardWorld(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0)
+        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0) or self.ticks > self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -258,6 +258,7 @@ class BilliardWorld(PyGameWrapper):
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
+        self.ticks += self.AGENT_SPEED * dt
         # print(self.creep_counts["GOOD"], self.creep_counts["BAD"])
 
 if __name__ == "__main__":

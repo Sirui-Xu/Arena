@@ -136,8 +136,7 @@ class Creep(pygame.sprite.Sprite):
         self.pos = vec2d(pos_init)
         self.idx = idx
         self.direction = vec2d(dir_init)
-        if self.direction.x > 0 or self.direction.y > 0:
-            self.direction.normalize()  # normalized
+        self.direction.normalize()  # normalized
 
         image = pygame.Surface((radius * 2, radius * 2))
         image.fill((0, 0, 0))
@@ -227,6 +226,7 @@ class Player(pygame.sprite.Sprite):
 
         self.pos = vec2d(pos_init)
         self.vel = vec2d((0, 0))
+        self.last_vel = vec2d((speed, 0))
 
         image = pygame.Surface([radius * 2, radius * 2])
         image.set_colorkey((0, 0, 0))
@@ -287,6 +287,9 @@ class Player(pygame.sprite.Sprite):
                 self.vel.y = self.vel.y * 0.975
 
         self.rect.center = (self.pos.x, self.pos.y)
+        if self.vel.x != 0 or self.vel.y != 0:
+            self.last_vel.x = self.vel.x
+            self.last_vel.y = self.vel.y
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)

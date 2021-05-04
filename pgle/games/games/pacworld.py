@@ -106,7 +106,7 @@ class PacWorld(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (40 + 200*color, 40 + 200*color, 40 + 200*color),
+            (5, 25 + 200*color, 10),
             self.CREEP_RADII[creep_type],
             pos,
             self.rng.choice([-1, 1], 2),
