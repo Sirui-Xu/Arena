@@ -29,7 +29,7 @@ class WaterWorldMaze(PyGameWrapper):
                  maze_width=7,
                  num_creeps=3,
                  NO_SPEED=False,
-                 fps=3):
+                 fps=10):
 
         self.real_width = (maze_width // 2) * 2 + 1
         self.wall_width = width // self.real_width + 1
@@ -54,9 +54,9 @@ class WaterWorldMaze(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = 1
+            self.CREEP_SPEED = self.wall_width
         self.AGENT_COLOR = (30, 30, 70)
-        self.AGENT_SPEED = 2
+        self.AGENT_SPEED = 2 * self.wall_width
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
@@ -68,10 +68,13 @@ class WaterWorldMaze(PyGameWrapper):
         self.WALL_COLOR = (20, 10, 10)
         self.dx = 0
         self.dy = 0
+        self.dx_next = 0
+        self.dy_next = 0
         self.player = None
         self.creeps = None
         self.walls = None
         self.maze = None
+        self.fps = fps
 
     def vir2real(self, x, y):
         return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
@@ -80,8 +83,6 @@ class WaterWorldMaze(PyGameWrapper):
         return (int(x / self.wall_width - 0.5), int(y / self.wall_width - 0.5))
 
     def _handle_player_events(self):
-        self.dx = 0
-        self.dy = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -91,16 +92,16 @@ class WaterWorldMaze(PyGameWrapper):
                 key = event.key
 
                 if key == self.actions["left"]:
-                    self.dx -= self.AGENT_SPEED / self.AGENT_SPEED * self.wall_width
+                    self.dx_next -= self.wall_width
 
                 if key == self.actions["right"]:
-                    self.dx += self.AGENT_SPEED / self.AGENT_SPEED * self.wall_width
+                    self.dx_next += self.wall_width
 
                 if key == self.actions["up"]:
-                    self.dy -= self.AGENT_SPEED / self.AGENT_SPEED * self.wall_width
+                    self.dy_next -= self.wall_width
 
                 if key == self.actions["down"]:
-                    self.dy += self.AGENT_SPEED / self.AGENT_SPEED * self.wall_width
+                    self.dy_next += self.wall_width
 
     def _add_creep(self, creep_type):
         # creep_type = self.rng.choice([0, 1])
@@ -124,7 +125,7 @@ class WaterWorldMaze(PyGameWrapper):
             self.CREEP_RADII[creep_type],
             pos,
             (0, 0),
-            self.CREEP_SPEED * self.wall_width,
+            self.CREEP_SPEED,
             self.CREEP_REWARD[creep_type],
             self.CREEP_TYPES[creep_type],
             self.width,
@@ -137,17 +138,14 @@ class WaterWorldMaze(PyGameWrapper):
         self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
 
     def _direction_adjustment(self, p=0.9):
-        creep_movement_list = []
         for creep in self.creeps.sprites():
-            creep.speed = self.CREEP_SPEED * self.wall_width
+            creep.speed = self.CREEP_SPEED
             creep_pos_old = (creep.pos.x, creep.pos.y)
             creep_pos_new = (creep.pos.x + creep.direction.x * creep.speed * 1, creep.pos.y + creep.direction.y * creep.speed * 1)
             vir_creep_pos_old = self.real2vir(*creep_pos_old)
             vir_creep_pos_new = self.real2vir(*creep_pos_new)
 
             if self.maze[vir_creep_pos_new] == 0 and vir_creep_pos_new != vir_creep_pos_old and self.rng.rand() < p:
-                creep_movement = (vir_creep_pos_new[0], vir_creep_pos_new[1], vir_creep_pos_old[0], vir_creep_pos_old[1])
-                creep_movement_list.append((creep, creep_movement))
                 continue
 
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -169,19 +167,12 @@ class WaterWorldMaze(PyGameWrapper):
             creep.direction.x = feasible_direction[0]
             creep.direction.y = feasible_direction[1]
 
-            creep_pos_new = (creep.pos.x + creep.direction.x * creep.speed * 1, creep.pos.y + creep.direction.y * creep.speed * 1)
-            vir_creep_pos_new = self.real2vir(*creep_pos_new)
-
-            creep_movement = (vir_creep_pos_new[0], vir_creep_pos_new[1], vir_creep_pos_old[0], vir_creep_pos_old[1])
-            creep_movement_list.append((creep, creep_movement))
-        return creep_movement_list
-
     def getGameState(self):
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
-                        'speed': self.AGENT_SPEED * self.wall_width,
+                        'speed': self.AGENT_SPEED,
                         'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
                        }
 
@@ -223,7 +214,7 @@ class WaterWorldMaze(PyGameWrapper):
         if self.player is None:
             self.player = Player(
                 self.AGENT_RADIUS, self.AGENT_COLOR,
-                self.AGENT_SPEED * self.wall_width, self.AGENT_INIT_POS,
+                self.AGENT_SPEED, self.AGENT_INIT_POS,
                 self.width, self.height,
                 self.UNIFORM_SPEED
             )
@@ -257,53 +248,44 @@ class WaterWorldMaze(PyGameWrapper):
         self.score = 0
         self.ticks = 0
         self.lives = -1
+        self.dx_next, self.dy_next = 0, 0
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
 
-    def step(self, dt):
+    def step(self):
         """
             Perform one step of game emulation.
         """
         dt = 1
         self.screen.fill(self.BG_COLOR)
 
-        self.score += self.rewards["tick"]
+        if self.ticks % self.fps == 0:
+            self.score += self.rewards["tick"]
+            self.dx, self.dy = self.dx_next, self.dy_next
+            self.dx_next, self.dy_next = 0, 0
+            if self.dx == 0 and self.dy == 0:
+                player_pos_new = (self.player.pos.x + self.player.vel.x, self.player.pos.y + self.player.vel.y)
+            else:
+                player_pos_new = (self.player.pos.x + self.dx, self.player.pos.y + self.dy) 
+            vir_player_pos_new = self.real2vir(*player_pos_new)        
+            if self.maze[vir_player_pos_new] != 0:
+                self.player.vel.x = 0
+                self.player.vel.y = 0
+                self.dx = 0
+                self.dy = 0
 
-        self._handle_player_events()
+            if self.ticks % (self.fps * self.AGENT_SPEED // self.CREEP_SPEED) == 0:
+                self._direction_adjustment()
 
-        
-        if self.dx == 0 and self.dy == 0:
-            player_pos_new = (self.player.pos.x + self.player.vel.x * dt, self.player.pos.y + self.player.vel.y * dt)
+        if self.dx_next == 0 and self.dy_next == 0:
+            self._handle_player_events()
         else:
-            player_pos_new = (self.player.pos.x + self.dx * dt, self.player.pos.y + self.dy * dt)
-        vir_player_pos_new = self.real2vir(*player_pos_new)
-        player_pos = (self.player.pos.x, self.player.pos.y)
-        vir_player_pos = self.real2vir(*player_pos)
-        player_movement = (vir_player_pos[0], vir_player_pos[1], vir_player_pos_new[0], vir_player_pos_new[1])
-                
-        if self.maze[vir_player_pos_new] != 0:
-            self.player.vel.x = 0
-            self.player.vel.y = 0
-        else:
-            self.player.update(self.dx, self.dy, dt)
-            # print(self.player.pos.x, self.player.pos.y, self.dx, self.dy)
-            # if len(pygame.sprite.spritecollide(self.player, self.walls, False)) != 0:
-            #     self.player.vel.x = 0
-            #     self.player.vel.y = 0
-            # player_movement = (vir_player_pos[0], vir_player_pos[1], vir_player_pos_new[0], vir_player_pos_new[1])
-        
-        if self.ticks % self.AGENT_SPEED == self.CREEP_SPEED:
-            creep_movement_list = self._direction_adjustment()
-            self.creeps.update(dt)
+            pygame.event.pump()
 
-            for creep, creep_movement in creep_movement_list:
-                if creep_movement == player_movement:
-                    self.creep_counts[creep.TYPE] -= 1
-                    self.score += creep.reward
-                    creep.kill()
-
+        self.player.update(self.dx, self.dy, dt / self.fps)                    
+        self.creeps.update(dt / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
@@ -316,7 +298,7 @@ class WaterWorldMaze(PyGameWrapper):
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
-        self.ticks += dt
+        self.ticks += 1
 
 if __name__ == "__main__":
     import numpy as np
@@ -327,11 +309,12 @@ if __name__ == "__main__":
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
     game.init()
-
+    fps = 5
     while True:
-        dt = game.clock.tick_busy_loop(5)
-        game.step(dt)
-        pygame.display.update()
+        for i in range(game.fps):
+            dt = game.clock.tick_busy_loop(fps * game.fps)
+            game.step()
+            pygame.display.update()
         # print(game.getGameState())
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))

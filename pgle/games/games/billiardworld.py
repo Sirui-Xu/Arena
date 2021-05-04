@@ -106,7 +106,7 @@ class BilliardWorld(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (40 + 200*color, 40 + 200*color, 40 + 200*color),
+            (5, 25 + 200*color, 10),
             self.CREEP_RADII[creep_type],
             pos,
             self.rng.choice([-1, 1], 2),
@@ -236,7 +236,7 @@ class BilliardWorld(PyGameWrapper):
             # print(self.creeps.sprites()[0].idx, creep.idx)
             # creep = self.creeps.sprites()[0]
             creep_new = Creep(
-                (self.assigned_values[creep.idx]*200 + 40, self.assigned_values[creep.idx]*200 + 40, self.assigned_values[creep.idx]*200 + 40),
+                (5, self.assigned_values[creep.idx]*200 + 25, 10),
                 self.CREEP_RADII[0],
                 (creep.pos.x, creep.pos.y),
                 (creep.direction.x, creep.direction.y),

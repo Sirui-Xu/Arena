@@ -101,17 +101,16 @@ class ShootWorld(PyGameWrapper):
 
 
     def _add_bullets(self):
-        if not (self.player.vel.x == 0 and self.player.vel.y == 0):
-            bullet = Bullet(self.BULLET_COLOR, 
-                            self.BULLET_RADIUS, 
-                            (self.player.pos.x, self.player.pos.y), 
-                            (self.player.vel.x, self.player.vel.y), 
-                            self.BULLET_SPEED, 
-                            self.BULLET_TYPE,
-                            self.width,
-                            self.height)
-            self.score -= 1
-            self.bullets.add(bullet)
+        bullet = Bullet(self.BULLET_COLOR, 
+                        self.BULLET_RADIUS, 
+                        (self.player.pos.x, self.player.pos.y), 
+                        (self.player.last_vel.x, self.player.last_vel.y), 
+                        self.BULLET_SPEED, 
+                        self.BULLET_TYPE,
+                        self.width,
+                        self.height)
+        self.score -= 1
+        self.bullets.add(bullet)
 
 
     def _add_creep(self, creep_type, radius):
@@ -244,7 +243,7 @@ class ShootWorld(PyGameWrapper):
         hits = pygame.sprite.spritecollide(self.player, self.creeps, True)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
-            self.score -= 1
+            self.score -= creep.reward
             # self._add_creep(1)
 
         hits = pygame.sprite.groupcollide(self.bullets, self.creeps, True, True)

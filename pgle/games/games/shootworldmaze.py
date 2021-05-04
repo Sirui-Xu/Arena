@@ -3,14 +3,14 @@ import sys
 sys.path.append("..")
 import math
 
-from base import PyGameWrapper, Player, Creep, Wall
+from base import PyGameWrapper, Player, Creep, Wall, Bullet
 
 from utils import vec2d, percent_round_int, generate_random_maze
-from pygame.constants import K_w, K_a, K_s, K_d
+from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
-class BilliardWorldMaze(PyGameWrapper):
+class ShootWorldMaze(PyGameWrapper):
     """
-    Need to collect node in order
+    Shot minus 1 point, hit plus 2 points.
     Parameters
     ----------
     width : int
@@ -37,45 +37,50 @@ class BilliardWorldMaze(PyGameWrapper):
             "up": K_w,
             "left": K_a,
             "right": K_d,
-            "down": K_s
+            "down": K_s,
+            "shoot": K_SPACE,
         }
 
         PyGameWrapper.__init__(self, width, width, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD", "BAD"]
+        self.CREEP_TYPES = ["GOOD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
         radius = percent_round_int(self.wall_width, 0.4)
         # print(width, self.wall_width, self.real_width, radius)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
-            self.rewards["positive"],
-            self.rewards["negative"]]
+            self.rewards["positive"]]
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
             self.CREEP_SPEED = self.wall_width
         self.AGENT_COLOR = (30, 30, 70)
-        self.AGENT_SPEED = 2 * self.wall_width
+        self.AGENT_SPEED = self.wall_width
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
         self.creep_counts = {
             "GOOD": 0,
-            "BAD": 0
         }
 
         self.WALL_COLOR = (20, 10, 10)
+        self.BULLET_TYPE = "BULLET"
+        self.BULLET_COLOR = (60, 30, 90)
+        self.BULLET_SPEED = 2 * self.wall_width
+        self.BULLET_RADIUS = radius // 2
         self.dx = 0
         self.dy = 0
+        self.shoot = 0
+        self.dx_next = 0
+        self.dy_next = 0
+        self.shoot_next = 0
         self.player = None
         self.creeps = None
         self.walls = None
         self.maze = None
-        self.assigned_values = None
+        self.bullets = None
         self.fps = fps
-        self.dx_next = 0
-        self.dy_next = 0
 
     def vir2real(self, x, y):
         return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
@@ -93,18 +98,33 @@ class BilliardWorldMaze(PyGameWrapper):
                 key = event.key
 
                 if key == self.actions["left"]:
-                    self.dx_next -= self.wall_width
+                    self.dx_next -= self.AGENT_SPEED
 
                 if key == self.actions["right"]:
-                    self.dx_next += self.wall_width
+                    self.dx_next += self.AGENT_SPEED
 
                 if key == self.actions["up"]:
-                    self.dy_next -= self.wall_width
+                    self.dy_next -= self.AGENT_SPEED
 
                 if key == self.actions["down"]:
-                    self.dy_next += self.wall_width
+                    self.dy_next += self.AGENT_SPEED
+                
+                if key == self.actions["shoot"]:
+                    self.shoot_next += 1
 
-    def _add_creep(self, creep_type, idx, color):
+    def _add_bullets(self):
+        bullet = Bullet(self.BULLET_COLOR, 
+                        self.BULLET_RADIUS, 
+                        (self.player.pos.x, self.player.pos.y), 
+                        (self.player.last_vel.x, self.player.last_vel.y), 
+                        self.BULLET_SPEED, 
+                        self.BULLET_TYPE,
+                        self.width,
+                        self.height)
+        self.score -= 1
+        self.bullets.add(bullet)
+
+    def _add_creep(self, creep_type):
         # creep_type = self.rng.choice([0, 1])
 
         creep = None
@@ -120,7 +140,7 @@ class BilliardWorldMaze(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (5, 25 + 200*color, 10),
+            self.CREEP_COLORS[creep_type],
             self.CREEP_RADII[creep_type],
             pos,
             (0, 0),
@@ -129,8 +149,7 @@ class BilliardWorldMaze(PyGameWrapper):
             self.CREEP_TYPES[creep_type],
             self.width,
             self.height,
-            0,
-            idx
+            0
         )
 
         self.creeps.add(creep)
@@ -141,7 +160,7 @@ class BilliardWorldMaze(PyGameWrapper):
         for creep in self.creeps.sprites():
             creep.speed = self.CREEP_SPEED
             creep_pos_old = (creep.pos.x, creep.pos.y)
-            creep_pos_new = (creep.pos.x + creep.direction.x * creep.speed * 1, creep.pos.y + creep.direction.y * creep.speed * 1)
+            creep_pos_new = (creep.pos.x + creep.direction.x * creep.speed, creep.pos.y + creep.direction.y * creep.speed)
             vir_creep_pos_old = self.real2vir(*creep_pos_old)
             vir_creep_pos_new = self.real2vir(*creep_pos_new)
 
@@ -152,7 +171,7 @@ class BilliardWorldMaze(PyGameWrapper):
             feasible_directions = []
             self.rng.shuffle(directions)
             for direction in directions:
-                creep_pos_new_ = (creep.pos.x + direction[0] * creep.speed * 1, creep.pos.y + direction[1] * creep.speed * 1)
+                creep_pos_new_ = (creep.pos.x + direction[0] * creep.speed, creep.pos.y + direction[1] * creep.speed)
                 if self.maze[self.real2vir(*creep_pos_new_)] == 0:
                     if direction[0] == -creep.direction.x and direction[1] == -creep.direction.y:
                         feasible_directions.append(direction)
@@ -166,7 +185,9 @@ class BilliardWorldMaze(PyGameWrapper):
             feasible_direction = feasible_directions[0]
             creep.direction.x = feasible_direction[0]
             creep.direction.y = feasible_direction[1]
-        
+
+
+
     def getGameState(self):
         player_state = {'type':'player', 
                         'type_index': 0, 
@@ -177,18 +198,25 @@ class BilliardWorldMaze(PyGameWrapper):
                        }
 
         state = [player_state]
-        order = list(range(len(self.creeps.sprites())))
-        # self.rng.shuffle(order)
-        for i in order:
-            c = self.creeps.sprites()[i]
+        for c in self.creeps:
             creep_state = {'type':'creep', 
-                           'type_index': c.idx + 1,  
-                           'position': [c.pos.x, c.pos.y],
-                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
-                           'speed': c.speed,
-                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
-                          }
+                        'type_index': 1, 
+                        'position': [c.pos.x, c.pos.y],
+                        'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                        'speed': c.speed,
+                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
+                        }
             state.append(creep_state)
+
+        for b in self.bullets:
+            bullet_state = {'type':'bullet', 
+                        'type_index': 2, 
+                        'position': [b.pos.x, b.pos.y],
+                        'velocity': [b.direction.x * b.speed, b.direction.y * b.speed],
+                        'speed': b.speed,
+                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right]
+                        }
+            state.append(bullet_state)
 
         return state, self.maze
 
@@ -199,18 +227,15 @@ class BilliardWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0)
+        return (self.creep_counts['GOOD'] == 0)
 
     def init(self):
         """
             Starts/Resets the game to its inital state
         """
-
-        self.assigned_values = self.rng.rand((self.N_CREEPS))
-        self.assigned_values.sort()
-        self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.1, density=.1)
+        self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.2, density=.2)
         # print(self.maze)
-        self.creep_counts = {"GOOD": 0, "BAD": 0}
+        self.creep_counts = {"GOOD": 0}
         vir_pos = (self.rng.randint(0, self.real_width // 2)*2+1, self.rng.randint(0, self.real_width//2)*2+1)
         self.AGENT_INIT_POS = self.vir2real(*vir_pos)
 
@@ -237,35 +262,38 @@ class BilliardWorldMaze(PyGameWrapper):
         else:
             self.walls.empty()
 
-        self._add_creep(0, 0, self.assigned_values[0])
-        for i in range(self.N_CREEPS - 1):
-            self._add_creep(1, i+1, self.assigned_values[i+1])
+        for i in range(self.N_CREEPS):
+            self._add_creep(0)
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):
                 if self.maze[i, j] == 1:
                     self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
 
+        if self.bullets is None:
+            self.bullets = pygame.sprite.Group()
+        else:
+            self.bullets.empty()
+
         self.score = 0
         self.ticks = 0
         self.lives = -1
-        self.dx_next, self.dy_next = 0, 0
+        self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
+        self.bullets.draw(self.screen)
 
     def step(self):
         """
             Perform one step of game emulation.
         """
-        dt = 1
         self.screen.fill(self.BG_COLOR)
-
         if self.ticks % self.fps == 0:
             self.score += self.rewards["tick"]
-            self.dx, self.dy = self.dx_next, self.dy_next
-            self.dx_next, self.dy_next = 0, 0
+            self.dx, self.dy, self.shoot = self.dx_next, self.dy_next, self.shoot_next
+            self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
             if self.dx == 0 and self.dy == 0:
                 player_pos_new = (self.player.pos.x + self.player.vel.x, self.player.pos.y + self.player.vel.y)
             else:
@@ -276,60 +304,38 @@ class BilliardWorldMaze(PyGameWrapper):
                 self.player.vel.y = 0
                 self.dx = 0
                 self.dy = 0
+            if self.shoot > 0:
+                self._add_bullets()
+            self._direction_adjustment()
 
-            if self.ticks % (self.fps * self.AGENT_SPEED // self.CREEP_SPEED) == 0:
-                self._direction_adjustment()
-
-        if self.dx_next == 0 and self.dy_next == 0:
+        if self.dx_next == 0 and self.dy_next == 0 and self.shoot_next == 0:
             self._handle_player_events()
         else:
             pygame.event.pump()
 
-        self.player.update(self.dx, self.dy, dt / self.fps)                    
-        self.creeps.update(dt / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
+        self.player.update(self.dx, self.dy, 1 / self.fps)   
+        self.creeps.update(1 / self.fps)     
+        self.bullets.update(1 / self.fps)   
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
-            if creep.TYPE == "GOOD":
-                self.creep_counts["GOOD"] -= 1
-                self.score += 1
-                creep.kill()
-            else:
-                self.score += -1
-                self._add_creep(1, creep.idx, self.assigned_values[creep.idx])
-                creep.kill()
-                self.creep_counts["BAD"] -= 1
-
-
-        if self.creep_counts["GOOD"] == 0 and self.creep_counts["BAD"] != 0:
-            
-            find_min = False
-            for creep in self.creeps.sprites():
-                assert creep.idx >= self.N_CREEPS - self.creep_counts["BAD"]
-                if creep.idx == self.N_CREEPS - self.creep_counts["BAD"]:
-                    find_min = True
-                    break
-            assert find_min
-            # print(self.creeps.sprites()[0].idx, creep.idx)
-            # creep = self.creeps.sprites()[0]
-            creep_new = Creep(
-                (5, self.assigned_values[creep.idx]*200 + 25, 10),
-                self.CREEP_RADII[0],
-                (creep.pos.x, creep.pos.y),
-                (creep.direction.x, creep.direction.y),
-                creep.speed,
-                self.CREEP_REWARD[0],
-                self.CREEP_TYPES[0],
-                self.width,
-                self.height,
-                creep.jitter_speed,
-                creep.idx
-            )
-            # self.creeps.sprites()[0] = creep_new
+            self.creep_counts[creep.TYPE] -= 1
+            self.score -= creep.reward
             creep.kill()
-            self.creeps.add(creep_new)
-            self.creep_counts["GOOD"] += 1
-            self.creep_counts["BAD"] -= 1
+
+        hits = pygame.sprite.groupcollide(self.bullets, self.walls, True, False)
+        for bullet in hits.keys():
+            for walls in hits[bullet]:
+                vir_walls_pos = self.real2vir(walls.pos.x, walls.pos.y)
+                if vir_walls_pos[0] < self.maze.shape[0] - 1 and vir_walls_pos[0] > 0 and vir_walls_pos[1] < self.maze.shape[1] - 1 and vir_walls_pos[1] > 0:
+                    self.maze[self.real2vir(walls.pos.x, walls.pos.y)] = 0
+                    walls.kill()
+
+        hits = pygame.sprite.groupcollide(self.bullets, self.creeps, True, True)
+        for bullet in hits.keys():
+            for creep in hits[bullet]:
+                self.creep_counts[creep.TYPE] -= 1
+                self.score += creep.reward
 
         if self.creep_counts["GOOD"] == 0:
             self.score += self.rewards["win"]
@@ -337,13 +343,13 @@ class BilliardWorldMaze(PyGameWrapper):
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
+        self.bullets.draw(self.screen)
         self.ticks += 1
 
 if __name__ == "__main__":
     import numpy as np
-
     pygame.init()
-    game = BilliardWorldMaze(width=512, maze_width=15, num_creeps=5)
+    game = ShootWorldMaze(width=512, maze_width=15, num_creeps=10)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
@@ -351,7 +357,7 @@ if __name__ == "__main__":
     fps = 5
     while True:
         for i in range(game.fps):
-            dt = game.clock.tick_busy_loop(fps * game.fps)
+            dt = game.clock.tick_busy_loop(fps*game.fps)
             game.step()
             pygame.display.update()
         # print(game.getGameState())
