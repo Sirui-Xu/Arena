@@ -237,6 +237,8 @@ class ShootWorld(PyGameWrapper):
 
         self._handle_player_events()
         self.player.update(self.dx, self.dy, dt)
+        self.creeps.update(dt)
+        self.bullets.update(dt)
         if self.shoot > 0:
             self._add_bullets()
 
@@ -255,9 +257,6 @@ class ShootWorld(PyGameWrapper):
 
         if self.creep_counts["GOOD"] == 0:
             self.score += self.rewards["win"]
-
-        self.creeps.update(dt)
-        self.bullets.update(dt)
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)

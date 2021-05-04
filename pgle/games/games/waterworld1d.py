@@ -203,6 +203,8 @@ class WaterWorld1d(PyGameWrapper):
 
         self._handle_player_events()
         self.player.update(self.dx, self.dy, dt)
+        self.creeps[0].update(dt)
+        self.creeps[1].update(dt)
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps[0], True)
         for creep in hits:
@@ -223,8 +225,6 @@ class WaterWorld1d(PyGameWrapper):
         if self.creep_counts["GOOD"] == 0:
             self.score += self.rewards["win"]
 
-        self.creeps[0].update(dt)
-        self.creeps[1].update(dt)
         self.player.draw(self.screen)
         self.creeps[0].draw(self.screen)
         self.creeps[1].draw(self.screen)

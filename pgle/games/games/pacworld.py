@@ -208,13 +208,11 @@ class PacWorld(PyGameWrapper):
 
         self._handle_player_events()
         self.player.update(self.dx, self.dy, dt)
-
+        self.creeps.update(dt)
         hits = pygame.sprite.spritecollide(self.player, self.creeps, True)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
             self.score += creep.reward
-
-        self.creeps.update(dt)
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
