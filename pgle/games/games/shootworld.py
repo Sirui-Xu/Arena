@@ -9,9 +9,9 @@ from utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 
-class ShootWorld1d(PyGameWrapper):
+class ShootWorld(PyGameWrapper):
     """
-    Move in a line. Shot minus 1 point, hit plus 2 points.
+    Shot minus 1 point, hit plus 2 points.
     Parameters
     ----------
     width : int
@@ -34,8 +34,10 @@ class ShootWorld1d(PyGameWrapper):
                  NO_SPEED=False):
 
         actions = {
+            "up": K_w,
             "left": K_a,
             "right": K_d,
+            "down": K_s,
             "shoot": K_SPACE,
         }
         PyGameWrapper.__init__(self, width, height, actions=actions)
@@ -54,7 +56,7 @@ class ShootWorld1d(PyGameWrapper):
         self.AGENT_COLOR = (30, 30, 30)
         self.AGENT_SPEED = width
         self.AGENT_RADIUS = radius
-        self.AGENT_INIT_POS = (self.width // 2, self.height)
+        self.AGENT_INIT_POS = None
         self.UNIFORM_SPEED = UNIFORM_SPEED
         self.creep_counts = {
             "GOOD": 0
@@ -91,17 +93,25 @@ class ShootWorld1d(PyGameWrapper):
                 if key == self.actions["right"]:
                     self.dx += self.AGENT_SPEED
 
+                if key == self.actions["up"]:
+                    self.dy -= self.AGENT_SPEED
+
+                if key == self.actions["down"]:
+                    self.dy += self.AGENT_SPEED
+
 
     def _add_bullets(self):
-        bullet = Bullet(self.BULLET_COLOR, 
-                        self.BULLET_RADIUS, 
-                        (self.player.pos.x, self.player.pos.y), 
-                        (0, -1), 
-                        self.BULLET_SPEED, 
-                        self.BULLET_TYPE,
-                        self.width,
-                        self.height)
-        self.bullets.add(bullet)
+        if not (self.player.vel.x == 0 and self.player.vel.y == 0):
+            bullet = Bullet(self.BULLET_COLOR, 
+                            self.BULLET_RADIUS, 
+                            (self.player.pos.x, self.player.pos.y), 
+                            (self.player.vel.x, self.player.vel.y), 
+                            self.BULLET_SPEED, 
+                            self.BULLET_TYPE,
+                            self.width,
+                            self.height)
+            self.score -= 1
+            self.bullets.add(bullet)
 
 
     def _add_creep(self, creep_type, radius):
@@ -179,7 +189,7 @@ class ShootWorld1d(PyGameWrapper):
             Starts/Resets the game to its inital state
         """
         self.creep_counts = {"GOOD": 0}
-        self.AGENT_INIT_POS = (self.rng.uniform(self.AGENT_RADIUS, self.width - self.AGENT_RADIUS), self.height - self.AGENT_RADIUS)
+        self.AGENT_INIT_POS = self.rng.uniform(self.AGENT_RADIUS, self.height - self.AGENT_RADIUS, size=2)
 
         if self.player is None:
             self.player = Player(
@@ -205,6 +215,7 @@ class ShootWorld1d(PyGameWrapper):
             self.bullets.empty()
 
         for i in range(self.N_CREEPS):
+
             self._add_creep(0, self.CREEP_RADII)
 
         self.score = 0
@@ -226,10 +237,16 @@ class ShootWorld1d(PyGameWrapper):
         self.score += self.rewards["tick"]
 
         self._handle_player_events()
-        self.player.update(self.dx, 0, dt)
+        self.player.update(self.dx, self.dy, dt)
         if self.shoot > 0:
             self._add_bullets()
+
+        hits = pygame.sprite.spritecollide(self.player, self.creeps, True)
+        for creep in hits:
+            self.creep_counts[creep.TYPE] -= 1
             self.score -= 1
+            # self._add_creep(1)
+
         hits = pygame.sprite.groupcollide(self.bullets, self.creeps, True, True)
         for bullet in hits.keys():
             for creep in hits[bullet]:
@@ -251,7 +268,7 @@ if __name__ == "__main__":
     import numpy as np
 
     pygame.init()
-    game = ShootWorld1d(width=512, height=512, num_creeps=10)
+    game = ShootWorld(width=512, height=512, num_creeps=5, UNIFORM_SPEED=True)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
