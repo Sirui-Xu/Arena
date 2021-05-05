@@ -9,7 +9,7 @@ from utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 
-class Bomberman(PyGameWrapper):
+class BomberMan(PyGameWrapper):
     """
     Need to place bomb to kill all creeps
     Parameters
@@ -63,7 +63,7 @@ class Bomberman(PyGameWrapper):
         }
         self.BOMB_COLOR = (70, 30, 30)
         self.BOMB_RADIUS = int(radius * 1.1)
-        self.BOMB_LIFE = 36
+        self.BOMB_LIFE = 8
         self.BOMB_RANGE = 2
 
         self.EXPLODE_COLOR = (120, 220, 180)
@@ -205,7 +205,7 @@ class Bomberman(PyGameWrapper):
                         'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right]
                         }
             state.append(bomb_state)
-        return state, {'bomb_life':self.BOMB_LIFE, 'bomb_range':self.BOMB_RANGE}
+        return state, {'bomb_life':self.BOMB_LIFE, 'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
 
     def getScore(self):
         return self.score
@@ -349,7 +349,7 @@ if __name__ == "__main__":
     import numpy as np
 
     pygame.init()
-    game = Bomberman(width=512, height=512, num_creeps=1, UNIFORM_SPEED=True)
+    game = BomberMan(width=512, height=512, num_creeps=1, UNIFORM_SPEED=True)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
@@ -362,4 +362,4 @@ if __name__ == "__main__":
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))
             break
-        print(game.getGameState())
+        print(game.getGameState(), '\n')

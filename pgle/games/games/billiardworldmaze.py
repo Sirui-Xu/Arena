@@ -353,7 +353,7 @@ if __name__ == "__main__":
             dt = game.clock.tick_busy_loop(fps * game.fps)
             game.step()
             pygame.display.update()
-        # print(game.getGameState())
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))
             break
+        print(game.getGameState(), '\n')

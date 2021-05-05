@@ -236,3 +236,4 @@ if __name__ == "__main__":
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))
             break
+        print(game.getGameState(), '\n')

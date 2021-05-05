@@ -306,6 +306,8 @@ class ShootWorldMaze(PyGameWrapper):
                 self.dy = 0
             if self.shoot > 0:
                 self._add_bullets()
+                self.player.vel.x = 0
+                self.player.vel.y = 0
             self._direction_adjustment()
 
         if self.dx_next == 0 and self.dy_next == 0 and self.shoot_next == 0:
@@ -360,7 +362,7 @@ if __name__ == "__main__":
             dt = game.clock.tick_busy_loop(fps*game.fps)
             game.step()
             pygame.display.update()
-        # print(game.getGameState())
         if game.game_over() is True:
             print("The overall score is {}.".format(game.score))
             break
+        print(game.getGameState(), '\n')
