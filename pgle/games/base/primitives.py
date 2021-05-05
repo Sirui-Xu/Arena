@@ -264,10 +264,10 @@ class Player(pygame.sprite.Sprite):
             new_y = self.pos.y + self.vel.y * dt
 
         # if its not against a wall we want a total decay of 50
-        if new_x >= self.SCREEN_WIDTH - self.radius:
+        if new_x >= self.SCREEN_WIDTH - 1.2 * self.radius:
             # self.pos.x = self.SCREEN_WIDTH - self.radius * 2
             self.vel.x = 0.0
-        elif new_x <= self.radius:
+        elif new_x <= 1.2 * self.radius:
             # self.pos.x = 0.0
             self.vel.x = 0.0
         else:
@@ -275,10 +275,10 @@ class Player(pygame.sprite.Sprite):
             if not self.UNIFORM_SPEED:
                 self.vel.x = self.vel.x * 0.975
 
-        if new_y >= self.SCREEN_HEIGHT - self.radius:
+        if new_y >= self.SCREEN_HEIGHT - 1.2 * self.radius:
             # self.pos.y = self.SCREEN_HEIGHT - self.radius * 2
             self.vel.y = 0.0
-        elif new_y <= self.radius:
+        elif new_y <= 1.2 * self.radius:
             # self.pos.y = 0.0
             self.vel.y = 0.0
         else:
