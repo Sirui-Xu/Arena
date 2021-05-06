@@ -1,11 +1,10 @@
 import pygame
 import sys
-sys.path.append("..")
 import math
 
-from base import PyGameWrapper, Player, Creep, Wall
+from ..base import PyGameWrapper, Player, Creep, Wall
 
-from utils import vec2d, percent_round_int, generate_random_maze
+from ..utils import vec2d, percent_round_int, generate_random_maze
 from pygame.constants import K_w, K_a, K_s, K_d
 
 class BilliardWorldMaze(PyGameWrapper):

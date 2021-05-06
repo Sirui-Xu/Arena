@@ -144,7 +144,7 @@ class PGLE(object):
             action = self.NOOP
 
         self._setAction(action)
-        if self.game.__name__[-4:] is "Maze":
+        if self.game.__class__.__name__[-4:] == "Maze":
             for i in range(self.game.fps):
                 time_elapsed = 1 / self.game.fps
                 self.game.step(time_elapsed)
@@ -158,7 +158,7 @@ class PGLE(object):
         return self._getReward()
 
     def step(self, action):
-                """
+        """
 
         Parameters
         ----------
@@ -186,8 +186,8 @@ class PGLE(object):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        action = self.getActionSet()[action]
-        reward = self.act(action)
+        _action = self.getActionSet()[action]
+        reward = self.act(_action)
         return self.getGameState(), reward, self.game_over(), {}
 
 

@@ -1,11 +1,10 @@
 import pygame
 import sys
-sys.path.append("..")
 import math
 
-from base import PyGameWrapper, Player, Creep, Bomb, Wall
+from ..base import PyGameWrapper, Player, Creep, Bomb, Wall
 
-from utils import vec2d, percent_round_int
+from ..utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 
@@ -166,7 +165,7 @@ class BomberMan(PyGameWrapper):
     def explode(self):
         self.explosion.empty()
         for bomb in self.bombs:
-            if bomb.life == 1:
+            if bomb.life <= 1:
                 self._cal_explode_pos(bomb)
                 bomb.kill()
 

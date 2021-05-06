@@ -1,1 +1,1 @@
-from pgle import .PGLE
+from .pgle import PGLE

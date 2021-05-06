@@ -1,11 +1,10 @@
 import pygame
 import sys
-sys.path.append("..") 
 import math
 
-from base import PyGameWrapper, Player, Creep
+from ..base import PyGameWrapper, Player, Creep
 
-from utils import vec2d, percent_round_int
+from ..utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d
 
 

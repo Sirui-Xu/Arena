@@ -1,6 +1,6 @@
 import pygame
 import math
-from utils import vec2d
+from ..utils import vec2d
 
 class Bomb(pygame.sprite.Sprite):
 
