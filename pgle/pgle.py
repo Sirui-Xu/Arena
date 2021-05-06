@@ -1,5 +1,4 @@
 import numpy as np
-
 import sys
 
 import pygame
@@ -9,9 +8,9 @@ class PGLE(object):
     def __init__(self, game):
 
         self.game = game
-        self.rng = np.random.RandomState(rng)
+        self.rng = np.random.RandomState(24)
         self.game.setRNG(self.rng)
-        self.init()
+        # self.init()
         self.NOOP = None
         self.last_action = []
         self.action = []
@@ -146,10 +145,9 @@ class PGLE(object):
         self._setAction(action)
         if self.game.__class__.__name__[-4:] == "Maze":
             for i in range(self.game.fps):
-                time_elapsed = 1 / self.game.fps
-                self.game.step(time_elapsed)
+                self.game.step()
         else:
-            self.game.step(1 / 20)
+            self.game.step(1000 / 25)
         
         self._draw_frame()
 
@@ -196,7 +194,7 @@ class PGLE(object):
         Decides if the screen will be drawn too
         """
 
-        self.game._draw_frame(self.display_screen)
+        self.game._draw_frame(False)
 
     def _setAction(self, action):
         """
