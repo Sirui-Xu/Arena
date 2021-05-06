@@ -218,7 +218,8 @@ class ShootWorldMaze(PyGameWrapper):
                         }
             state.append(bullet_state)
 
-        return state, self.maze
+        global_state = {'maze':self.maze}
+        return {'local':state, 'global':global_state}
 
     def getScore(self):
         return self.score
@@ -227,7 +228,7 @@ class ShootWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['GOOD'] == 0) # or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """

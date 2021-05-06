@@ -7,7 +7,6 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 install_requires = [
     "numpy",
-    "Pillow",
     "pygame"
 ]
 

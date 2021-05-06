@@ -205,7 +205,8 @@ class BomberMan(PyGameWrapper):
                         'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right]
                         }
             state.append(bomb_state)
-        return state, {'bomb_life':self.BOMB_LIFE, 'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
+        global_state = {'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
+        return {'local':state, 'global':global_state}
 
     def getScore(self):
         return self.score

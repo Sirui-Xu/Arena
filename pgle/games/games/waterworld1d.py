@@ -138,7 +138,7 @@ class WaterWorld1d(PyGameWrapper):
                             }
                 state.append(creep_state)
 
-        return state, None
+        return {'local':state, 'global':None}
 
     def getScore(self):
         return self.score

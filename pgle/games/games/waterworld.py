@@ -146,7 +146,7 @@ class WaterWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, None
+        return {'local':state, 'global':None}
 
     def getScore(self):
         return self.score
@@ -155,7 +155,7 @@ class WaterWorld(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) or self.ticks > self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['GOOD'] == 0) # or self.ticks > self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """

@@ -146,7 +146,8 @@ class PacWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, (self.ticks * self.AGENT_SPEED, self.width + self.height)
+        global_state = {'rate_of_progress': (self.ticks * self.AGENT_SPEED) / (self.width + self.height)}
+        return {'local':state, 'global':global_state}
 
     def getScore(self):
         return self.score

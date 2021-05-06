@@ -190,7 +190,8 @@ class WaterWorldMaze(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, self.maze
+        global_state = {'maze':self.maze, 'rate_of_progress':(self.ticks * self.wall_width / self.fps) / (self.N_CREEPS * (self.width + self.height))}
+        return {'local':state, 'global':None}
 
     def getScore(self):
         return self.score

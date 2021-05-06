@@ -190,7 +190,8 @@ class PacWorldMaze(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return state, [self.maze, (self.ticks * self.wall_width / self.fps, (self.width + self.height))]
+        global_state = {'maze':self.maze, 'rate_of_progress': (self.ticks * self.wall_width / self.fps) / (self.width + self.height)}
+        return {'local':state, 'global':global_state}
 
     def getScore(self):
         return self.score
