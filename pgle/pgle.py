@@ -149,7 +149,7 @@ class PGLE(object):
                 time_elapsed = 1 / self.game.fps
                 self.game.step(time_elapsed)
         else:
-            self.game.step(1 / 10)
+            self.game.step(1 / 20)
         
         self._draw_frame()
 

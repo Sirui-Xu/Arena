@@ -29,7 +29,7 @@ class ShootWorld(PyGameWrapper):
                  width=48,
                  height=48,
                  num_creeps=3,
-                 UNIFORM_SPEED=False,
+                 UNIFORM_SPEED=True,
                  NO_SPEED=False):
 
         actions = {
@@ -241,6 +241,8 @@ class ShootWorld(PyGameWrapper):
         self.bullets.update(dt)
         if self.shoot > 0:
             self._add_bullets()
+            self.player.vel.x = 0
+            self.player.vel.y = 0
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps, True)
         for creep in hits:

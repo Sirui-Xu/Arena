@@ -19,8 +19,6 @@ class BomberMan(PyGameWrapper):
         Screen height, recommended to be same dimension as width.
     num_creeps : int (default: 3)
         The number of creeps on the screen at once.
-    UNIFORM_SPEED : bool (default: false)
-        The agent has an uniform speed or not
     NO_SPEED : bool (default: false)
         whether the node can move.
     """
@@ -29,7 +27,6 @@ class BomberMan(PyGameWrapper):
                  width=48,
                  height=48,
                  num_creeps=3,
-                 UNIFORM_SPEED=False,
                  NO_SPEED=False):
 
         actions = {
@@ -56,13 +53,13 @@ class BomberMan(PyGameWrapper):
         self.AGENT_SPEED = width
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = None
-        self.UNIFORM_SPEED = UNIFORM_SPEED
+        self.UNIFORM_SPEED = True
         self.creep_counts = {
             "GOOD": 0
         }
         self.BOMB_COLOR = (70, 30, 30)
         self.BOMB_RADIUS = int(radius * 1.1)
-        self.BOMB_LIFE = 8
+        self.BOMB_LIFE = 4
         self.BOMB_RANGE = 2
 
         self.EXPLODE_COLOR = (120, 220, 180)
@@ -277,6 +274,8 @@ class BomberMan(PyGameWrapper):
         
         if self.shoot > 0:
             self._add_bomb()
+            self.player.vel.x = 0
+            self.player.vel.y = 0
         else:
             hits_before = pygame.sprite.spritecollide(self.player, self.bombs, False)
             assert len(hits_before) <= 1

@@ -29,7 +29,7 @@ class BilliardWorld(PyGameWrapper):
                  width=48,
                  height=48,
                  num_creeps=3,
-                 UNIFORM_SPEED=False,
+                 UNIFORM_SPEED=True,
                  NO_SPEED=False):
 
         actions = {
