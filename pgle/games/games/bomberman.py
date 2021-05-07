@@ -27,7 +27,8 @@ class BomberMan(PyGameWrapper):
                  width=48,
                  height=48,
                  num_creeps=3,
-                 NO_SPEED=False):
+                 NO_SPEED=False,
+                 fps=25):
 
         actions = {
             "up": K_w,
@@ -72,6 +73,15 @@ class BomberMan(PyGameWrapper):
         self.creeps = None
         self.bombs = None
         self.explosion = None
+        self.wall_width = self.CREEP_SPEED / fps
+        vir_size = self.real2vir(self.width, self.height)
+        self.map_shape = [vir_size[0] + 1, vir_size[1] + 1]
+
+    def vir2real(self, x, y):
+        return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
+    
+    def real2vir(self, x, y):
+        return (int(x / self.wall_width), int(y / self.wall_width))
 
     def _handle_player_events(self):
         self.dx = 0
@@ -173,35 +183,41 @@ class BomberMan(PyGameWrapper):
             hits = pygame.sprite.groupcollide(self.bombs, self.explosion, True, False)
 
     def getGameState(self):
+        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
         player_state = {'type':'player', 
                         'type_index': [0, -1], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
+                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
+                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
                        }
 
         state = [player_state]
         for c in self.creeps:
+            vir_pos = self.real2vir(c.pos.x, c.pos.y)
             creep_state = {'type':'creep', 
                         'type_index': [1, -1], 
                         'position': [c.pos.x, c.pos.y],
                         'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                         'speed': c.speed,
-                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
+                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
+                        'discrete_position': [vir_pos[0], vir_pos[1]]
                         }
             state.append(creep_state)
 
         for b in self.bombs:
+            vir_pos = self.real2vir(b.pos.x, b.pos.y)
             bomb_state = {'type':'bomb', 
                         'type_index': [2, b.life], 
                         'position': [b.pos.x, b.pos.y],
                         'velocity': [0, 0],
                         'speed': 0,
-                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right]
+                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right],
+                        'discrete_position': [vir_pos[0], vir_pos[1]]
                         }
             state.append(bomb_state)
-        global_state = {'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
+        global_state = {'map_shape': self.map_shape, 'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
         return {'local':state, 'global':global_state}
 
     def getScore(self):

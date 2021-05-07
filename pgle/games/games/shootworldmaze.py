@@ -188,36 +188,42 @@ class ShootWorldMaze(PyGameWrapper):
 
 
     def getGameState(self):
+        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
+                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
+                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
                        }
 
         state = [player_state]
         for c in self.creeps:
+            vir_pos = self.real2vir(c.pos.x, c.pos.y)
             creep_state = {'type':'creep', 
                         'type_index': 1, 
                         'position': [c.pos.x, c.pos.y],
                         'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                         'speed': c.speed,
-                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
+                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
+                        'discrete_position': [vir_pos[0], vir_pos[1]]
                         }
             state.append(creep_state)
 
         for b in self.bullets:
+            vir_pos = self.real2vir(b.pos.x, b.pos.y)
             bullet_state = {'type':'bullet', 
                         'type_index': 2, 
                         'position': [b.pos.x, b.pos.y],
                         'velocity': [b.direction.x * b.speed, b.direction.y * b.speed],
                         'speed': b.speed,
-                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right]
+                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right],
+                        'discrete_position': [vir_pos[0], vir_pos[1]]
                         }
             state.append(bullet_state)
 
-        global_state = {'maze':self.maze}
+        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze}
         return {'local':state, 'global':global_state}
 
     def getScore(self):
@@ -298,6 +304,8 @@ class ShootWorldMaze(PyGameWrapper):
                 player_pos_new = (self.player.pos.x + self.player.vel.x, self.player.pos.y + self.player.vel.y)
             else:
                 player_pos_new = (self.player.pos.x + self.dx, self.player.pos.y + self.dy) 
+                self.player.last_vel.x = self.dx
+                self.player.last_vel.y = self.dy
             vir_player_pos_new = self.real2vir(*player_pos_new)        
             if self.maze[vir_player_pos_new] != 0:
                 self.player.vel.x = 0

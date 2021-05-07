@@ -31,7 +31,8 @@ class WaterWorld1d(PyGameWrapper):
                  height=48,
                  num_creeps=3,
                  UNIFORM_SPEED=True,
-                 NO_SPEED=False):
+                 NO_SPEED=False,
+                 fps=25):
 
         actions = {
             "left": K_a,
@@ -68,6 +69,15 @@ class WaterWorld1d(PyGameWrapper):
         self.player = None
         self.creeps = None
         self.walls = None
+        self.wall_width = self.CREEP_SPEED / fps
+        vir_size = self.real2vir(self.width, self.height)
+        self.map_shape = [vir_size[0] + 1, vir_size[1] + 1]
+
+    def vir2real(self, x, y):
+        return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
+    
+    def real2vir(self, x, y):
+        return (int(x / self.wall_width), int(y / self.wall_width))
 
     def _handle_player_events(self):
         self.dx = 0
@@ -117,27 +127,33 @@ class WaterWorld1d(PyGameWrapper):
         self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
 
     def getGameState(self):
+        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
+                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
+                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
                        }
 
         state = [player_state]
-        for creeps in self.creeps:
-            for c in creeps:
-                creep_state = {'type':'creep', 
-                            'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 
-                            'position': [c.pos.x, c.pos.y],
-                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
-                            'speed': c.speed,
-                            'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
-                            }
-                state.append(creep_state)
+        order = list(range(len(self.creeps.sprites())))
+        # self.rng.shuffle(order)
+        for i in order:
+            c = self.creeps.sprites()[i]
+            vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            creep_state = {'type':'creep', 
+                           'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                           'speed': c.speed,
+                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
+                           'discrete_position': [vir_pos[0], vir_pos[1]]
+                          }
+            state.append(creep_state)
 
-        return {'local':state, 'global':None}
+        return {'local':state, 'global':{'map_shape':self.map_shape}}
 
     def getScore(self):
         return self.score

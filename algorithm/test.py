@@ -69,7 +69,8 @@ for maze_size in maze_size_list:
                     output_movie.write(env.render())
                 action = algorithm.exe(state)
                 if args.visualize:
-                    print("==> action index is {}.".format(action))
+                    print("==> action index is {}.".format(env.getActionSet()[action]))
+                    print("State: {}".format(state))
                     img = env.render()
                     cv2.imshow('PGLE - {}'.format(game_name), img)
                     c = cv2.waitKey(0)

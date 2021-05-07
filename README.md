@@ -88,15 +88,26 @@ The state contains two part. Here's an example.
 
 ```python
 state = {"local": local_state, "global": global_state}
-local_state = {'type':'player', 
-               'type_index': [0, -1], 
-               'position': [312.47922709924336, 172.58614823932288],
-               'velocity': [0, 512],
-               'speed': 512,
-               'box': [134, 382, 182, 430]
-              }
-global_state = {'maze': np.array # a numpy array where 1 for the wall and 0 for the free space
-                'rate_of_progress': 0.79 # Percentage of game progress. The game ended when 100% progressed.
+local_state = [ {'type': 'player', 'type_index': 0, 'position': [472.5, 402.5], 'velocity': [0, 0], 'speed': 70, 'box': [388, 458, 416, 486], 'discrete_position': [13, 11]}, 
+                {'type': 'creep', 'type_index': 3, 'position': [315.0, 52.5], 'velocity': [35.0, 0.0], 'speed': 35, 'box': [38, 301, 66, 329], 'discrete_position': [9, 1]}, 
+                {'type': 'creep', 'type_index': 2, 'position': [52.5, 280.0], 'velocity': [0.0, -35.0], 'speed': 35, 'box': [266, 38, 294, 66], 'discrete_position': [1, 8]} ]
+global_state = {'map_shape': [15, 15], 
+                'maze': array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                            [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                            [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+                            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+                            [1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+                            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]), # a numpy array where 1 for the wall and 0 for the free space
+                'rate_of_progress': 0.25555555555555554# Percentage of game progress. The game ended when 100% progressed.
                }
 ```
 

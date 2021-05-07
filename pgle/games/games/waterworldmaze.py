@@ -167,12 +167,14 @@ class WaterWorldMaze(PyGameWrapper):
             creep.direction.y = feasible_direction[1]
 
     def getGameState(self):
+        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right]
+                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
+                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
                        }
 
         state = [player_state]
@@ -180,16 +182,18 @@ class WaterWorldMaze(PyGameWrapper):
         # self.rng.shuffle(order)
         for i in order:
             c = self.creeps.sprites()[i]
+            vir_pos = self.real2vir(c.pos.x, c.pos.y)
             creep_state = {'type':'creep', 
                            'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
-                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right]
+                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
+                           'discrete_position': [vir_pos[0], vir_pos[1]]
                           }
             state.append(creep_state)
 
-        global_state = {'maze':self.maze, 'rate_of_progress':(self.ticks * self.wall_width / self.fps) / (self.N_CREEPS * (self.width + self.height))}
+        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze, 'rate_of_progress':(self.ticks * self.wall_width / self.fps) / (self.N_CREEPS * (self.width + self.height))}
         return {'local':state, 'global':global_state}
 
     def getScore(self):
