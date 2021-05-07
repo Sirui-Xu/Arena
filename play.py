@@ -4,6 +4,8 @@ import sys
 from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
 from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
 from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
+import os
+os.environ.pop("SDL_VIDEODRIVER")
 
 lower2upper = {upper.lower():upper for upper in globals().keys()}
 if len(sys.argv) >= 2:

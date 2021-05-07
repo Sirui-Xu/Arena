@@ -1,6 +1,7 @@
 import numpy as np
 import sys
-
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame
 from .games.base.pygamewrapper import PyGameWrapper
 

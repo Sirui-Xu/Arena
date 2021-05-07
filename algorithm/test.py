@@ -1,7 +1,6 @@
 import pygame
 import numpy as np
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
 import sys
 sys.path.append('..')
 from utils import load_game, load_algorithm, NpEncoder
