@@ -138,10 +138,19 @@ class WaterWorld1d(PyGameWrapper):
                        }
 
         state = [player_state]
-        order = list(range(len(self.creeps.sprites())))
-        # self.rng.shuffle(order)
-        for i in order:
-            c = self.creeps.sprites()[i]
+        for c in self.creeps[0]:
+            vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            creep_state = {'type':'creep', 
+                           'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                           'speed': c.speed,
+                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
+                           'discrete_position': [vir_pos[0], vir_pos[1]]
+                          }
+            state.append(creep_state)
+        
+        for c in self.creeps[1]:
             vir_pos = self.real2vir(c.pos.x, c.pos.y)
             creep_state = {'type':'creep', 
                            'type_index': self.CREEP_TYPES.index(c.TYPE) + 1, 

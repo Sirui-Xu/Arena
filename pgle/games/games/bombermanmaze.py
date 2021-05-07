@@ -236,17 +236,19 @@ class BomberManMaze(PyGameWrapper):
 
 
     def getGameState(self):
-        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
-        player_state = {'type':'player', 
-                        'type_index': [0, -1], 
-                        'position': [self.player.pos.x, self.player.pos.y],
-                        'velocity': [self.player.vel.x, self.player.vel.y],
-                        'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
-                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
-                       }
+        state = []
+        if self.player is not None:
+            player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
+            player_state = {'type':'player', 
+                            'type_index': [0, -1], 
+                            'position': [self.player.pos.x, self.player.pos.y],
+                            'velocity': [self.player.vel.x, self.player.vel.y],
+                            'speed': self.AGENT_SPEED,
+                            'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
+                            'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
+                        }
 
-        state = [player_state]
+            state = [player_state]
         for c in self.creeps:
             vir_pos = self.real2vir(c.pos.x, c.pos.y)
             creep_state = {'type':'creep', 
