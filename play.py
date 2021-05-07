@@ -14,7 +14,7 @@ else:
 
 pygame.init()
 if game.__name__[-4:] == "Maze":
-    game = game(width=512, maze_width=7, num_creeps=3)
+    game = game(width=512, maze_width=15, num_creeps=3)
     game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
     game.clock = pygame.time.Clock()
     game.rng = np.random.RandomState(24)
