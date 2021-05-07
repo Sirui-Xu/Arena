@@ -77,10 +77,10 @@ nb_frames = 1000
 reward = 0.0
 
 for f in range(nb_frames):
-	action = myAgent.pickAction(reward, state)
-	state, reward, game_over, info = p.step(action)
+    action = myAgent.pickAction(reward, state)
+    state, reward, game_over, info = p.step(action)
     if game_over: #check if the game is over
-		state = p.reset()
+        state = p.reset()
 
 ```
 
