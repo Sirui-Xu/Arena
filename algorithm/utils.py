@@ -6,10 +6,24 @@ from pgle.games.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, S
 from pgle.games.games import WaterWorld, WaterWorld1d, WaterWorldMaze
 from random_algorithm import RandomAlgorithm
 import pygame
+import json
+import numpy as np
+
 game_names = ['BilliardWorld', 'BilliardWorldMaze', 'BomberMan', 'BomberManMaze',
              'PacWorld', 'PacWorldMaze', 'ShootWorld', 'ShootWorld1d', 'ShootWorldMaze',
              'WaterWorld', 'WaterWorld1d', 'WaterWorldMaze']
 algorithm_names = ['RandomAlgorithm']
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
 
 def load_game(game_name, window_size, maze_width, num_creeps):
     lower2upper = {name.lower():name for name in game_names}

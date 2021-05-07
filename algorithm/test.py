@@ -4,7 +4,7 @@ import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 import sys
 sys.path.append('..')
-from utils import load_game, load_algorithm
+from utils import load_game, load_algorithm, NpEncoder
 from log_utils import Logger
 from pgle import PGLE
 import argparse
@@ -64,7 +64,7 @@ for maze_size in maze_size_list:
             state = env.reset()
             if args.store_video:
                 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-                output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 3, (env.render().shape[0], env.render().shape[1]))
+                output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 5, (env.render().shape[0], env.render().shape[1]))
             for j in range(200):
                 if args.store_video:
                     output_movie.write(env.render())
@@ -83,7 +83,7 @@ for maze_size in maze_size_list:
                 output_movie.release()
             sum_reward += env.score()
             print("==> In case {}, the algorithm got {}.".format(i, env.score()))
-        print("==> The average performance in this setting is {}").format(sum_reward / 100)
+        print("==> The average performance in this setting is {}".format(sum_reward / 100))
         if args.store_data:
             with open(os.path.join('./result/data', "{}_{}_{}_{}_{}.json".format(game_name, alg_name, maze_size, num_creeps, window_size)), 'w') as f:
                 json.dump(data, f, cls=NpEncoder)
