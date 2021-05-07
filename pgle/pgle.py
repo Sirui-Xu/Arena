@@ -42,7 +42,6 @@ class PGLE(object):
             to perform.
         """
         actions = self.game.actions
-
         if (sys.version_info > (3, 0)): #python ver. 3
             if isinstance(actions, dict) or isinstance(actions, dict_values):
                 actions = actions.values()
@@ -50,12 +49,11 @@ class PGLE(object):
             if isinstance(actions, dict):
                 actions = actions.values()
 
-        actions = list(actions) #.values()
+        actions = sorted(list(actions)) #.values()
         #print (actions)
         #assert isinstance(actions, list), "actions is not a list"
 
         actions.append(self.NOOP)
-
         return actions
 
     def getFrameNumber(self):
