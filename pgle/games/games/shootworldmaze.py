@@ -85,7 +85,7 @@ class ShootWorldMaze(PyGameWrapper):
         return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
     
     def real2vir(self, x, y):
-        return (int(x / self.wall_width - 0.5), int(y / self.wall_width - 0.5))
+        return (int(x / self.wall_width), int(y / self.wall_width))
 
     def _handle_player_events(self):
         for event in pygame.event.get():

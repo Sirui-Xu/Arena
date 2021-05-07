@@ -79,7 +79,7 @@ class WaterWorldMaze(PyGameWrapper):
         return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
     
     def real2vir(self, x, y):
-        return (int(x / self.wall_width - 0.5), int(y / self.wall_width - 0.5))
+        return (int(x / self.wall_width), int(y / self.wall_width))
 
     def _handle_player_events(self):
         for event in pygame.event.get():
@@ -270,6 +270,8 @@ class WaterWorldMaze(PyGameWrapper):
                 player_pos_new = (self.player.pos.x + self.dx, self.player.pos.y + self.dy) 
             vir_player_pos_new = self.real2vir(*player_pos_new)        
             if self.maze[vir_player_pos_new] != 0:
+                print(vir_player_pos_new, self.real2vir(self.player.pos.x, self.player.pos.y))
+                print(player_pos_new, (self.player.pos.x, self.player.pos.y))
                 self.player.vel.x = 0
                 self.player.vel.y = 0
                 self.dx = 0
