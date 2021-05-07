@@ -52,7 +52,7 @@ from pgle.games import BilliardWorldMaze
 game = BilliardWorldMaze(width=48, height=48, num_creeps=3)
 ```
 
-You can change the map size and the number of nodes as a test for compositional generalization.
+It's important to change the map size and the number of nodes as a test for compositional generalization.
 
 Next we configure and initialize PGLE:
 
@@ -77,16 +77,39 @@ nb_frames = 1000
 reward = 0.0
 
 for f in range(nb_frames):
-	if p.game_over(): #check if the game is over
-		p.reset()
-
-	obs = p.render()
-	action = myAgent.pickAction(reward, obs)
-	reward = p.step(action)
+	action = myAgent.pickAction(reward, state)
+	state, reward, game_over, info = p.step(action)
+    if game_over: #check if the game is over
+		state = p.reset()
 
 ```
 
+The state contains two part. Here's an example.
+
+```python
+state = {"local": local_state, "global": global_state}
+local_state = {'type':'player', 
+               'type_index': [0, -1], 
+               'position': [312.47922709924336, 172.58614823932288],
+               'velocity': [0, 512],
+               'speed': 512,
+               'box': [134, 382, 182, 430]
+              }
+global_state = {'maze': np.array # a numpy array where 1 for the wall and 0 for the free space
+                'rate_of_progress': 0.79 # Percentage of game progress. The game ended when 100% progressed.
+               }
+```
+
 Just like that we have our agent interacting with our game environment. A specific example can be referred to `algorithm/test.py`
+
+## Test heuristic algorithm
+
+```bash
+cd algorithm
+python test.py --game ${game_name} --algorithm ${algorithmname}
+```
+${game_name} should be one of the available game's name. ${algorithmname} should be something like `randomalgorithm`.
+
 
 ## Acknowledgement
 This environment refers a lot to ntasfi's [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment)
