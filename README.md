@@ -6,6 +6,9 @@
 
 At present, there are five types of object-oriented games in the environment, a total of twelve available games. We are still committed to exploring and developing other games that can be well abstracted into graphs or sets, while this abstraction will not make games particularly simple.
 
+| Game | WaterWorld | PacWorld | BilliardWorld | Shootworld | Bomberman |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| Complexity | $\frac{n}{2}$ | 1 | n | n | n |
 ## Algorithms
 
 We also provide handcrafted algorithms for every game. These algorithms can be used as a baseline for the comparison of graph neural networks, and can also be used as teacher policies for graph neural networks to imitate, since it is not very successful to use graph neural networks directly for reinforcement learning in some of our games at present.
