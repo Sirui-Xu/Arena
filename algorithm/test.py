@@ -63,7 +63,7 @@ for maze_size in maze_size_list:
             state = env.reset()
             if args.store_video:
                 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-                output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 5, (env.render().shape[0], env.render().shape[1]))
+                output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
             for j in range(200):
                 if args.store_video:
                     output_movie.write(env.render())
@@ -78,6 +78,8 @@ for maze_size in maze_size_list:
                 if args.store_data:
                     data.append({'state':state, 'action':action})
                 if game_over:
+                    if args.store_video:
+                        output_movie.write(env.render())
                     break
             if args.store_video:
                 output_movie.release()
