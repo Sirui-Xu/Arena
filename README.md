@@ -106,9 +106,9 @@ Just like that we have our agent interacting with our game environment. A specif
 
 ```bash
 cd algorithm
-python test.py --game ${game_name} --algorithm ${algorithmname}
+python test.py --game ${game_name} --algorithm ${algorithm_name}
 ```
-${game_name} should be one of the available game's name. ${algorithmname} should be something like `randomalgorithm`.
+${game_name} should be one of the available game's name. ${algorithm_name} should be something like `randomalgorithm`.
 
 
 ## Acknowledgement
