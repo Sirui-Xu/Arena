@@ -84,7 +84,7 @@ for f in range(nb_frames):
 
 ```
 
-The state contains two part. Here's an example.
+The state contains the local and the global information. Here's an example.
 
 ```python
 state = {"local": local_state, "global": global_state}
