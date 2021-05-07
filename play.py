@@ -1,9 +1,9 @@
 import pygame
 import numpy as np
 import sys
-from pgle.games.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
-from pgle.games.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
-from pgle.games.games import WaterWorld, WaterWorld1d, WaterWorldMaze
+from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
+from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
+from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
 
 lower2upper = {upper.lower():upper for upper in globals().keys()}
 if len(sys.argv) >= 2:

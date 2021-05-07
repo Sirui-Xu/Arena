@@ -1,9 +1,9 @@
 import pygame
 import sys
 sys.path.append('..')
-from pgle.games.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
-from pgle.games.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
-from pgle.games.games import WaterWorld, WaterWorld1d, WaterWorldMaze
+from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
+from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
+from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
 from random_algorithm import RandomAlgorithm
 import pygame
 import json
