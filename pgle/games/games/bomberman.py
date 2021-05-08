@@ -28,7 +28,7 @@ class BomberMan(PyGameWrapper):
                  height=48,
                  num_creeps=3,
                  NO_SPEED=False,
-                 fps=25):
+                 fps=10):
 
         actions = {
             "up": K_w,

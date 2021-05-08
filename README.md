@@ -46,7 +46,7 @@ If the number of nodes and diameter of the maze graph is $n_w$ and $d_w$
 
 |Game Setting| w/o maze | w/ maze|
 |---|---|---|
-|Graph size| $s$ | $s + n_w$|
+|Graph size| $s$ | $s+n_w$|
 |Graph diameter| $d$ | $d+d_w$|
 ## Algorithms
 

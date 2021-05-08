@@ -31,7 +31,7 @@ class PacWorld(PyGameWrapper):
                  num_creeps=3,
                  UNIFORM_SPEED=True,
                  NO_SPEED=False,
-                 fps=25):
+                 fps=10):
 
         actions = {
             "up": K_w,
