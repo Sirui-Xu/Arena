@@ -6,12 +6,6 @@
 
 At present, there are five types of object-oriented games in the environment, a total of twelve available games. We are still committed to exploring and developing other games that can be well abstracted into graphs or sets, while this abstraction will not make games particularly simple.
 
-**With or without maze**
-
-If there was a wall in the map, the agent could not pass through the wall, but some walls could be destroyed by shooting or placing bombs.
-
-For example, The game WaterWorld with maze is called WaterWorldMaze.
-
 ### WaterWorld
 
 This environment has multiple objects of assorted types and colors. Picking up the wrong object produces a negative reward.
@@ -31,6 +25,14 @@ In this game, the agent needs to avoid the target, but needs to destroy all targ
 ### BomberMan
 
 In this game, the agent needs to avoid the target, but needs to place bomb to destroy all objects.
+
+
+
+**With or without maze**
+
+If there was a wall in the map, the agent could not pass through the wall, but some walls could be destroyed by shooting or placing bombs.
+
+For example, The game WaterWorld with maze is called WaterWorldMaze.
 
 
 **Complexity Analysis**
