@@ -6,25 +6,25 @@
 
 At present, there are five types of object-oriented games in the environment, a total of twelve available games. We are still committed to exploring and developing other games that can be well abstracted into graphs or sets, while this abstraction will not make games particularly simple.
 
-### WaterWorld
+* WaterWorld
 
-This environment has multiple objects of assorted types and colors. Picking up the wrong object produces a negative reward.
+    This environment has multiple objects of assorted types and colors. Picking up the wrong object produces a negative reward.
 
-### PacWorld
+* PacWorld
 
-This environment has multiple objects of assorted colors. The lighter the color, the higher the reward. The agent need to pick up objects in the limited time.
+    This environment has multiple objects of assorted colors. The lighter the color, the higher the reward. The agent need to pick up objects in the limited time.
 
-### BilliardWorld
+* BilliardWorld
 
-This environment has multiple objects of assorted colors. The agent need to pick up objects in order. The order is represented by the color of the object from dark to light.
+    This environment has multiple objects of assorted colors. The agent need to pick up objects in order. The order is represented by the color of the object from dark to light.
 
-### Shootworld
+* Shootworld
 
-In this game, the agent needs to avoid the target, but needs to destroy all targets by shooting.
+    In this game, the agent needs to avoid the target, but needs to destroy all targets by shooting.
 
-### BomberMan
+* BomberMan
 
-In this game, the agent needs to avoid the target, but needs to place bomb to destroy all objects.
+    In this game, the agent needs to avoid the target, but needs to place bomb to destroy all objects.
 
 
 
