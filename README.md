@@ -6,9 +6,48 @@
 
 At present, there are five types of object-oriented games in the environment, a total of twelve available games. We are still committed to exploring and developing other games that can be well abstracted into graphs or sets, while this abstraction will not make games particularly simple.
 
+**With or without maze**
+
+If there was a wall in the map, the agent could not pass through the wall, but some walls could be destroyed by shooting or placing bombs.
+
+For example, The game WaterWorld with maze is called WaterWorldMaze.
+
+### WaterWorld
+
+This environment has multiple objects of assorted types and colors. Picking up the wrong object produces a negative reward.
+
+### PacWorld
+
+This environment has multiple objects of assorted colors. The lighter the color, the higher the reward. The agent need to pick up objects in the limited time.
+
+### BilliardWorld
+
+This environment has multiple objects of assorted colors. The agent need to pick up objects in order. The order is represented by the color of the object from dark to light.
+
+### Shootworld
+
+In this game, the agent needs to avoid the target, but needs to destroy all targets by shooting.
+
+### BomberMan
+
+In this game, the agent needs to avoid the target, but needs to place bomb to destroy all objects.
+
+
+**Complexity Analysis**
+
+assumed that the moving range of each step of the agent is $m_a$. The moving range of each step of the agent is $m_o$. The density of objects in the game is $\rho$ and there are $n$ objects. The number of bombs placed is $n_b$
+
 | Game | WaterWorld | PacWorld | BilliardWorld | Shootworld | Bomberman |
 | ---- | ---- | ---- | ---- | ---- | ---- |
-| Complexity | $\frac{n}{2}$ | 1 | n | n | n |
+| Graph size | $1+\rho(m_a+m_o)$ | 1 | $1+\rho(m_a+m_o)$ | $2+\rho(m_a+m_o)$ | $1+n_b+\rho(m_a+m_o)$ |
+|Graph diameter| 2 |2 | 2 | 3| 3|
+
+If the number of nodes and diameter of the maze graph is $n_w$ and $d_w$
+
+|Game Setting| w/o maze | w/ maze|
+|---|---|---|
+|Graph size| $s$ | $s + n_w$|
+|Graph diameter| $d$ | $d+d_w$|
 ## Algorithms
 
 We also provide handcrafted algorithms for every game. These algorithms can be used as a baseline for the comparison of graph neural networks, and can also be used as teacher policies for graph neural networks to imitate, since it is not very successful to use graph neural networks directly for reinforcement learning in some of our games at present.
