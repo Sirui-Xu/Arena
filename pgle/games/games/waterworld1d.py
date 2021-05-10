@@ -194,7 +194,7 @@ class WaterWorld1d(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return {'local':state, 'global':{'map_shape':self.map_shape}}
+        return {'local':state, 'global':{'map_shape':self.map_shape}, 'rate_of_progress': (self.ticks * self.AGENT_SPEED) / 2 * self.N_CREEPS * (self.width + self.height)}
 
     def getScore(self):
         return self.score
@@ -203,7 +203,7 @@ class WaterWorld1d(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0)
+        return (self.creep_counts['GOOD'] == 0) or self.ticks * self.AGENT_SPEED >= 2 * self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -284,6 +284,7 @@ class WaterWorld1d(PyGameWrapper):
         self.player.draw(self.screen)
         self.creeps[0].draw(self.screen)
         self.creeps[1].draw(self.screen)
+        self.ticks += dt
 
 if __name__ == "__main__":
     import numpy as np
