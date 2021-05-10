@@ -55,7 +55,7 @@ class PacWorldMaze(PyGameWrapper):
         else:
             self.CREEP_SPEED = self.wall_width
         self.AGENT_COLOR = (30, 30, 70)
-        self.AGENT_SPEED = 2 * self.wall_width
+        self.AGENT_SPEED = self.wall_width
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
@@ -168,13 +168,23 @@ class PacWorldMaze(PyGameWrapper):
 
     def getGameState(self):
         player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
+        player_vir_vel = [self.player.vel.x / self.wall_width, self.player.vel.y / self.wall_width]
+        player_vir_spd = self.AGENT_SPEED / self.wall_width
+        player_vir_box = [self.player.rect.left / self.wall_width - 0.5,
+                          self.player.rect.top / self.wall_width - 0.5,     
+                          self.player.rect.right / self.wall_width - 0.5,                       
+                          self.player.rect.bottom / self.wall_width - 0.5, 
+                         ]
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
-                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
+                        'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
+                        'norm_position': [player_vir_pos[0], player_vir_pos[1]],
+                        'norm_velocity': player_vir_vel,
+                        'norm_speed': player_vir_spd,
+                        'norm_box': player_vir_box,
                        }
 
         state = [player_state]
@@ -183,13 +193,23 @@ class PacWorldMaze(PyGameWrapper):
         for i in order:
             c = self.creeps.sprites()[i]
             vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            vir_vel = [c.direction.x * c.speed / self.wall_width, c.direction.y * c.speed / self.wall_width]
+            vir_spd = c.speed / self.wall_width
+            vir_box = [c.rect.left / self.wall_width - 0.5,
+                       c.rect.top / self.wall_width - 0.5, 
+                       c.rect.right / self.wall_width - 0.5,
+                       c.rect.bottom / self.wall_width - 0.5, 
+                      ]
             creep_state = {'type':'creep', 
                            'type_index': c.reward,  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
-                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
-                           'discrete_position': [vir_pos[0], vir_pos[1]]
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'norm_position': [vir_pos[0], vir_pos[1]],
+                           'norm_velocity': vir_vel,
+                           'norm_speed': vir_spd,
+                           'norm_box': vir_box,
                           }
             state.append(creep_state)
 
@@ -254,6 +274,7 @@ class PacWorldMaze(PyGameWrapper):
         self.ticks = 0
         self.lives = -1
         self.dx_next, self.dy_next = 0, 0
+        self._direction_adjustment()
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
@@ -264,6 +285,11 @@ class PacWorldMaze(PyGameWrapper):
             Perform one step of game emulation.
         """
         self.screen.fill(self.BG_COLOR)
+
+        if self.dx_next == 0 and self.dy_next == 0:
+            self._handle_player_events()
+        else:
+            pygame.event.pump()
 
         if self.ticks % self.fps == 0:
             self.score += self.rewards["tick"]
@@ -280,16 +306,11 @@ class PacWorldMaze(PyGameWrapper):
                 self.dx = 0
                 self.dy = 0
 
-            if self.ticks % (self.fps * self.AGENT_SPEED // self.CREEP_SPEED) == 0:
+            if self.ticks != 0:
                 self._direction_adjustment()
 
-        if self.dx_next == 0 and self.dy_next == 0:
-            self._handle_player_events()
-        else:
-            pygame.event.pump()
-
         self.player.update(self.dx, self.dy, 1 / self.fps)                    
-        self.creeps.update(1 / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
+        self.creeps.update(1 / self.fps)
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1

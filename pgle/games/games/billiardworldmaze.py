@@ -53,9 +53,9 @@ class BilliardWorldMaze(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = self.wall_width
+            self.CREEP_SPEED = self.wall_width / 2
         self.AGENT_COLOR = (30, 30, 70)
-        self.AGENT_SPEED = 2 * self.wall_width
+        self.AGENT_SPEED = self.wall_width
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
@@ -92,16 +92,16 @@ class BilliardWorldMaze(PyGameWrapper):
                 key = event.key
 
                 if key == self.actions["left"]:
-                    self.dx_next -= self.wall_width
+                    self.dx_next -= self.AGENT_SPEED
 
                 if key == self.actions["right"]:
-                    self.dx_next += self.wall_width
+                    self.dx_next += self.AGENT_SPEED
 
                 if key == self.actions["up"]:
-                    self.dy_next -= self.wall_width
+                    self.dy_next -= self.AGENT_SPEED
 
                 if key == self.actions["down"]:
-                    self.dy_next += self.wall_width
+                    self.dy_next += self.AGENT_SPEED
 
     def _add_creep(self, creep_type, idx, color):
         # creep_type = self.rng.choice([0, 1])
@@ -140,7 +140,7 @@ class BilliardWorldMaze(PyGameWrapper):
         for creep in self.creeps.sprites():
             creep.speed = self.CREEP_SPEED
             creep_pos_old = (creep.pos.x, creep.pos.y)
-            creep_pos_new = (creep.pos.x + creep.direction.x * creep.speed * 1, creep.pos.y + creep.direction.y * creep.speed * 1)
+            creep_pos_new = (creep.pos.x + creep.direction.x * self.wall_width, creep.pos.y + creep.direction.y * self.wall_width)
             vir_creep_pos_old = self.real2vir(*creep_pos_old)
             vir_creep_pos_new = self.real2vir(*creep_pos_new)
 
@@ -151,7 +151,7 @@ class BilliardWorldMaze(PyGameWrapper):
             feasible_directions = []
             self.rng.shuffle(directions)
             for direction in directions:
-                creep_pos_new_ = (creep.pos.x + direction[0] * creep.speed * 1, creep.pos.y + direction[1] * creep.speed * 1)
+                creep_pos_new_ = (creep.pos.x + direction[0] * self.wall_width, creep.pos.y + direction[1] * self.wall_width)
                 if self.maze[self.real2vir(*creep_pos_new_)] == 0:
                     if direction[0] == -creep.direction.x and direction[1] == -creep.direction.y:
                         feasible_directions.append(direction)
@@ -168,13 +168,23 @@ class BilliardWorldMaze(PyGameWrapper):
         
     def getGameState(self):
         player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
+        player_vir_vel = [self.player.vel.x / self.wall_width, self.player.vel.y / self.wall_width]
+        player_vir_spd = self.AGENT_SPEED / self.wall_width
+        player_vir_box = [self.player.rect.left / self.wall_width - 0.5,
+                          self.player.rect.top / self.wall_width - 0.5,     
+                          self.player.rect.right / self.wall_width - 0.5,                       
+                          self.player.rect.bottom / self.wall_width - 0.5, 
+                         ]
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
-                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
+                        'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
+                        'norm_position': [player_vir_pos[0], player_vir_pos[1]],
+                        'norm_velocity': player_vir_vel,
+                        'norm_speed': player_vir_spd,
+                        'norm_box': player_vir_box,
                        }
 
         state = [player_state]
@@ -182,14 +192,24 @@ class BilliardWorldMaze(PyGameWrapper):
         # self.rng.shuffle(order)
         for i in order:
             c = self.creeps.sprites()[i]
-            vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            vir_pos = [c.pos.x / self.wall_width - 0.5, c.pos.y / self.wall_width - 0.5]
+            vir_vel = [c.direction.x * c.speed / self.wall_width, c.direction.y * c.speed / self.wall_width]
+            vir_spd = c.speed / self.wall_width
+            vir_box = [c.rect.left / self.wall_width - 0.5,
+                       c.rect.top / self.wall_width - 0.5, 
+                       c.rect.right / self.wall_width - 0.5,
+                       c.rect.bottom / self.wall_width - 0.5, 
+                      ]
             creep_state = {'type':'creep', 
                            'type_index': c.idx + 1,  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
-                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
-                           'discrete_position': [vir_pos[0], vir_pos[1]]
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'norm_position': vir_pos,
+                           'norm_velocity': vir_vel,
+                           'norm_speed': vir_spd,
+                           'norm_box': vir_box,
                           }
             state.append(creep_state)
 
@@ -254,6 +274,7 @@ class BilliardWorldMaze(PyGameWrapper):
         self.ticks = 0
         self.lives = -1
         self.dx_next, self.dy_next = 0, 0
+        self._direction_adjustment()
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
@@ -264,6 +285,11 @@ class BilliardWorldMaze(PyGameWrapper):
             Perform one step of game emulation.
         """
         self.screen.fill(self.BG_COLOR)
+
+        if self.dx_next == 0 and self.dy_next == 0:
+            self._handle_player_events()
+        else:
+            pygame.event.pump()
 
         if self.ticks % self.fps == 0:
             self.score += self.rewards["tick"]
@@ -280,16 +306,11 @@ class BilliardWorldMaze(PyGameWrapper):
                 self.dx = 0
                 self.dy = 0
 
-            if self.ticks % (self.fps * self.AGENT_SPEED // self.CREEP_SPEED) == 0:
+            if self.ticks % (self.fps * self.AGENT_SPEED // self.CREEP_SPEED) == 0 and self.ticks != 0:
                 self._direction_adjustment()
 
-        if self.dx_next == 0 and self.dy_next == 0:
-            self._handle_player_events()
-        else:
-            pygame.event.pump()
-
         self.player.update(self.dx, self.dy, 1 / self.fps)                    
-        self.creeps.update(1 / (self.fps * self.AGENT_SPEED // self.CREEP_SPEED))
+        self.creeps.update(1 / self.fps)
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:

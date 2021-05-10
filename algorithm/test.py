@@ -66,12 +66,17 @@ for maze_size in maze_size_list:
                 output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
             for j in range(200):
                 if args.store_video:
-                    output_movie.write(env.render())
+                    img = env.render()
+                    img = np.rot90(img, 1)
+                    img = img[::-1, :, :]
+                    output_movie.write(img)
                 action = algorithm.exe(state)
                 if args.visualize:
-                    print("==> action index is {}.".format(action))
+                    print("==> action is {}.".format(env.getActionName(action)))
                     print("State: {}".format(state))
                     img = env.render()
+                    img = np.rot90(img, 1)
+                    img = img[::-1, :, :]
                     cv2.imshow('PGLE - {}'.format(game_name), img)
                     c = cv2.waitKey(0)
                 state, _, game_over, _ = env.step(action)
@@ -79,7 +84,17 @@ for maze_size in maze_size_list:
                     data.append({'state':state, 'action':action})
                 if game_over:
                     if args.store_video:
-                        output_movie.write(env.render())
+                        img = env.render()
+                        img = np.rot90(img, 1)
+                        img = img[::-1, :, :]
+                        output_movie.write(img)
+                    if args.visualize:
+                        print("State: {}".format(state))
+                        img = env.render()
+                        img = np.rot90(img, 1)
+                        img = img[::-1, :, :]
+                        cv2.imshow('PGLE - {}'.format(game_name), img)
+                        c = cv2.waitKey(0)
                     break
             if args.store_video:
                 output_movie.release()

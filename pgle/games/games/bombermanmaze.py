@@ -239,41 +239,73 @@ class BomberManMaze(PyGameWrapper):
         state = []
         if self.player is not None:
             player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
+            player_vir_vel = [self.player.vel.x / self.wall_width, self.player.vel.y / self.wall_width]
+            player_vir_spd = self.AGENT_SPEED / self.wall_width
+            player_vir_box = [self.player.rect.left / self.wall_width - 0.5,
+                              self.player.rect.top / self.wall_width - 0.5,  
+                              self.player.rect.right / self.wall_width - 0.5,
+                              self.player.rect.bottom / self.wall_width - 0.5, 
+                             ]
+            player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
             player_state = {'type':'player', 
                             'type_index': [0, -1], 
                             'position': [self.player.pos.x, self.player.pos.y],
                             'velocity': [self.player.vel.x, self.player.vel.y],
                             'speed': self.AGENT_SPEED,
-                            'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
-                            'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
-                        }
+                            'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
+                            'norm_position': [player_vir_pos[0], player_vir_pos[1]],
+                            'norm_velocity': player_vir_vel,
+                            'norm_speed': player_vir_spd,
+                            'norm_box': player_vir_box,
+                           }
 
             state = [player_state]
         for c in self.creeps:
             vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            vir_vel = [c.direction.x * c.speed / self.wall_width, c.direction.y * c.speed / self.wall_width]
+            vir_spd = c.speed / self.wall_width
+            vir_box = [c.rect.left / self.wall_width - 0.5,
+                       c.rect.top / self.wall_width - 0.5,  
+                       c.rect.right / self.wall_width - 0.5,
+                       c.rect.bottom / self.wall_width - 0.5, 
+                      ]
             creep_state = {'type':'creep', 
-                        'type_index': [1, -1], 
-                        'position': [c.pos.x, c.pos.y],
-                        'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
-                        'speed': c.speed,
-                        'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
-                        'discrete_position': [vir_pos[0], vir_pos[1]]
-                        }
+                           'type_index': [1, -1], 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                           'speed': c.speed,
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'norm_position': [vir_pos[0], vir_pos[1]],
+                           'norm_velocity': vir_vel,
+                           'norm_speed': vir_spd,
+                           'norm_box': vir_box,
+                          }
             state.append(creep_state)
 
         for b in self.bombs:
             vir_pos = self.real2vir(b.pos.x, b.pos.y)
+            vir_box = [b.rect.left / self.wall_width - 0.5,
+                       b.rect.top / self.wall_width - 0.5,  
+                       b.rect.right / self.wall_width - 0.5,
+                       b.rect.bottom / self.wall_width - 0.5, 
+                      ]
             bomb_state = {'type':'bomb', 
-                        'type_index': [2, b.life], 
-                        'position': [b.pos.x, b.pos.y],
-                        'velocity': [0, 0],
-                        'speed': 0,
-                        'box': [b.rect.top, b.rect.left, b.rect.bottom, b.rect.right],
-                        'discrete_position': [vir_pos[0], vir_pos[1]]
-                        }
+                          'type_index': [2, b.life], 
+                          'position': [b.pos.x, b.pos.y],
+                          'velocity': [0, 0],
+                          'speed': 0,
+                          'box': [b.rect.left, b.rect.top, b.rect.right, b.rect.bottom],
+                          'norm_position': [vir_pos[0], vir_pos[1]],
+                          'norm_velocity': [0, 0],
+                          'norm_speed': 0,
+                          'norm_box': vir_box,
+                         }
             state.append(bomb_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze, 'bomb_range':(self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE)}
+        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'maze':self.maze, 
+                        'bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE],
+                        'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE/self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE/self.wall_width]}
         return {'local':state, 'global':global_state}
 
     def getScore(self):
@@ -350,6 +382,7 @@ class BomberManMaze(PyGameWrapper):
         self.lives = -1
         self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
         self.after_explosion = False
+        self._direction_adjustment()
         self.screen.fill(self.BG_COLOR)
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
@@ -361,8 +394,10 @@ class BomberManMaze(PyGameWrapper):
             Perform one step of game emulation.
         """
         self.screen.fill(self.BG_COLOR)
-        if self.player is None:
-            return
+        if self.dx_next == 0 and self.dy_next == 0 and self.shoot_next == 0:
+            self._handle_player_events()
+        else:
+            pygame.event.pump()
         if self.ticks % self.fps == 0:
             self.bomb_dict = {}
             self.after_explosion = False
@@ -389,37 +424,31 @@ class BomberManMaze(PyGameWrapper):
                 if bomb.life <= 1:
                     self.bomb_dict[(bomb.pos.x, bomb.pos.y)] = (0, [(0,1),(0,-1),(1,0),(-1,0)])
                     bomb.kill()
-
-        if self.dx_next == 0 and self.dy_next == 0 and self.shoot_next == 0:
-            self._handle_player_events()
-        else:
-            pygame.event.pump()
-
-        self.player.update(self.dx, self.dy, 1 / self.fps)   
         self.creeps.update(1 / self.fps)     
         self.bombs.update(1 / self.fps)   
-
-        hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
 
         if len(self.bomb_dict) > 0:
             self.explode()
 
-        self.player.draw(self.screen)
         self.bombs.draw(self.screen)
         self.explosion.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
         self.fix_walls.draw(self.screen)
 
-        if len(hits) != 0:
-            self.player.kill()
-            self.player = None
-            return
+        if self.player is not None:
+            self.player.update(self.dx, self.dy, 1 / self.fps)   
+            self.player.draw(self.screen)
+            hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
+            if len(hits) != 0:
+                self.player.kill()
+                self.player = None
+                return
 
-        hits = pygame.sprite.spritecollide(self.player, self.explosion, False)
-        if len(hits) != 0:
-            self.player.kill()
-            self.player = None
+            hits = pygame.sprite.spritecollide(self.player, self.explosion, False)
+            if len(hits) != 0:
+                self.player.kill()
+                self.player = None
 
         hits = pygame.sprite.groupcollide(self.creeps, self.explosion, True, False)
         for creep in hits.keys():

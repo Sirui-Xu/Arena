@@ -4,6 +4,7 @@ import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame
 from .games.base.pygamewrapper import PyGameWrapper
+from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 class PGLE(object):
     def __init__(self, game):
@@ -21,6 +22,16 @@ class PGLE(object):
         self.game.setRNG(self.rng)
         self.game._setup()
         self.game.init()
+        self.name = self.game.__class__.__name__
+        self.actions = None
+        self.initActionSet()
+        self.actions2name = {
+            K_w:"up",
+            K_a:"left",
+            K_d:"right",
+            K_s:"down",
+            K_SPACE:"fire",
+        }
 
     def init(self):
         """
@@ -32,6 +43,18 @@ class PGLE(object):
         self.game.init() #this is the games setup/init
 
     def getActionSet(self):
+        """
+        Gets the actions the game supports. Optionally inserts the NOOP
+        action if PLE has add_noop_action set to True.
+        Returns
+        --------
+        list of pygame.constants
+            The agent can simply select the index of the action
+            to perform.
+        """
+        return self.actions
+
+    def initActionSet(self):
         """
         Gets the actions the game supports. Optionally inserts the NOOP
         action if PLE has add_noop_action set to True.
@@ -54,7 +77,13 @@ class PGLE(object):
         #assert isinstance(actions, list), "actions is not a list"
 
         actions.append(self.NOOP)
-        return actions
+        self.actions = actions
+
+    def getActionName(self, action):
+        if self.actions[action] == self.NOOP:
+            return "noop"
+        else:
+            return self.actions2name[self.actions[action]]
 
     def getFrameNumber(self):
         """
@@ -142,11 +171,11 @@ class PGLE(object):
             action = self.NOOP
 
         self._setAction(action)
-        if self.game.__class__.__name__[-4:] == "Maze":
+        if self.name[-4:] == "Maze":
             for i in range(self.game.fps):
                 self.game.step()
         else:
-            self.game.step(1000 / 25)
+            self.game.step(1000 / self.game.fps)
         
         self._draw_frame()
 
@@ -202,7 +231,9 @@ class PGLE(object):
 
         if action is not None:
             self.game._setAction(action, self.last_action)
-
+        else:
+            self.game.player.vel.x = 0
+            self.game.player.vel.y = 0
         self.last_action = action
 
     def _getReward(self):

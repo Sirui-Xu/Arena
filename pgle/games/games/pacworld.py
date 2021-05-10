@@ -31,7 +31,7 @@ class PacWorld(PyGameWrapper):
                  num_creeps=3,
                  UNIFORM_SPEED=True,
                  NO_SPEED=False,
-                 fps=10):
+                 fps=20):
 
         actions = {
             "up": K_w,
@@ -53,7 +53,7 @@ class PacWorld(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = 0.5 * width
+            self.CREEP_SPEED = width
         self.AGENT_COLOR = (30, 30, 30)
         self.AGENT_SPEED = width
         self.AGENT_RADIUS = radius
@@ -68,7 +68,8 @@ class PacWorld(PyGameWrapper):
         self.player = None
         self.creeps = None
         self.assigned_values = None
-        self.wall_width = self.CREEP_SPEED / fps
+        self.fps = fps
+        self.wall_width = self.AGENT_SPEED / fps
         vir_size = self.real2vir(self.width, self.height)
         self.map_shape = [vir_size[0] + 1, vir_size[1] + 1]
 
@@ -118,7 +119,7 @@ class PacWorld(PyGameWrapper):
             (5, 25 + 200*color, 10),
             self.CREEP_RADII[creep_type],
             pos,
-            self.rng.choice([-1, 1], 2),
+            self.rng.uniform(-1, 1, size=2),
             self.rng.rand() * self.CREEP_SPEED,
             self.CREEP_REWARD[creep_type] * color / sum_color * self.N_CREEPS,
             self.CREEP_TYPES[creep_type],
@@ -134,28 +135,48 @@ class PacWorld(PyGameWrapper):
 
     def getGameState(self):
         player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
+        player_vir_vel = [self.player.vel.x / self.fps / self.wall_width, self.player.vel.y / self.fps / self.wall_width]
+        player_vir_spd = self.AGENT_SPEED / self.fps / self.wall_width
+        player_vir_box = [self.player.rect.left / self.wall_width - 0.5,
+                          self.player.rect.top / self.wall_width - 0.5,  
+                          self.player.rect.right / self.wall_width - 0.5,
+                          self.player.rect.bottom / self.wall_width - 0.5, 
+                          ]
+
         player_state = {'type':'player', 
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
-                        'velocity': [self.player.vel.x, self.player.vel.y],
-                        'speed': self.AGENT_SPEED,
-                        'box': [self.player.rect.top, self.player.rect.left, self.player.rect.bottom, self.player.rect.right],
-                        'discrete_position': [player_vir_pos[0], player_vir_pos[1]]
+                        'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
+                        'speed': self.AGENT_SPEED / self.fps,
+                        'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
+                        'norm_position': [player_vir_pos[0], player_vir_pos[1]],
+                        'norm_velocity': player_vir_vel,
+                        'norm_speed': player_vir_spd,
+                        'norm_box': player_vir_box,
                        }
-
         state = [player_state]
         order = list(range(len(self.creeps.sprites())))
         # self.rng.shuffle(order)
         for i in order:
             c = self.creeps.sprites()[i]
-            vir_pos = self.real2vir(c.pos.x, c.pos.y)
+            vir_pos = [c.pos.x / self.wall_width - 0.5, c.pos.y / self.wall_width - 0.5]
+            vir_vel = [c.direction.x * c.speed / self.fps / self.wall_width, c.direction.y * c.speed / self.fps / self.wall_width]
+            vir_spd = c.speed / self.fps / self.wall_width
+            vir_box = [c.rect.left / self.wall_width - 0.5,
+                       c.rect.top / self.wall_width - 0.5,   
+                       c.rect.right / self.wall_width - 0.5,
+                       c.rect.bottom / self.wall_width - 0.5,
+                       ]
             creep_state = {'type':'creep', 
                            'type_index': c.reward,  
                            'position': [c.pos.x, c.pos.y],
-                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
-                           'speed': c.speed,
-                           'box': [c.rect.top, c.rect.left, c.rect.bottom, c.rect.right],
-                           'discrete_position': [vir_pos[0], vir_pos[1]]
+                           'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
+                           'speed': c.speed / self.fps,
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'norm_position': vir_pos,
+                           'norm_velocity': vir_vel,
+                           'norm_speed': vir_spd,
+                           'norm_box': vir_box,
                           }
             state.append(creep_state)
 
