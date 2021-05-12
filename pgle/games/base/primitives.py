@@ -39,7 +39,7 @@ class Bomb(pygame.sprite.Sprite):
     def update(self, dt):
 
         self.life -= dt
-        if self.life <= 0:
+        if self.life <= -1:
             self.kill()
 
 

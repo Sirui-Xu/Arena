@@ -143,6 +143,7 @@ class WaterWorld1d(PyGameWrapper):
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
                         'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
+                        'jitter_speed': c.jitter_speed,
                         'norm_position': [player_vir_pos[0], player_vir_pos[1]],
                         'norm_velocity': player_vir_vel,
                         'norm_speed': player_vir_spd,
@@ -194,7 +195,62 @@ class WaterWorld1d(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return {'local':state, 'global':{'map_shape':self.map_shape}, 'rate_of_progress': (self.ticks * self.AGENT_SPEED) / self.N_CREEPS * (self.width + self.height))}
+        return {'local':state, 
+                'global':{'map_shape':self.map_shape, 
+                          'rate_of_progress': ((self.ticks * self.AGENT_SPEED) / self.N_CREEPS * (self.width + self.height)),
+                          'ticks': self.ticks,
+                          'score': self.score
+                         }
+               }
+
+    def loadGameState(self, state):
+        self.creep_counts = {"GOOD": 0, "BAD": 0}
+        if self.creeps is None:
+            self.creeps = [pygame.sprite.Group(), pygame.sprite.Group()]
+        else:
+            self.creeps[0].empty()
+            self.creeps[1].empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+            if info["type"] == "creep":
+                creep_type = info["type_index"] - 1
+                creep = Creep(
+                    self.CREEP_COLORS[creep_type],
+                    self.CREEP_RADII[creep_type],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"] * self.fps,
+                    self.CREEP_REWARD[creep_type],
+                    self.CREEP_TYPES[creep_type],
+                    self.width,
+                    self.height,
+                    info["jitter_speed"]
+                )
+
+                self.creeps[creep_type].add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.screen.fill(self.BG_COLOR)
+        self.player.draw(self.screen)
+        self.creeps[0].draw(self.screen)
+        self.creeps[1].draw(self.screen)
 
     def getScore(self):
         return self.score

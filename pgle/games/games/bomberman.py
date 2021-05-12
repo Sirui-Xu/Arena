@@ -173,7 +173,7 @@ class BomberMan(PyGameWrapper):
     def explode(self):
         self.explosion.empty()
         for bomb in self.bombs:
-            if bomb.life <= 1:
+            if bomb.life < 1 / self.fps:
                 self._cal_explode_pos(bomb)
                 bomb.kill()
 
@@ -250,7 +250,7 @@ class BomberMan(PyGameWrapper):
             state.append(bomb_state)
         global_state = {'map_shape': self.map_shape, 
                         'bomb_range': [self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE], 
-                        'norm_bomb_range': [self.EXPLODE_SHAPE[0]*self.BOMB_RANGE/self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE/self.wall_width]}
+                        'norm_bomb_range': [self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width]}
         return {'local':state, 'global':global_state}
 
     def getScore(self):
@@ -316,7 +316,7 @@ class BomberMan(PyGameWrapper):
         """
         if self.player is None:
             return
-        dt /= 1000.0
+        dt = 1.0 / self.fps
         self.screen.fill(self.BG_COLOR)
 
         self.score += self.rewards["tick"]
@@ -377,12 +377,14 @@ class BomberMan(PyGameWrapper):
         if len(hits) != 0:
             self.player.kill()
             self.player = None
+            self.score -= 1
             return
 
         hits = pygame.sprite.spritecollide(self.player, self.explosion, False)
         if len(hits) != 0:
             self.player.kill()
             self.player = None
+            self.score -= 1
 
         hits = pygame.sprite.groupcollide(self.creeps, self.explosion, True, False)
         for creep in hits.keys():

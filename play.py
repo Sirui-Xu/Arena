@@ -29,6 +29,7 @@ if game.__name__[-4:] == "Maze":
             pygame.display.update()
 
         if game.game_over() is True:
+            print(game.getGameState(), '\n')
             print("The overall score is {}.".format(game.score))
             break
         print(game.getGameState(), '\n')
@@ -43,6 +44,7 @@ else:
         game.step(dt)
         pygame.display.update()
         if game.game_over() is True:
+            print(game.getGameState(), '\n')
             print("The overall score is {}.".format(game.score))
             break
         print(game.getGameState(), '\n')

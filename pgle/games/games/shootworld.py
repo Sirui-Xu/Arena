@@ -62,7 +62,7 @@ class ShootWorld(PyGameWrapper):
             "GOOD": 0
         }
         self.BULLET_TYPE = "BULLET"
-        self.BULLET_COLOR = (60, 30, 90)
+        self.BULLET_COLOR = (70, 30, 30)
         self.BULLET_SPEED = 1.5*width
         self.BULLET_RADIUS = percent_round_int(min(width, height), 0.020)
         self.dx = 0
@@ -167,6 +167,7 @@ class ShootWorld(PyGameWrapper):
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
+                        'last_velocity': [self.player.last_vel.x / self.fps, self.player.last_vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
                         'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
                         'norm_position': [player_vir_pos[0], player_vir_pos[1]],
@@ -191,6 +192,7 @@ class ShootWorld(PyGameWrapper):
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'jitter_speed': c.jitter_speed,
                            'norm_position': vir_pos,
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
@@ -220,7 +222,72 @@ class ShootWorld(PyGameWrapper):
                            }
             state.append(bullet_state)
         
-        return {'local':state, 'global':{'map_shape':self.map_shape}}
+        return {'local':state, 'global':{'map_shape':self.map_shape, 'ticks': self.ticks,
+                                         'score': self.score}}
+
+    def loadGameState(self, state):
+        self.creep_counts = {"GOOD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        if self.bullets is None:
+            self.bullets = pygame.sprite.Group()
+        else:
+            self.bullets.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+                self.player.last_vel.x, self.player.last_vel.y = info["last_velocity"][0], info["last_velocity"][1]
+
+            if info["type"] == "creep":
+                creep_type = info["type_index"] - 1
+                creep = Creep(
+                    self.CREEP_COLORS[creep_type],
+                    self.CREEP_RADII,
+                    info["position"],
+                    info["velocity"],
+                    info["speed"] * self.fps,
+                    self.CREEP_REWARD[creep_type],
+                    self.CREEP_TYPES[creep_type],
+                    self.width,
+                    self.height,
+                    info["jitter_speed"]
+                )
+
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
+            if info["type"] == "bullet":
+                bullet = Bullet(self.BULLET_COLOR, 
+                                self.BULLET_RADIUS, 
+                                info["position"], 
+                                info["velocity"] * self.fps, 
+                                self.BULLET_SPEED, 
+                                self.BULLET_TYPE,
+                                self.width,
+                                self.height)
+                self.bullets.add(bullet)
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.screen.fill(self.BG_COLOR)
+        self.player.draw(self.screen)
+        self.creeps.draw(self.screen)
+        self.bullets.draw(self.screen)
 
     def getScore(self):
         return self.score

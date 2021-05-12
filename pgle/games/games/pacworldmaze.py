@@ -44,7 +44,7 @@ class PacWorldMaze(PyGameWrapper):
         self.N_CREEPS = num_creeps
         self.CREEP_TYPES = ["GOOD", "BAD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
-        radius = percent_round_int(self.wall_width, 0.4)
+        radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
@@ -103,7 +103,7 @@ class PacWorldMaze(PyGameWrapper):
                 if key == self.actions["down"]:
                     self.dy_next += self.wall_width
 
-    def _add_creep(self, creep_type, idx, color, sum_color):
+    def _add_creep(self, creep_type, rand, value):
         # creep_type = self.rng.choice([0, 1])
 
         creep = None
@@ -119,17 +119,17 @@ class PacWorldMaze(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (5, 25 + 200*color, 10),
+            (5, 150*rand+50, 10),
             self.CREEP_RADII[creep_type],
             pos,
             (0, 0),
             self.CREEP_SPEED,
-            self.CREEP_REWARD[creep_type] * color / sum_color * self.N_CREEPS,
+            self.CREEP_REWARD[creep_type] * value * self.N_CREEPS,
             self.CREEP_TYPES[creep_type],
             self.width,
             self.height,
             0,
-            idx
+            150*rand+50,
         )
 
         self.creeps.add(creep)
@@ -206,6 +206,7 @@ class PacWorldMaze(PyGameWrapper):
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'color': c.idx,
                            'norm_position': [vir_pos[0], vir_pos[1]],
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
@@ -213,9 +214,73 @@ class PacWorldMaze(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze, 'rate_of_progress': (self.ticks * self.wall_width / self.fps) / (self.width + self.height)}
+        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'maze':self.maze, 
+                        'rate_of_progress': (self.ticks * self.wall_width / self.fps) / (self.width + self.height),
+                        'ticks': self.ticks,
+                        'score': self.score}
         return {'local':state, 'global':global_state}
 
+    def loadGameState(self, state):
+        self.maze = state["global"]["maze"].copy()
+        self.creep_counts = {"GOOD": 0, "BAD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+            if info["type"] == "creep":
+                reward = info["type_index"]
+                creep = Creep(
+                    (5, info["color"], 10),
+                    self.CREEP_RADII[0],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"],
+                    reward,
+                    self.CREEP_TYPES[0],
+                    self.width,
+                    self.height,
+                    0,
+                    info["color"],
+                )
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[0]] += 1
+
+        if self.walls is None:
+            self.walls = pygame.sprite.Group()
+        else:
+            self.walls.empty()
+
+        for i in range(self.maze.shape[0]):
+            for j in range(self.maze.shape[1]):
+                if self.maze[i, j] == 1:
+                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.dx_next, self.dy_next = 0, 0
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.walls.draw(self.screen)
+        
     def getScore(self):
         return self.score
 
@@ -263,7 +328,7 @@ class PacWorldMaze(PyGameWrapper):
 
         sum_assigned_values = sum(self.assigned_values)
         for i in range(self.N_CREEPS):
-            self._add_creep(0, i, self.assigned_values[i], sum_assigned_values)
+            self._add_creep(0, self.assigned_values[i], self.assigned_values[i] / sum_assigned_values)
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):

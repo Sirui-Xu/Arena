@@ -45,7 +45,7 @@ class BomberManMaze(PyGameWrapper):
         self.N_CREEPS = num_creeps
         self.CREEP_TYPES = ["GOOD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
-        radius = percent_round_int(self.wall_width, 0.4)
+        radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
@@ -305,7 +305,7 @@ class BomberManMaze(PyGameWrapper):
         global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
                         'maze':self.maze, 
                         'bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE],
-                        'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE/self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE/self.wall_width]}
+                        'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width]}
         return {'local':state, 'global':global_state}
 
     def getScore(self):
@@ -421,7 +421,7 @@ class BomberManMaze(PyGameWrapper):
                 self.player.vel.y = 0
             self._direction_adjustment()
             for bomb in self.bombs:
-                if bomb.life <= 1:
+                if bomb.life <= 0.5:
                     self.bomb_dict[(bomb.pos.x, bomb.pos.y)] = (0, [(0,1),(0,-1),(1,0),(-1,0)])
                     bomb.kill()
         self.creeps.update(1 / self.fps)     
@@ -443,12 +443,14 @@ class BomberManMaze(PyGameWrapper):
             if len(hits) != 0:
                 self.player.kill()
                 self.player = None
+                self.score -= 1
                 return
 
             hits = pygame.sprite.spritecollide(self.player, self.explosion, False)
             if len(hits) != 0:
                 self.player.kill()
                 self.player = None
+                self.score -= 1
 
         hits = pygame.sprite.groupcollide(self.creeps, self.explosion, True, False)
         for creep in hits.keys():

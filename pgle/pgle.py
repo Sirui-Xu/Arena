@@ -159,6 +159,24 @@ class PGLE(object):
             It returns a set of local information and a dict of global information.
         """
         return self.game.getGameState()
+    
+    def getEnvState(self):
+        state = {"state":self.getGameState(),
+                 "rng":self.rng,
+                 "last_action":self.last_action,
+                 "action":self.action,
+                 "previous_score":self.previous_score,
+                 "frame_count":self.frame_count,
+                 }
+        return state
+        
+    def loadEnvState(self, state):
+        self.rng = state["rng"]
+        self.last_action = state["last_action"]
+        self.action = state["action"]
+        self.previous_score = state["previous_score"]
+        self.frame_count = state["frame_count"]
+        self.game.loadGameState(state["state"])
 
     def act(self, action):
         """

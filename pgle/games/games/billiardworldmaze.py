@@ -44,7 +44,7 @@ class BilliardWorldMaze(PyGameWrapper):
         self.N_CREEPS = num_creeps
         self.CREEP_TYPES = ["GOOD", "BAD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
-        radius = percent_round_int(self.wall_width, 0.4)
+        radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [

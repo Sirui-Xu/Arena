@@ -102,7 +102,7 @@ class PacWorld(PyGameWrapper):
                 if key == self.actions["down"]:
                     self.dy += self.AGENT_SPEED
 
-    def _add_creep(self, creep_type, idx, color, sum_color):
+    def _add_creep(self, creep_type, rand, value):
         # creep_type = self.rng.choice([0, 1])
 
         creep = None
@@ -116,17 +116,17 @@ class PacWorld(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (5, 25 + 200*color, 10),
+            (5, 150*rand+50, 10),
             self.CREEP_RADII[creep_type],
             pos,
             self.rng.uniform(-1, 1, size=2),
             self.rng.rand() * self.CREEP_SPEED,
-            self.CREEP_REWARD[creep_type] * color / sum_color * self.N_CREEPS,
+            self.CREEP_REWARD[creep_type] * value * self.N_CREEPS,
             self.CREEP_TYPES[creep_type],
             self.width,
             self.height,
             self.rng.rand(),
-            idx
+            150*rand+50
         )
 
         self.creeps.add(creep)
@@ -173,6 +173,8 @@ class PacWorld(PyGameWrapper):
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                           'color': c.idx,
+                           'jitter_speed': c.jitter_speed,
                            'norm_position': vir_pos,
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
@@ -180,8 +182,55 @@ class PacWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        global_state = {'map_shape':self.map_shape, 'rate_of_progress': (self.ticks * self.AGENT_SPEED) / (self.width + self.height)}
+        global_state = {'map_shape':self.map_shape, 
+                        'rate_of_progress': (self.ticks * self.AGENT_SPEED) / (self.width + self.height),
+                        'ticks': self.ticks,
+                        'score': self.score}
         return {'local':state, 'global':global_state}
+
+    def loadGameState(self, state):
+        self.creep_counts = {"GOOD": 0, "BAD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+            if info["type"] == "creep":
+                reward = info["type_index"]
+                creep = Creep(
+                    (5, info["color"], 10),
+                    self.CREEP_RADII[0],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"] * self.fps,
+                    reward,
+                    self.CREEP_TYPES[0],
+                    self.width,
+                    self.height,
+                    info['jitter_speed'],
+                    info["color"],
+                )
+
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[0]] += 1
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
 
     def getScore(self):
         return self.score
@@ -221,7 +270,7 @@ class PacWorld(PyGameWrapper):
 
         sum_assigned_values = sum(self.assigned_values)
         for i in range(self.N_CREEPS):
-            self._add_creep(0, i, self.assigned_values[i], sum_assigned_values)
+            self._add_creep(0, self.assigned_values[i], self.assigned_values[i] / sum_assigned_values)
 
         self.score = 0
         self.ticks = 0

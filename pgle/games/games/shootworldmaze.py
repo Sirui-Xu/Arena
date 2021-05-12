@@ -45,11 +45,11 @@ class ShootWorldMaze(PyGameWrapper):
         self.N_CREEPS = num_creeps
         self.CREEP_TYPES = ["GOOD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
-        radius = percent_round_int(self.wall_width, 0.4)
+        radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
-            self.rewards["positive"]]
+            self.rewards["positive"] * 2]
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
@@ -65,9 +65,9 @@ class ShootWorldMaze(PyGameWrapper):
 
         self.WALL_COLOR = (20, 10, 10)
         self.BULLET_TYPE = "BULLET"
-        self.BULLET_COLOR = (60, 30, 90)
+        self.BULLET_COLOR = (70, 30, 30)
         self.BULLET_SPEED = 2 * self.wall_width
-        self.BULLET_RADIUS = radius // 2
+        self.BULLET_RADIUS = radius
         self.dx = 0
         self.dy = 0
         self.shoot = 0
@@ -201,6 +201,7 @@ class ShootWorldMaze(PyGameWrapper):
                         'type_index': 0, 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
+                        'last_velocity': [self.player.last_vel.x, self.player.last_vel.y],
                         'speed': self.AGENT_SPEED,
                         'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
                         'norm_position': [player_vir_pos[0], player_vir_pos[1]],
@@ -254,8 +255,87 @@ class ShootWorldMaze(PyGameWrapper):
                            }
             state.append(bullet_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze}
+        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'maze':self.maze,
+                        'ticks': self.ticks,
+                        'score': self.score}
         return {'local':state, 'global':global_state}
+
+    def loadGameState(self, state):
+        self.maze = state["global"]["maze"].copy()
+        self.creep_counts = {"GOOD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        if self.bullets is None:
+            self.bullets = pygame.sprite.Group()
+        else:
+            self.bullets.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+                self.player.last_vel.x, self.player.last_vel.y = info["last_velocity"][0], info["last_velocity"][1]
+            if info["type"] == "creep":
+                creep_type = info["type_index"] - 1
+                creep = Creep(
+                    self.CREEP_COLORS[creep_type],
+                    self.CREEP_RADII[creep_type],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"],
+                    self.CREEP_REWARD[creep_type],
+                    self.CREEP_TYPES[creep_type],
+                    self.width,
+                    self.height,
+                    0
+                )
+
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
+            if info["type"] == "bullet":
+                bullet = Bullet(self.BULLET_COLOR, 
+                                self.BULLET_RADIUS, 
+                                info["position"], 
+                                info["velocity"], 
+                                self.BULLET_SPEED, 
+                                self.BULLET_TYPE,
+                                self.width,
+                                self.height)
+                self.bullets.add(bullet)
+
+        if self.walls is None:
+            self.walls = pygame.sprite.Group()
+        else:
+            self.walls.empty()
+
+        for i in range(self.maze.shape[0]):
+            for j in range(self.maze.shape[1]):
+                if self.maze[i, j] == 1:
+                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
+        self.screen.fill(self.BG_COLOR)
+        self.player.draw(self.screen)
+        self.creeps.draw(self.screen)
+        self.walls.draw(self.screen)
+        self.bullets.draw(self.screen)
 
     def getScore(self):
         return self.score
@@ -362,7 +442,7 @@ class ShootWorldMaze(PyGameWrapper):
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
             self.creep_counts[creep.TYPE] -= 1
-            self.score -= creep.reward
+            self.score -= 1
             creep.kill()
 
         hits = pygame.sprite.groupcollide(self.bullets, self.walls, True, False)
