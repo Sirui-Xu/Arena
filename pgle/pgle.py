@@ -32,6 +32,13 @@ class PGLE(object):
             K_s:"down",
             K_SPACE:"fire",
         }
+        self.name2actions = {
+            "up":K_w,
+            "left":K_a,
+            "right":K_d,
+            "down":K_s,
+            "fire":K_SPACE,
+        }
 
     def init(self):
         """
@@ -84,6 +91,12 @@ class PGLE(object):
             return "noop"
         else:
             return self.actions2name[self.actions[action]]
+    
+    def getActionIndex(self, action_name):
+        if action_name == "noop":
+            return len(self.actions) - 1
+        else:
+            return self.actions.index(self.name2actions[action_name])
 
     def getFrameNumber(self):
         """
@@ -169,7 +182,7 @@ class PGLE(object):
                  "frame_count":self.frame_count,
                  }
         return state
-        
+
     def loadEnvState(self, state):
         self.rng = state["rng"]
         self.last_action = state["last_action"]

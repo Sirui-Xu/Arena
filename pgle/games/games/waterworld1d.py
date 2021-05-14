@@ -247,10 +247,10 @@ class WaterWorld1d(PyGameWrapper):
         self.score = state["global"]["score"]
         self.ticks = state["global"]["ticks"]
         self.lives = -1
-        self.screen.fill(self.BG_COLOR)
-        self.player.draw(self.screen)
-        self.creeps[0].draw(self.screen)
-        self.creeps[1].draw(self.screen)
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps[0].draw(self.screen)
+        # self.creeps[1].draw(self.screen)
 
     def getScore(self):
         return self.score

@@ -305,8 +305,89 @@ class BomberManMaze(PyGameWrapper):
         global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
                         'maze':self.maze, 
                         'bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE],
-                        'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width]}
+                        'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width],
+                        'ticks': self.ticks,
+                        'score': self.score}
         return {'local':state, 'global':global_state}
+
+    def loadGameState(self, state):
+        self.maze = state["global"]["maze"].copy()
+        self.creep_counts = {"GOOD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        if self.bombs is None:
+            self.bombs = pygame.sprite.Group()
+        else:
+            self.bombs.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+
+            if info["type"] == "creep":
+                creep_type = info["type_index"][0] - 1
+                creep = Creep(
+                    self.CREEP_COLORS[creep_type],
+                    self.CREEP_RADII[creep_type],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"],
+                    self.CREEP_REWARD[creep_type],
+                    self.CREEP_TYPES[creep_type],
+                    self.width,
+                    self.height,
+                    0
+                )
+
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
+            if info["type"] == "bomb":
+                bomb = Bomb(
+                    self.BOMB_COLOR,
+                    self.BOMB_RADIUS,
+                    info["position"],
+                    info["type_index"][1],
+                    self.BOMB_RANGE,
+                    self.width,
+                    self.height
+                )
+                self.bombs.add(bomb)
+
+        if self.walls is None:
+            self.walls = pygame.sprite.Group()
+        else:
+            self.walls.empty()
+
+        for i in range(self.maze.shape[0]):
+            for j in range(self.maze.shape[1]):
+                if i % 2 == 0 and j % 2 == 0:
+                    self.fix_walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.FIX_WALL_COLOR))
+                elif self.maze[i, j] == 1:
+                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.walls.draw(self.screen)
+        # self.bullets.draw(self.screen)
 
     def getScore(self):
         return self.score

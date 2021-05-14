@@ -323,10 +323,10 @@ class ShootWorld1d(PyGameWrapper):
         self.score = 0
         self.ticks = 0
         self.lives = -1
-        self.screen.fill(self.BG_COLOR)
-        self.player.draw(self.screen)
-        self.creeps.draw(self.screen)
-        self.bullets.draw(self.screen)
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.bullets.draw(self.screen)
 
 
     def step(self, dt):

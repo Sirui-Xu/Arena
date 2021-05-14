@@ -222,7 +222,7 @@ class PacWorldMaze(PyGameWrapper):
         return {'local':state, 'global':global_state}
 
     def loadGameState(self, state):
-        self.maze = state["global"]["maze"].copy()
+        self.maze = state["global"]["maze"]
         self.creep_counts = {"GOOD": 0, "BAD": 0}
         if self.creeps is None:
             self.creeps = pygame.sprite.Group()

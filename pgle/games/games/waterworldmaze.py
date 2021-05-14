@@ -221,7 +221,7 @@ class WaterWorldMaze(PyGameWrapper):
         return {'local':state, 'global':global_state}
 
     def loadGameState(self, state):
-        self.maze = state["global"]["maze"].copy()
+        self.maze = state["global"]["maze"]
         self.creep_counts = {"GOOD": 0, "BAD": 0}
         if self.creeps is None:
             self.creeps = pygame.sprite.Group()
@@ -275,10 +275,10 @@ class WaterWorldMaze(PyGameWrapper):
         self.ticks = state["global"]["ticks"]
         self.lives = -1
         self.dx_next, self.dy_next = 0, 0
-        self.screen.fill(self.BG_COLOR)
-        self.player.draw(self.screen)
-        self.creeps.draw(self.screen)
-        self.walls.draw(self.screen)
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.walls.draw(self.screen)
 
     def getScore(self):
         return self.score

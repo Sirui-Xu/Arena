@@ -331,11 +331,11 @@ class ShootWorldMaze(PyGameWrapper):
         self.ticks = state["global"]["ticks"]
         self.lives = -1
         self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
-        self.screen.fill(self.BG_COLOR)
-        self.player.draw(self.screen)
-        self.creeps.draw(self.screen)
-        self.walls.draw(self.screen)
-        self.bullets.draw(self.screen)
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.walls.draw(self.screen)
+        # self.bullets.draw(self.screen)
 
     def getScore(self):
         return self.score

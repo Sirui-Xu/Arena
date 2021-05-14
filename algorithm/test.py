@@ -70,18 +70,19 @@ for maze_size in maze_size_list:
                     img = np.rot90(img, 1)
                     img = img[::-1, :, :]
                     output_movie.write(img)
-                action = algorithm.exe()
                 if args.visualize:
-                    print("==> action is {}.".format(env.getActionName(action)))
                     print("State: {}".format(state))
                     img = env.render()
                     img = np.rot90(img, 1)
                     img = img[::-1, :, :]
                     cv2.imshow('PGLE - {}'.format(game_name), img)
                     c = cv2.waitKey(0)
+                action = algorithm.exe()
+                if args.visualize:
+                    print("==> action is {}.".format(env.getActionName(action)))
                 state, _, game_over, _ = env.step(action)
                 if args.store_data:
-                    data.append({'state':state, 'action':action})
+                    data.append({'state':state["state"], 'action':action})
                 if game_over:
                     if args.store_video:
                         img = env.render()
