@@ -29,13 +29,13 @@ class NpEncoder(json.JSONEncoder):
         else:
             return super(NpEncoder, self).default(obj)
 
-def load_game(game_name, window_size, maze_width, num_creeps):
+def load_game(game_name, window_size, maze_width, num_creeps, fps):
     lower2upper = {name.lower():name for name in game_names}
     game = globals()[lower2upper[game_name.lower()]]
     if game.__name__[-4:] == "Maze":
         game = game(width=window_size, maze_width=maze_width, num_creeps=num_creeps)
     else:
-        game = game(width=window_size, height=window_size, num_creeps=num_creeps)
+        game = game(width=window_size, height=window_size, num_creeps=num_creeps, fps=fps)
     return game
 
 def load_algorithm(env, alg_name):
