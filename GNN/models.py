@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as gnn
-from torch_geometric.nn import EdgeConv, PointConv
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool
 
@@ -25,7 +24,7 @@ class EdgeConv(nn.Module):
             nn.Linear(1024, 1024, bias=False), nn.GroupNorm(16, 1024), nn.ReLU(),
             nn.Linear(1024, output_dim),
         )
-        self.gnn = EdgeConv(local_nn, aggr='add')
+        self.gnn = gnn.EdgeConv(local_nn, aggr='add')
         self.aggr = aggr
 
         self.reset_parameters()
@@ -143,9 +142,9 @@ class DeeperGCN(torch.nn.Module):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
 
-class MyPointConv(PointConv):
+class MyPointConv(gnn.PointConv):
     def __init__(self, aggr, local_nn=None, global_nn=None, **kwargs):
-        super(PointConv, self).__init__(aggr=aggr, **kwargs)
+        super(gnn.PointConv, self).__init__(aggr=aggr, **kwargs)
         self.local_nn = local_nn
         self.global_nn = global_nn
         self.reset_parameters()

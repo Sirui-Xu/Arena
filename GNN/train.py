@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
-from torch_geometric.data import DataLoader
 import argparse
+from torch_geometric.data import DataLoader
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from utils import Logger, set_random_seed, worker_init_fn, compute_grad_norm, GradualWarmupScheduler, wrap_dataloader, load_model
@@ -26,23 +26,19 @@ parser.add_argument('--num_epochs', type=int, default=200,
                     help='the number of epochs for training')
 parser.add_argument('--checkpoints_path', type=str,
                     help='model to continue to train')
-parser.add_argument('--resume_epoch', type=int,
+parser.add_argument('--resume_epoch', type=int, default=0,
                     help='resume epoch for the saved model')
 parser.add_argument('--model', type=str, default="pointconv",
                     help='model name')
 args = parser.parse_args()
 BATCH_SIZE = 32
 SAVE_EPOCH = 10
-PRINT_EPOCH = 1
+PRINT_EPOCH = 200
 CROSS_ENTROPY = True
-LOSS_BALANCE = True
+LOSS_BALANCE = False
     
 dataset = GamePatch(args)
-policy_net = load_model(model=args.model,
-                        node_dim=dataset[0].x[0].shape[0], 
-                        pos_dim=dataset[0].pos[0].shape[0], 
-                        edge_dim=dataset[0].edge_attr[0].shape[0],
-                        output_dim = dataset[0].y.shape[1])
+policy_net = load_model(model=args.model, dataset=dataset).to(device)
 
 optimizer = optim.Adam([{'params': policy_net.parameters(), 'initial_lr': 1e-3}], 1e-3)
 scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.num_epochs, eta_min=0, last_epoch=args.num_epochs)
@@ -50,7 +46,7 @@ scheduler_warmup = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=5
 optimizer.zero_grad()
 optimizer.step()
 # set logger
-if args.continue_train:
+if args.resume_epoch > 0:
     logger = Logger(filename=os.path.join(args.checkpoints_path, 'log.txt'), mode='a')
     resume_epoch = args.resume_epoch
     save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format(resume_epoch))
@@ -73,7 +69,6 @@ with open(os.path.join(args.checkpoints_path, 'opt.txt'), 'w') as outfile:
 # save cmdline
 with open(os.path.join(args.checkpoints_path, 'cmdline.txt'), 'w') as outfile:
     outfile.write(' '.join(sys.argv))
-
 train_size = int(0.9 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
@@ -92,6 +87,7 @@ val_dataloader = DataLoader(test_dataset,
                             worker_init_fn=worker_init_fn,
                            )
 
+print("==> data size: {}\n".format(len(dataset)))
 if LOSS_BALANCE:
     class_sample_count = sum([data_batch.y for data_batch in dataset])
     weight = torch.sum(class_sample_count) / class_sample_count
@@ -99,7 +95,7 @@ if LOSS_BALANCE:
     weight = weight.squeeze_(0).to('cuda')
     print("loss weight:{}".format(weight))
 else:
-    weight = torch.ones(output_dim).to('cuda')
+    weight = torch.ones(dataset[0].y.shape[1]).to('cuda')
 
 num_epochs = args.num_epochs
 for i_epochs in range(resume_epoch, num_epochs):
