@@ -153,13 +153,13 @@ class MyPointConv(gnn.PointConv):
 
 class PointConv(nn.Module):
     
-    def __init__(self, aggr='max', input_dim=1, edge_dim=4, pos_dim=4, output_dim=5):
+    def __init__(self, aggr='max', input_dim=1, pos_dim=4, edge_dim=4, output_dim=5):
         super().__init__()
 
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
-            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
-            nn.Linear(64, 64),
+            nn.Linear(input_dim, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32),
         )
         self.encoder_pos = nn.Sequential(
             nn.Linear(pos_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
@@ -167,17 +167,28 @@ class PointConv(nn.Module):
             nn.Linear(64, 64),
         )
         local_nn = nn.Sequential(
-            nn.Linear(64 + 64 + 4, 1024, bias=False), nn.GroupNorm(16, 1024), nn.ReLU(),
-            nn.Linear(1024, 1024, bias=False), nn.GroupNorm(16, 1024), nn.ReLU(),
-            nn.Linear(1024, 1024),
+            nn.Linear(32 + 64 + 10, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512),
         )
         global_nn = nn.Sequential(
-            nn.Linear(1024, 1024, bias=False), nn.GroupNorm(16, 1024), nn.ReLU(),
-            nn.Linear(1024, 1024, bias=False), nn.GroupNorm(16, 1024), nn.ReLU(),
-            nn.Linear(1024, output_dim),
+            nn.Linear(512, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256),
+        )
+        gate_nn = nn.Sequential(
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 1),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, output_dim),
         )
         self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
         self.aggr = aggr
+        self.attention = gnn.GlobalAttention(gate_nn)
 
         self.reset_parameters()
 
@@ -196,15 +207,18 @@ class PointConv(nn.Module):
         task_feature = x
         feature = torch.cat([task_feature, pos_feature], dim=1)
         # print(x.shape, pos.shape, pos_feature.shape, feature.shape)
-
         x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
+        x = self.attention(x, batch, size=batch_size)
+        x = F.dropout(x, p=0.1, training=self.training)
+        q = self.decoder(x)
+        '''
         if self.aggr == 'max':
             q = gnn.global_max_pool(x, batch, size=batch_size)
         elif self.aggr == 'sum':
             q = gnn.global_add_pool(x, batch, size=batch_size)
         else:
             raise NotImplementedError()
-
+        '''
         out_dict = {
             'q': q,
             'task_feature': task_feature,
