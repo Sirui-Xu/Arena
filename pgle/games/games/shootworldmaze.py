@@ -198,7 +198,7 @@ class ShootWorldMaze(PyGameWrapper):
                           ]
 
         player_state = {'type':'player', 
-                        'type_index': 0, 
+                        'type_index': [0], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'last_velocity': [self.player.last_vel.x, self.player.last_vel.y],
@@ -221,7 +221,7 @@ class ShootWorldMaze(PyGameWrapper):
                        c.rect.bottom / self.wall_width - 0.5,
                        ]
             creep_state = {'type':'creep', 
-                           'type_index': 1, 
+                           'type_index': [1], 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
@@ -243,7 +243,7 @@ class ShootWorldMaze(PyGameWrapper):
                        b.rect.bottom / self.wall_width - 0.5,
                        ]
             bullet_state = {'type':'bullet', 
-                            'type_index': 2, 
+                            'type_index': [2], 
                             'position': [b.pos.x, b.pos.y],
                             'velocity': [b.direction.x * b.speed, b.direction.y * b.speed],
                             'speed': b.speed,

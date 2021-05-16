@@ -176,7 +176,7 @@ class PacWorldMaze(PyGameWrapper):
                           self.player.rect.bottom / self.wall_width - 0.5, 
                          ]
         player_state = {'type':'player', 
-                        'type_index': 0, 
+                        'type_index': [0, -1], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x, self.player.vel.y],
                         'speed': self.AGENT_SPEED,
@@ -201,7 +201,7 @@ class PacWorldMaze(PyGameWrapper):
                        c.rect.bottom / self.wall_width - 0.5, 
                       ]
             creep_state = {'type':'creep', 
-                           'type_index': c.reward,  
+                           'type_index': [1, c.reward],  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,

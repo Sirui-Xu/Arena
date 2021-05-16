@@ -89,8 +89,10 @@ for frequency in frequency_list:
                     if args.visualize:
                         print("==> action is {}.".format(env.getActionName(action)))
                     state, _, game_over, _ = env.step(action)
+                    action_list = [0 for _ in env.actions]
+                    action_list[action] = 1
                     if args.store_data:
-                        data.append({'state':state, 'action':action})
+                        data.append({'state':state, 'action':action_list})
                     if game_over:
                         if args.store_video:
                             img = env.render()

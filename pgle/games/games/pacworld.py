@@ -144,7 +144,7 @@ class PacWorld(PyGameWrapper):
                           ]
 
         player_state = {'type':'player', 
-                        'type_index': 0, 
+                        'type_index': [0, -1], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
@@ -168,7 +168,7 @@ class PacWorld(PyGameWrapper):
                        c.rect.bottom / self.wall_width - 0.5,
                        ]
             creep_state = {'type':'creep', 
-                           'type_index': c.reward,  
+                           'type_index': [1, c.reward],  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
