@@ -80,7 +80,7 @@ class GamePatch(Dataset):
 if __name__ == "__main__":
     import os.path as osp
     import json
-    data_path = osp.join('../algorithm/result/')
+    data_path = osp.join('../algorithm/result/data/waterworld_greedycollectv1_[7]_[3, 5, 7, 9]_[20]_513.json')
     with open(data_path, 'r') as f:
         data = json.load(f)
     dataset = GamePatch(data)
