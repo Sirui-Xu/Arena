@@ -144,7 +144,7 @@ class WaterWorld(PyGameWrapper):
                           ]
 
         player_state = {'type':'player', 
-                        'type_index': [0], 
+                        'type_index': [0, -1], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
@@ -168,7 +168,7 @@ class WaterWorld(PyGameWrapper):
                        c.rect.bottom / self.wall_width - 0.5,
                        ]
             creep_state = {'type':'creep', 
-                           'type_index': [self.CREEP_TYPES.index(c.TYPE) + 1], 
+                           'type_index': [1, self.CREEP_TYPES.index(c.TYPE)], 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
@@ -206,7 +206,7 @@ class WaterWorld(PyGameWrapper):
                     self.player.vel = vec2d((0.0, 0.0))
                     self.player.rect.center = self.AGENT_INIT_POS
             if info["type"] == "creep":
-                creep_type = info["type_index"] - 1
+                creep_type = info["type_index"][1]
                 creep = Creep(
                     self.CREEP_COLORS[creep_type],
                     self.CREEP_RADII[creep_type],

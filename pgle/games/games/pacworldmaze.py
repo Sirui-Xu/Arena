@@ -244,7 +244,7 @@ class PacWorldMaze(PyGameWrapper):
                     self.player.vel = vec2d((0.0, 0.0))
                     self.player.rect.center = self.AGENT_INIT_POS
             if info["type"] == "creep":
-                reward = info["type_index"]
+                reward = info["type_index"][1]
                 creep = Creep(
                     (5, info["color"], 10),
                     self.CREEP_RADII[0],

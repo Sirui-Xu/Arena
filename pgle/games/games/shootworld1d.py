@@ -242,7 +242,7 @@ class ShootWorld1d(PyGameWrapper):
                     self.player.rect.center = self.AGENT_INIT_POS
 
             if info["type"] == "creep":
-                creep_type = info["type_index"] - 1
+                creep_type = 0
                 creep = Creep(
                     self.CREEP_COLORS[creep_type],
                     self.CREEP_RADII[creep_type],

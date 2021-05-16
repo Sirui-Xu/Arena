@@ -289,7 +289,7 @@ class ShootWorldMaze(PyGameWrapper):
                     self.player.rect.center = self.AGENT_INIT_POS
                 self.player.last_vel.x, self.player.last_vel.y = info["last_velocity"][0], info["last_velocity"][1]
             if info["type"] == "creep":
-                creep_type = info["type_index"] - 1
+                creep_type = 0
                 creep = Creep(
                     self.CREEP_COLORS[creep_type],
                     self.CREEP_RADII[creep_type],
