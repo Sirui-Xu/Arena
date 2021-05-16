@@ -11,11 +11,19 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from models import *
 
 models_name = ['EdgeConv', 'PointConv', 'DeeperGCN']
-def load_model(model, dataset):
-    node_dim=dataset[0].x[0].shape[0] 
-    pos_dim=dataset[0].pos[0].shape[0]
-    edge_dim=dataset[0].edge_attr[0].shape[0]
-    output_dim = dataset[0].y.shape[1]
+
+def load_model_info(dataset):
+    info = {"node_dim": dataset[0].x[0].shape[0],
+            "pos_dim": dataset[0].pos[0].shape[0],
+            "edge_dim": dataset[0].edge_attr[0].shape[0],
+            "output_dim": dataset[0].y.shape[1]}
+    return info
+
+def load_model(model, info):
+    node_dim=info["node_dim"] 
+    pos_dim=info["pos_dim"]
+    edge_dim=info["edge_dim"]
+    output_dim = info["output_dim"]
     lower2upper = {name.lower():name for name in models_name}
     return globals()[lower2upper[model.lower()]](input_dim=node_dim, pos_dim=pos_dim, edge_dim=edge_dim, output_dim=output_dim)
  

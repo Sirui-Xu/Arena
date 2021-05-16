@@ -1,5 +1,4 @@
 import sys
-sys.path.append('../')
 import json
 import numpy as np
 from tqdm import tqdm
@@ -12,14 +11,9 @@ from torch.distributions import Normal
 class GamePatch(Dataset):
     """Provide patches according to GT boxes or proposals"""
 
-    def __init__(self, args, data=None, star_shaped=False, std=None):
+    def __init__(self, data, star_shaped=False, std=None):
 
-        if data is None:
-            data_path = args.dataset
-            with open(data_path, 'r') as f:
-                self.data = json.load(f)
-        else:
-            self.data = data
+        self.data = data
 
         # Note that it is xywh format.
         self.gt_boxes = []

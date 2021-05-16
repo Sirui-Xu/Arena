@@ -7,10 +7,10 @@ from .games.base.pygamewrapper import PyGameWrapper
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
 class PGLE(object):
-    def __init__(self, game):
+    def __init__(self, game, rng=24):
 
         self.game = game
-        self.rng = np.random.RandomState(24)
+        self.rng = np.random.RandomState(rng)
         self.game.setRNG(self.rng)
         # self.init()
         self.NOOP = None

@@ -14,7 +14,7 @@ import argparse
 from torch_geometric.data import DataLoader
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
-from utils import Logger, set_random_seed, worker_init_fn, compute_grad_norm, GradualWarmupScheduler, wrap_dataloader, load_model
+from utils import Logger, set_random_seed, worker_init_fn, compute_grad_norm, GradualWarmupScheduler, wrap_dataloader, load_model, load_model_info
 from dataset import GamePatch
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -36,9 +36,14 @@ SAVE_EPOCH = 10
 PRINT_EPOCH = 200
 CROSS_ENTROPY = True
 LOSS_BALANCE = False
-    
-dataset = GamePatch(args)
-policy_net = load_model(model=args.model, dataset=dataset).to(device)
+
+data_path = args.dataset
+with open(data_path, 'r') as f:
+    data = json.load(f)
+
+dataset = GamePatch(data["data"])
+model_info = load_model_info(dataset)
+policy_net = load_model(model=args.model, info=model_info).to(device)
 
 optimizer = optim.Adam([{'params': policy_net.parameters(), 'initial_lr': 1e-3}], 1e-3)
 scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.num_epochs, eta_min=0, last_epoch=args.num_epochs)
@@ -62,6 +67,19 @@ sys.stdout = logger
 os.makedirs(os.path.join(args.checkpoints_path, 'runs'), exist_ok=True)
 writer = SummaryWriter(os.path.join(args.checkpoints_path, 'runs', time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())))
 
+# save info
+with open(os.path.join(args.checkpoints_path, 'info.json'), 'w') as outfile:
+    dataset_info = data_path.split('/')[-1].split('.')[0].split('_')
+    info = {"game": data["game"],
+            "algorithm": data["algorithm"],
+            "maze_size_list": data["maze_size_list"],
+            "num_creeps_list": data["num_creeps_list"],
+            "frequency_list": data["frequency_list"],
+            "window_size": data["window_size"],
+            "model": args.model,
+            "model_info": model_info}
+    json.dump(info, outfile)
+    
 # save options
 with open(os.path.join(args.checkpoints_path, 'opt.txt'), 'w') as outfile:
     outfile.write(json.dumps(vars(args), indent=2))

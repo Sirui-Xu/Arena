@@ -115,4 +115,11 @@ for frequency in frequency_list:
 print(len(data))
 if args.store_data:
     with open(os.path.join('./result/data/', "{}_{}_{}_{}_{}_{}.json".format(game_name, alg_name, maze_size_list, num_creeps_list, frequency_list, window_size)), 'w') as f:
-        json.dump(data, f, cls=NpEncoder)
+        info = {"game": game_name,
+                "algorithm": alg_name,
+                "maze_size_list": maze_size_list,
+                "num_creeps_list": num_creeps_list,
+                "frequency_list": frequency_list,
+                "window_size": window_size_initial}
+        info["data"] = data
+        json.dump(info, f, cls=NpEncoder)
