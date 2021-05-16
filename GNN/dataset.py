@@ -57,7 +57,7 @@ class GamePatch(Dataset):
         
         classes_tensor = torch.tensor(self.gt_classes[index], dtype=torch.float32)
 
-        n = boxes_xyxy_tensor.size(0)
+        n = boxes_tensor.size(0)
         if self.star_shaped:
             edge_index = torch.tensor([[0, j] for j in range(1, n)], dtype=torch.long).transpose(0, 1)
             # edge_attr = torch.cat([(boxes_tensor[j] - boxes_tensor[0]).unsqueeze(0) for j in range(1, n)], dim=0)
@@ -70,11 +70,11 @@ class GamePatch(Dataset):
         target = data["action"]
         target = torch.tensor(target, dtype=torch.float32).unsqueeze(0)
         out = Data(
-            x=patches,
+            x=classes_tensor,
             y=target,
             edge_index=edge_index.long(),
             edge_attr=edge_attr.float(),
-            pos=boxes_xyxy_tensor.float(),
+            pos=boxes_tensor.float(),
             idx=torch.tensor([index], dtype=torch.int64),  # for visualization and dp
             size=torch.tensor([1], dtype=torch.int64),  # indicate batch size
         )

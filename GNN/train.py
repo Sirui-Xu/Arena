@@ -11,16 +11,18 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torch_geometric.data import DataLoader
+import argparse
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from utils import Logger, set_random_seed, worker_init_fn, compute_grad_norm, GradualWarmupScheduler, wrap_dataloader, load_model
+from dataset import GamePatch
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, required=True,
                     help='input the dataset name')
-parser.add_argument('--num_epoch', type=int, default=200,
+parser.add_argument('--num_epochs', type=int, default=200,
                     help='the number of epochs for training')
 parser.add_argument('--checkpoints_path', type=str,
                     help='model to continue to train')
@@ -28,7 +30,6 @@ parser.add_argument('--resume_epoch', type=int,
                     help='resume epoch for the saved model')
 parser.add_argument('--model', type=str, default="pointconv",
                     help='model name')
-parser.add_argument()
 args = parser.parse_args()
 BATCH_SIZE = 32
 SAVE_EPOCH = 10
@@ -91,7 +92,7 @@ val_dataloader = DataLoader(test_dataset,
                             worker_init_fn=worker_init_fn,
                            )
 
-if args.loss_balance:
+if LOSS_BALANCE:
     class_sample_count = sum([data_batch.y for data_batch in dataset])
     weight = torch.sum(class_sample_count) / class_sample_count
     weight /= torch.sum(weight)
