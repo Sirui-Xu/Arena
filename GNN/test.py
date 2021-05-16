@@ -92,8 +92,6 @@ for frequency in frequency_list:
                         cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
                     action = algorithm.exe()
-                    if args.visualize:
-                        print("==> action is {}.".format(env.getActionName(action)))
                     action_list = [0 for _ in env.actions]
                     action_list[action] = 1
                     data = [{'state':state, 'action':action_list}]
@@ -111,7 +109,8 @@ for frequency in frequency_list:
                             else:
                                 loss = F.mse_loss(q, data_torch.y, reduction='mean')
                             losses += loss
-
+                    if args.visualize:
+                        print("==> action is {}.".format(env.getActionName(_action)))
                     state, _, game_over, _ = env.step(_action)
                     if game_over:
                         if args.store_video:

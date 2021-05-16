@@ -76,3 +76,19 @@ class GamePatch(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+if __name__ == "__main__":
+    import os.path as osp
+    import json
+    data_path = osp.join('../algorithm/result/')
+    with open(data_path, 'r') as f:
+        data = json.load(f)
+    dataset = GamePatch(data)
+    node_dim = dataset[0].x[0].shape[0]
+    pos_dim = dataset[0].pos[0].shape[0]
+    print(len(dataset), node_dim, pos_dim)
+    for i in tqdm(range(10)):
+        data = dataset[i]
+        print(data.x) 
+        print(data.y)
+        print(data.pos)
