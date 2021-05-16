@@ -74,16 +74,10 @@ for frequency in frequency_list:
                     output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
                 for j in range(200):
                     if args.store_video:
-                        img = env.render()
-                        img = np.rot90(img, 1)
-                        img = img[::-1, :, :]
-                        output_movie.write(img)
+                        output_movie.write(env.render())
                     if args.visualize:
                         print("State: {}".format(state))
-                        img = env.render()
-                        img = np.rot90(img, 1)
-                        img = img[::-1, :, :]
-                        cv2.imshow('PGLE - {}'.format(game_name), img)
+                        cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
                     action = algorithm.exe()
                     if args.visualize:
@@ -95,16 +89,10 @@ for frequency in frequency_list:
                         data.append({'state':state, 'action':action_list})
                     if game_over:
                         if args.store_video:
-                            img = env.render()
-                            img = np.rot90(img, 1)
-                            img = img[::-1, :, :]
-                            output_movie.write(img)
+                            output_movie.write(env.render())
                         if args.visualize:
                             print("State: {}".format(state))
-                            img = env.render()
-                            img = np.rot90(img, 1)
-                            img = img[::-1, :, :]
-                            cv2.imshow('PGLE - {}'.format(game_name), img)
+                            cv2.imshow('PGLE - {}'.format(game_name), env.render())
                             c = cv2.waitKey(0)
                         break
                 if args.store_video:

@@ -61,7 +61,7 @@ resume_epoch = args.resume_epoch
 save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format(resume_epoch))
 save_state = torch.load(save_path)
 policy_net.load_state_dict(save_state['policy_net'])
-
+policy_net.eval()
 print("==> Test setting:{}".format(info))
 t = 100
 for frequency in frequency_list:
@@ -86,16 +86,10 @@ for frequency in frequency_list:
                 losses = 0
                 for j in range(200):
                     if args.store_video:
-                        img = env.render()
-                        img = np.rot90(img, 1)
-                        img = img[::-1, :, :]
-                        output_movie.write(img)
+                        output_movie.write(env.render())
                     if args.visualize:
                         print("State: {}".format(state))
-                        img = env.render()
-                        img = np.rot90(img, 1)
-                        img = img[::-1, :, :]
-                        cv2.imshow('PGLE - {}'.format(game_name), img)
+                        cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
                     action = algorithm.exe()
                     if args.visualize:
@@ -121,16 +115,10 @@ for frequency in frequency_list:
                     state, _, game_over, _ = env.step(_action)
                     if game_over:
                         if args.store_video:
-                            img = env.render()
-                            img = np.rot90(img, 1)
-                            img = img[::-1, :, :]
-                            output_movie.write(img)
+                            output_movie.write(env.render())
                         if args.visualize:
                             print("State: {}".format(state))
-                            img = env.render()
-                            img = np.rot90(img, 1)
-                            img = img[::-1, :, :]
-                            cv2.imshow('PGLE - {}'.format(game_name), img)
+                            cv2.imshow('PGLE - {}'.format(game_name), env.render())
                             c = cv2.waitKey(0)
                         break
                 if args.store_video:

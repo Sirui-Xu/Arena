@@ -302,7 +302,8 @@ class BomberManMaze(PyGameWrapper):
                          }
             state.append(bomb_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
+        global_state = {'norm_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'shape': [self.width, self.height],
                         'maze':self.maze, 
                         'bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE],
                         'norm_bomb_range':[self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width],

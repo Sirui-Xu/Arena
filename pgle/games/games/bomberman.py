@@ -248,7 +248,8 @@ class BomberMan(PyGameWrapper):
                           'norm_box': vir_box,
                          }
             state.append(bomb_state)
-        global_state = {'map_shape': self.map_shape, 
+        global_state = {'norm_shape': self.map_shape, 
+                        'shape': [self.width, self.height],
                         'bomb_range': [self.EXPLODE_SHAPE[0]*self.BOMB_RANGE, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE], 
                         'norm_bomb_range': [self.EXPLODE_SHAPE[0]*self.BOMB_RANGE//self.wall_width, self.EXPLODE_SHAPE[1]*self.BOMB_RANGE//self.wall_width]}
         return {'local':state, 'global':global_state}

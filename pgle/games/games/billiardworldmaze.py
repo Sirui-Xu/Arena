@@ -210,11 +210,69 @@ class BilliardWorldMaze(PyGameWrapper):
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
                            'norm_box': vir_box,
+                           '_type': c.TYPE,
                           }
             state.append(creep_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 'maze':self.maze, 'rate_of_progress':self.ticks * self.wall_width / self.fps / (self.N_CREEPS * (self.width + self.height))}
+        global_state = {'norm_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'maze':self.maze, 
+                        'shape': [self.width, self.height],
+                        'rate_of_progress':self.ticks * self.wall_width / self.fps / (self.N_CREEPS * (self.width + self.height)),
+                        'ticks': self.ticks,
+                        'score': self.score}
         return {'local':state, 'global':global_state}
+
+    def loadGameState(self, state):
+        self.maze = state["global"]["maze"]
+        self.creep_counts = {"GOOD": 0, "BAD": 0}
+        if self.creeps is None:
+            self.creeps = pygame.sprite.Group()
+        else:
+            self.creeps.empty()
+        for info in state["local"]:
+            if info["type"] == "player":
+                self.AGENT_INIT_POS = info["position"]
+                if self.player is None:
+                    self.player = Player(
+                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                        self.AGENT_SPEED, self.AGENT_INIT_POS,
+                        self.width, self.height,
+                        self.UNIFORM_SPEED
+                    )
+
+                else:
+                    self.player.pos = vec2d(self.AGENT_INIT_POS)
+                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.rect.center = self.AGENT_INIT_POS
+            if info["type"] == "creep":
+                creep_type = self.CREEP_TYPES.index(info["_type"])
+                creep = Creep(
+                    (5, self.assigned_values[info["type_index"][1]]*200 + 25, 10),
+                    self.CREEP_RADII[creep_type],
+                    info["position"],
+                    info["velocity"],
+                    info["speed"],
+                    self.CREEP_REWARD[creep_type],
+                    info["_type"],
+                    self.width,
+                    self.height,
+                    0,
+                    info["type_index"][1]
+                )
+                
+                self.creeps.add(creep)
+
+                self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
+
+        self.score = state["global"]["score"]
+        self.ticks = state["global"]["ticks"]
+        self.lives = -1
+        self.dx_next, self.dy_next = 0, 0
+        # self.screen.fill(self.BG_COLOR)
+        # self.player.draw(self.screen)
+        # self.creeps.draw(self.screen)
+        # self.walls.draw(self.screen)
+
 
     def getScore(self):
         return self.score

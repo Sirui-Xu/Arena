@@ -171,6 +171,7 @@ class WaterWorld1d(PyGameWrapper):
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
                            'norm_box': vir_box,
+                           '_type': c.TYPE,
                           }
             state.append(creep_state)
         for c in self.creeps[1]:
@@ -192,11 +193,13 @@ class WaterWorld1d(PyGameWrapper):
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
                            'norm_box': vir_box,
+                           '_type': c.TYPE,
                           }
             state.append(creep_state)
 
         return {'local':state, 
-                'global':{'map_shape':self.map_shape, 
+                'global':{'norm_shape':self.map_shape, 
+                          'shape': [self.width, self.height],
                           'rate_of_progress': ((self.ticks * self.AGENT_SPEED) / self.N_CREEPS * (self.width + self.height)),
                           'ticks': self.ticks,
                           'score': self.score

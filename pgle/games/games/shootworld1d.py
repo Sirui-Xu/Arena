@@ -212,7 +212,7 @@ class ShootWorld1d(PyGameWrapper):
                            }
             state.append(bullet_state)
         
-        return {'local':state, 'global':{'map_shape':self.map_shape, 'ticks': self.ticks,
+        return {'local':state, 'global':{'norm_shape':self.map_shape, 'ticks': self.ticks, 'shape': [self.width, self.height],
                                          'score': self.score}}
 
     def loadGameState(self, state):

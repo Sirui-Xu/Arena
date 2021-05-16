@@ -255,7 +255,8 @@ class ShootWorldMaze(PyGameWrapper):
                            }
             state.append(bullet_state)
 
-        global_state = {'map_shape':[self.maze.shape[0], self.maze.shape[1]], 
+        global_state = {'norm_shape':[self.maze.shape[0], self.maze.shape[1]], 
+                        'shape': [self.width, self.height],
                         'maze':self.maze,
                         'ticks': self.ticks,
                         'score': self.score}

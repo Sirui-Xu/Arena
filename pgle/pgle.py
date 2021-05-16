@@ -150,8 +150,11 @@ class PGLE(object):
             Returns a numpy array with the shape (width, height, 3).
         """
 
-        return self.game.getScreenRGB()
-
+        img = self.game.getScreenRGB()
+        img = np.rot90(img, 1)
+        img = img[::-1, :, :]
+        return img
+    
     def getScreenDims(self):
         """
         Gets the games screen dimensions.

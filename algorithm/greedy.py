@@ -71,7 +71,7 @@ class GreedyCollectV0:
         player_pos = env_state["state"]["local"][0]["position"]
         min_dis = [self.env.game.width + 1, self.env.game.height + 1]
         for info in env_state["state"]["local"]:
-            if info["type_index"][1] == 0:
+            if info["type"] == "creep" and info["_type"] == "GOOD":
                 creep_pos = info["position"]
                 dis = [creep_pos[0] - player_pos[0], creep_pos[1] - player_pos[1]]
                 if dis[0] * dis[0] + dis[1] * dis[1] < min_dis[0] * min_dis[0] + min_dis[1] * min_dis[1]:
@@ -111,7 +111,7 @@ class GreedyCollectV1:
         player_pos = env_state["state"]["local"][0]["position"]
         min_dis = [self.env.game.width + 1, self.env.game.height + 1]
         for info in env_state["state"]["local"]:
-            if info["type_index"][1] == 0:
+            if info["type"] == "creep" and info["_type"] == "GOOD":
                 creep_pos = info["position"]
                 dis = [creep_pos[0] - player_pos[0], creep_pos[1] - player_pos[1]]
                 if dis[0] * dis[0] + dis[1] * dis[1] < min_dis[0] * min_dis[0] + min_dis[1] * min_dis[1]:

@@ -182,7 +182,8 @@ class PacWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        global_state = {'map_shape':self.map_shape, 
+        global_state = {'norm_shape':self.map_shape, 
+                        'shape': [self.width, self.height],
                         'rate_of_progress': (self.ticks * self.AGENT_SPEED) / (self.width + self.height),
                         'ticks': self.ticks,
                         'score': self.score}

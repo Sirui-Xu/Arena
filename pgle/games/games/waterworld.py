@@ -178,10 +178,11 @@ class WaterWorld(PyGameWrapper):
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
                            'norm_box': vir_box,
+                           '_type': c.TYPE,
                           }
             state.append(creep_state)
 
-        return {'local':state, 'global':{'map_shape':self.map_shape, 'ticks': self.ticks,
+        return {'local':state, 'global':{'norm_shape':self.map_shape, 'ticks': self.ticks, 'shape': [self.width, self.height],
                                          'score': self.score}}
 
     def loadGameState(self, state):

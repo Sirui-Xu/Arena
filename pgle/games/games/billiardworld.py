@@ -180,7 +180,7 @@ class BilliardWorld(PyGameWrapper):
                           }
             state.append(creep_state)
 
-        return {'local':state, 'global':{'map_shape':self.map_shape}}
+        return {'local':state, 'global':{'norm_shape':self.map_shape, 'shape': [self.width, self.height],}}
 
     def getScore(self):
         return self.score
