@@ -63,15 +63,19 @@ for frequency in frequency_list:
             print("==> maze size: {}".format(maze_size))
             print("==> number of creeps: {}".format(num_creeps))
             print("==> decision frequency: {}".format(frequency))
+
             game = load_game(game_name, window_size, maze_size, num_creeps, frequency)
             env = PGLE(game)
             algorithm = load_algorithm(env, alg_name)
+
             sum_reward = 0
             for i in range(t):
                 state = env.reset()
+
                 if args.store_video:
                     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
                     output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
+                
                 for j in range(200):
                     if args.store_video:
                         output_movie.write(env.render())
@@ -79,14 +83,16 @@ for frequency in frequency_list:
                         print("State: {}".format(state))
                         cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
+
                     action = algorithm.exe()
-                    if args.visualize:
-                        print("==> action is {}.".format(env.getActionName(action)))
-                    state, _, game_over, _ = env.step(action)
-                    action_list = [0 for _ in env.actions]
-                    action_list[action] = 1
+                    
                     if args.store_data:
+                        action_list = [0 for _ in env.actions]
+                        action_list[action] = 1
                         data.append({'state':state, 'action':action_list})
+
+                    state, _, game_over, _ = env.step(action)
+
                     if game_over:
                         if args.store_video:
                             output_movie.write(env.render())
@@ -95,6 +101,7 @@ for frequency in frequency_list:
                             cv2.imshow('PGLE - {}'.format(game_name), env.render())
                             c = cv2.waitKey(0)
                         break
+                    
                 if args.store_video:
                     output_movie.release()
                 sum_reward += env.score()

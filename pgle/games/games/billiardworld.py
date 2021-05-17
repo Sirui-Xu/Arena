@@ -49,7 +49,7 @@ class BilliardWorld(PyGameWrapper):
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
             self.rewards["positive"],
-            self.rewards["negative"]]
+            self.rewards["negative"]*1.1]
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
@@ -306,7 +306,7 @@ class BilliardWorld(PyGameWrapper):
                 self.score += 1
                 creep.kill()
             else:
-                self.score += -1
+                self.score += -1.1
                 self._add_creep(1, creep.idx, self.assigned_values[creep.idx])
                 creep.kill()
                 self.creep_counts["BAD"] -= 1

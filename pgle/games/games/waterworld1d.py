@@ -48,7 +48,7 @@ class WaterWorld1d(PyGameWrapper):
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
             self.rewards["positive"],
-            self.rewards["negative"]]
+            self.rewards["negative"]*1.1]
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:

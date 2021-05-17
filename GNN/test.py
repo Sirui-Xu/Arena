@@ -38,11 +38,9 @@ maze_size_list = info["maze_size_list"]
 if game_name[:4] == "Maze":
     maze_size_list.extend([2*maze_size for maze_size in maze_size_list])
     maze_size_list = set(maze_size_list)
-    info["maze_size_list"] = maze_size_list
 num_creeps_list = info["num_creeps_list"]
 num_creeps_list.extend([2*num_creeps for num_creeps in num_creeps_list])
 num_creeps_list = set(num_creeps_list)
-info["num_creeps_list"] = num_creeps_list
 frequency_list = info["frequency_list"]
 frequency_list.extend([frequency_list[i] + (frequency_list[i + 1] - frequency_list[i]) * random.random()  for i in range(len(frequency_list) - 1)])
 model = info["model"]
