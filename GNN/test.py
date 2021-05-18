@@ -15,6 +15,7 @@ import json
 import cv2
 import torch.nn.functional as F
 from torch_geometric.data import DataLoader
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 parser = argparse.ArgumentParser()
@@ -39,8 +40,7 @@ if game_name[:4] == "Maze":
     maze_size_list.extend([2*maze_size for maze_size in maze_size_list])
     maze_size_list = set(maze_size_list)
 num_creeps_list = info["num_creeps_list"]
-num_creeps_list.extend([2*num_creeps for num_creeps in num_creeps_list])
-num_creeps_list = set(num_creeps_list)
+num_creeps_list.extend([num_creeps_list[-1] + _ for _ in range(1, num_creeps_list[-1] - num_creeps_list[0] + 1)])
 frequency_list = info["frequency_list"]
 frequency_list.extend([frequency_list[i] + (frequency_list[i + 1] - frequency_list[i]) * random.random()  for i in range(len(frequency_list) - 1)])
 model = info["model"]
@@ -76,7 +76,7 @@ for frequency in frequency_list:
             algorithm = load_algorithm(env, alg_name)
             sum_reward = 0
             sum_losses = 0
-            for i in range(t):
+            for i in tqdm(range(t)):
                 state = env.reset()
                 if args.store_video:
                     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
@@ -121,8 +121,8 @@ for frequency in frequency_list:
                 if args.store_video:
                     output_movie.release()
                 sum_reward += env.score()
-                print("==> In case {}, the model got {}.".format(i, env.score()))
-                print("==> The disparity (loss) between teacher policy and student model: {}.".format(losses / j))
+                # print("==> In case {}, the model got {}.".format(i, env.score()))
+                # print("==> The disparity (loss) between teacher policy and student model: {}.".format(losses / j))
                 sum_losses += losses / j
             print("==> The average disparity (loss) between teacher policy and student model: {}.".format(sum_losses / t))
             print("==> The average performance in this setting is {}".format(sum_reward / t))

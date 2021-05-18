@@ -3,100 +3,52 @@ import random
 import sys
 import numpy as np
 
+def circle2box(pos, radius):
+    return (pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius)
+
 def in_box(point, box):
     return point[0] <= box[2] and point[0] >= box[0] and point[1] <= box[3] and point[1] >= box[1] 
 
-class Planning:
+class PlanningCollect:
     def __init__(self, env):
         self.n_action = len(env.getActionSet())
         self.name = env.name
         self.env = env
-        self.with_maze = (self.name[-4:] == "Maze")
-        self.with_bomb = (self.name[:6] == "Bomber")
-        self.with_bullet = (self.name[:5] == "Shoot")
-        self.1d = (self.name[-2:] == "1d")
-        self.state = env.getGameState()
-        self.good_map = np.zeros(self.state["global"]["map_shape"])
-        self.bad_map = np.zeros(self.state["global"]["map_shape"])
-        self.map_shape = self.state["global"]["map_shape"]
-        self.maze = None
-        if with_maze:
-            self.maze = self.state["global"]["maze"]
-        self.gap = 0.5
-        self.pos = None
-        self.init_map()
-
-    def judge_creep(self, type_index):
-        if self.name[:8] == "Billiard" or self.name[:5] == "Water":
-            if type_index == 1:
-                return -1
-            else:
-                return 1
-        
-        if self.name[:3] == "Pac":
-            return -1
-
-        return 1
-
+        assert self.name[:5] == "Water" or self.name[:8] == "Billiard"
+        assert self.name[-2:] != "1d" and self.name[-4:] != "Maze"
+        self.actions_name = ["left", "right", "up", "down", "noop"]
+        self.directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+        self.gap = 0.1
 
     def init_map(self):
-        self.map_shape = 
-        if with_maze:
-            for info in self.state["local"]:
-                pos = info["norm_position"]
-                vel = info["norm_velocity"]
-                aug_box = [pos[0] - vel[0] - int(self.gap), pos[1] - vel[1] - int(self.gap), pos[0] + vel[0] + int(self.gap) + 1, pos[1] + vel[1] + int(self.gap) + 1]
-                if info.type == 'creep':
-                    value = self.judge_creep(info["type_index"])
-                    if value == -1:
-                        aug_box = [pos[0] - vel[0] + int(self.gap), pos[1] - vel[1] + int(self.gap), pos[0] + vel[0] - int(self.gap) + 1, pos[1] + vel[1] - int(self.gap) + 1]
-                    for x in range(aug_box[0], aug_box[2]):
-                        for y in range(aug_box[1], aug_box[3]):
-                            self.map[x, y] = value
+        self.state = self.env.getGameState()
+        assert self.state["local"][0]['type'] == 'player'
+        delta = self.state["local"][0]["speed"]
+        player_x, player_y = self.state["local"][0]["position"][0], self.state["local"][0]["position"][1]
+        rightside = int((self.env.game.width - self.env.game.AGENT_RADIUS - player_x) // delta)
+        leftside = int((player_x - self.env.game.AGENT_RADIUS) // delta)
+        downside = int((self.env.game.height - self.env.game.AGENT_RADIUS - player_y) // delta)
+        upside = int((player_y - self.env.game.AGENT_RADIUS) // delta)
+        self.map_shape = [leftside + rightside + 1, upside + downside + 1]
+        self.good_map = np.zeros(((leftside + rightside + 1), (upside + downside + 1)))
+        self.bad_map = np.zeros(((leftside + rightside + 1), (upside + downside + 1)))
+        self.x = leftside
+        self.y = upside
+        for i in range(leftside + rightside + 1):
+            for j in range(upside + downside + 1):
+                x_pos = (i - leftside) * delta + player_x
+                y_pos = (j - upside) * delta + player_y
+                point = [x_pos, y_pos]
+                for k, info in enumerate(self.state["local"][1:]): 
+                    pos = [info["position"][0] + info["velocity"][0], info["position"][1] + info["velocity"][1]]
+                    creep_type = info["_type"]
 
-                elif info.type == 'bomb':
-                    if info["type_index"][1] < 0.1:
-                        nbr = self.state["global"]["norm_bomb_range"]
-                        aug_box_1 = [pos[0] - nbr - int(self.gap), pos[1] - int(self.gap), pos[0] + nbr + int(self.gap) + 1, pos[1] + int(self.gap) + 1]
-                        aug_box_2 = [pos[0] - int(self.gap), pos[1] - nbr - int(self.gap), pos[0] + int(self.gap) + 1, pos[1] + nbr + int(self.gap) + 1]
-                    else:
-                        for x in range(aug_box_1[0], aug_box_1[2]):
-                            for y in range(aug_box_1[1], aug_box_1[3]):
-                                self.map[x, y] = 1
-                        for x in range(aug_box_2[0], aug_box_2[2]):
-                            for y in range(aug_box_2[1], aug_box_2[3]):
-                                self.map[x, y] = 1
-                
-                elif info.type == "player":
-                    self.pos = info["norm_position"]
-        else:
-            for info in self.state["local"]:
-                box = info["norm_box"]
-                vel = info["norm_velocity"]
-                aug_box = [int(box[0] + vel[0] + 1 - self.gap), int(box[1] + vel[1] + 1 - self.gap), int(box[2] + vel[0] + self.gap) + 1, int(box[3] + vel[1] + self.gap) + 1]
-                if info.type == 'creep':
-                    value = self.judge_creep(info["type_index"])
-                    if value == -1:
-                        aug_box = [int(box[0] + vel[0] + 1 + self.gap), int(box[1] + vel[1] + 1 + self.gap), int(box[2] + vel[0] - self.gap) + 1, int(box[3] + vel[1] - self.gap) + 1]
-                    for x in range(aug_box[0], aug_box[2]):
-                        for y in range(aug_box[1], aug_box[3]):
-                            self.map[x, y] = value
-
-                elif info.type == 'bomb':
-                    if info["type_index"][1] < 0.1:
-                        nbr = self.state["global"]["norm_bomb_range"]
-                        aug_box_1 = [int(box[0] - nbr + 1 - self.gap), int(box[1] + 1 - self.gap), int(box[2] + nbr + self.gap) + 1, int(box[3] + self.gap) + 1]
-                        aug_box_2 = [int(box[0] + 1 - self.gap), int(box[1] - nbr + 1 - self.gap), int(box[2] + self.gap) + 1, int(box[3] + nbr + self.gap) + 1]
-                    else:
-                        for x in range(aug_box_1[0], aug_box_1[2]):
-                            for y in range(aug_box_1[1], aug_box_1[3]):
-                                self.map[x, y] = 1
-                        for x in range(aug_box_2[0], aug_box_2[2]):
-                            for y in range(aug_box_2[1], aug_box_2[3]):
-                                self.map[x, y] = 1
-
-                elif info.type == "player":
-                    self.pos = info["norm_position"]
+                    if creep_type == "GOOD":
+                        if in_box(point, circle2box(pos, (1 - self.gap)*self.env.game.CREEP_RADII[0]+self.env.game.AGENT_RADIUS)):
+                            self.good_map[i, j] += 1
+                    elif creep_type == "BAD":
+                        if in_box(point, circle2box(pos, (1 + self.gap)*self.env.game.CREEP_RADII[1]+self.env.game.AGENT_RADIUS)):
+                            self.bad_map[i, j] += 1
 
     def shortest_path(self):
         # bfs
@@ -105,9 +57,9 @@ class Planning:
         dxys = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         random.shuffle(dxys)
         openlist = []
-        openlist.append((self.pos[0], self.pos[1], None))
-        search_map = self.map.copy()
-        search_map[self.pos[0], self.pos[1]] = 1
+        openlist.append((self.x, self.y, None))
+        search_map = np.zeros_like(self.bad_map)
+        search_map[self.x, self.y] = 1
         find_out = False
         end_point = None
         while len(openlist) > 0:
@@ -116,14 +68,14 @@ class Planning:
             for dxy in dxys:
                 x = node[0] + dxy[0]
                 y = node[1] + dxy[1]
-                if not in_box((x, y), (0, 0, self.map_shape-1, self.map_shape-1)) or search_map[x, y] > 0:
+                if not in_box((x, y), (0, 0, self.map_shape[0]-1, self.map_shape[1]-1)) or search_map[x, y] != 0 or self.bad_map[x, y] > 0:
                     continue
                 # First search the path not close to the edge of the bad node
                 flag = False
                 for ddxy in dxys:
                     if ddxy[0] == -dxy[0] and ddxy[1] == -dxy[1]:
                         continue
-                    if in_box((x + ddxy[0], y + ddxy[1]), (0, 0, self.map_shape-1, self.map_shape-1)) and search_map[x + ddxy[0], y + ddxy[1]] > 0:
+                    if in_box((x + ddxy[0], y + ddxy[1]), (0, 0, self.map_shape[0]-1, self.map_shape[1]-1)) and self.bad_map[x + ddxy[0], y + ddxy[1]] > 0:
                         flag = True
                         break
                 if flag == True:
@@ -134,62 +86,32 @@ class Planning:
             for x, y in direction:
                 openlist.append((x, y, node))
                 search_map[x, y] = 1
-                if self.max_reward_base > 0:
-                    if self.good_dilation[x, y] + self.bad_dilation[x, y] == self.max_reward_base:
-                        find_out = True
-                        end_point = openlist[-1]
-                        break
+                if self.good_map[x, y] > 0 and self.bad_map[x, y] == 0:
+                    find_out = True
+                    end_point = openlist[-1]
+                    break
                 # If the bad node covers the good node, approach first
-                else:
-                    if self.good_dilation[x, y] == self.max_reward_high:
-                        find_out = True
-                        end_point = openlist[-1]
-                        break
+                elif self.good_map[x, y] > 0 and node[0] != self.x and node[1] != self.y:
+                    find_out = True
+                    end_point = openlist[-1]
+                    break
             if find_out is True:
                 break
             openlist.pop(0)
 
         if find_out is False:
-            if self.env.add_noop_action:
-                return find_out
-            else:
-                dxy = dxys[0]
-                x = node.pos[0] + dxy[0]
-                y = node.pos[1] + dxy[1]
-                if x - self.x < 0:
-                    self.actions.append('w')
-                elif x - self.x > 0:
-                    self.actions.append('s')
+            return random.randint(0, self.n_action - 1)
 
-                if y - self.y < 0:
-                    self.actions.append('a')
-                elif y - self.y > 0:
-                    self.actions.append('d')
-                self.path.append(Node((x, y), Node((self.x, self.y), None)))
-                return True
-
-        father = end_point.father
-        while(father != None):
-            self.path.append(end_point)
-            if end_point.pos[0] < father.pos[0]:
-                self.actions.append('w')
-            if end_point.pos[0] > father.pos[0]:
-                self.actions.append('s')
-            if end_point.pos[1] < father.pos[1]:
-                self.actions.append('a')
-            if end_point.pos[1] > father.pos[1]:
-                self.actions.append('d')
-            
+        father = end_point[2]
+        while True:
+            if father[2] == None:
+                dxy = (end_point[0] - father[0], end_point[1] - father[1])
+                break
             end_point = father
-            father = end_point.father
-        self.actions = self.actions[::-1]
-        self.path = self.path[::-1]
-        
-        # if self.bad_dilation[self.path[0].pos[0], self.path[0].pos[1]] < 0:
-        #     return False
-        # print("done!")
-        return find_out
+            father = end_point[2]
 
+        return self.env.getActionIndex(self.actions_name[self.directions.index(dxy)])
 
-    def exe(self, state):
-        return random.randint(0, self.n_action - 1)
+    def exe(self): 
+        self.init_map()
+        return self.shortest_path()

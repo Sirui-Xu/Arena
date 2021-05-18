@@ -26,8 +26,8 @@ class GamePatch(Dataset):
             for local_info in data["state"]["local"]:
                 box = local_info["position"] + local_info["box"] + local_info["velocity"] + [local_info["speed"], local_info["speed"]]
                 box = np.array(box, dtype=np.float32)
-                box[::2] /= map_shape[0]
-                box[1::2] /= map_shape[1]
+                box[::2] /= shape[0]
+                box[1::2] /= shape[1]
                 boxes.append(box)
                 classes.append(local_info["type_index"])
             self.gt_boxes.append(np.array(boxes, dtype=np.float32))

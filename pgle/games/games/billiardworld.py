@@ -69,15 +69,6 @@ class BilliardWorld(PyGameWrapper):
         self.creeps = None
         self.assigned_values = None
         self.fps = fps
-        self.wall_width = self.AGENT_SPEED / fps
-        vir_size = self.real2vir(self.width, self.height)
-        self.map_shape = [vir_size[0] + 1, vir_size[1] + 1]
-
-    def vir2real(self, x, y):
-        return ((x+0.5) * self.wall_width, (y+0.5) * self.wall_width)
-    
-    def real2vir(self, x, y):
-        return (int(x / self.wall_width), int(y / self.wall_width))
 
     def _handle_player_events(self):
         self.dx = 0
@@ -134,24 +125,12 @@ class BilliardWorld(PyGameWrapper):
         self.creep_counts[self.CREEP_TYPES[creep_type]] += 1
 
     def getGameState(self):
-        player_vir_pos = self.real2vir(self.player.pos.x, self.player.pos.y)
-        player_vir_vel = [self.player.vel.x / self.fps / self.wall_width, self.player.vel.y / self.fps / self.wall_width]
-        player_vir_spd = self.AGENT_SPEED / self.fps / self.wall_width
-        player_vir_box = [self.player.rect.left / self.wall_width - 0.5,
-                          self.player.rect.top / self.wall_width - 0.5,  
-                          self.player.rect.right / self.wall_width - 0.5,
-                          self.player.rect.bottom / self.wall_width - 0.5, 
-                          ]
         player_state = {'type':'player', 
                         'type_index': [0, -1], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
                         'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
-                        'norm_position': [player_vir_pos[0], player_vir_pos[1]],
-                        'norm_velocity': player_vir_vel,
-                        'norm_speed': player_vir_spd,
-                        'norm_box': player_vir_box,
                        }
 
         state = [player_state]
@@ -159,14 +138,6 @@ class BilliardWorld(PyGameWrapper):
         # self.rng.shuffle(order)
         for i in order:
             c = self.creeps.sprites()[i]
-            vir_pos = [c.pos.x / self.wall_width - 0.5, c.pos.y / self.wall_width - 0.5]
-            vir_vel = [c.direction.x * c.speed / self.fps / self.wall_width, c.direction.y * c.speed / self.fps / self.wall_width]
-            vir_spd = c.speed / self.fps / self.wall_width
-            vir_box = [c.rect.left / self.wall_width - 0.5,
-                       c.rect.top / self.wall_width - 0.5,   
-                       c.rect.right / self.wall_width - 0.5,
-                       c.rect.bottom / self.wall_width - 0.5,
-                       ]
             creep_state = {'type':'creep', 
                            'type_index': [1, c.idx],  
                            'position': [c.pos.x, c.pos.y],
@@ -174,16 +145,11 @@ class BilliardWorld(PyGameWrapper):
                            'speed': c.speed / self.fps,
                            'jitter_speed': c.jitter_speed,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
-                           'norm_position': vir_pos,
-                           'norm_velocity': vir_vel,
-                           'norm_speed': vir_spd,
-                           'norm_box': vir_box,
                            '_type': c.TYPE
                           }
             state.append(creep_state)
 
-        return {'local':state, 'global':{'norm_shape':self.map_shape, 
-                                         'shape': [self.width, self.height],
+        return {'local':state, 'global':{'shape': [self.width, self.height],
                                          'ticks': self.ticks,
                                          'score': self.score}}
 
