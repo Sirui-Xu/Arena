@@ -206,7 +206,8 @@ class PacWorldMaze(PyGameWrapper):
                            'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
                            'speed': c.speed,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
-                           'color': c.idx,
+                           '_color': c.idx,
+                           '_type': "GOOD",
                            'norm_position': [vir_pos[0], vir_pos[1]],
                            'norm_velocity': vir_vel,
                            'norm_speed': vir_spd,
@@ -219,6 +220,7 @@ class PacWorldMaze(PyGameWrapper):
                         'maze':self.maze, 
                         'rate_of_progress': (self.ticks * self.wall_width / self.fps) / (self.width + self.height),
                         'ticks': self.ticks,
+                        'times': int((self.width + self.height) / (self.AGENT_SPEED / self.fps) + 0.5),
                         'score': self.score}
         return {'local':state, 'global':global_state}
 
@@ -247,7 +249,7 @@ class PacWorldMaze(PyGameWrapper):
             if info["type"] == "creep":
                 reward = info["type_index"][1]
                 creep = Creep(
-                    (5, info["color"], 10),
+                    (5, info["_color"], 10),
                     self.CREEP_RADII[0],
                     info["position"],
                     info["velocity"],
@@ -257,7 +259,7 @@ class PacWorldMaze(PyGameWrapper):
                     self.width,
                     self.height,
                     0,
-                    info["color"],
+                    info["_color"],
                 )
                 self.creeps.add(creep)
 
@@ -286,8 +288,7 @@ class PacWorldMaze(PyGameWrapper):
             Starts/Resets the game to its inital state
         """
 
-        self.assigned_values = self.rng.rand((self.N_CREEPS))
-        self.assigned_values.sort()
+        self.assigned_values = list(range(self.N_CREEPS))
         self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.1, density=.1)
         # print(self.maze)
         self.creep_counts = {"GOOD": 0, "BAD": 0}
@@ -348,7 +349,6 @@ class PacWorldMaze(PyGameWrapper):
             pygame.event.pump()
 
         if self.ticks % self.fps == 0:
-            self.score += self.rewards["tick"]
             self.dx, self.dy = self.dx_next, self.dy_next
             self.dx_next, self.dy_next = 0, 0
             if self.dx == 0 and self.dy == 0:

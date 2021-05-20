@@ -126,7 +126,7 @@ class PacWorld(PyGameWrapper):
 
     def getGameState(self):
         player_state = {'type':'player', 
-                        'type_index': [0, -1], 
+                        'type_index': [0, -1, int(((self.width + self.height) / 2) / (self.AGENT_SPEED / self.fps) + 0.5) - int(self.ticks * self.fps + 0.5)], 
                         'position': [self.player.pos.x, self.player.pos.y],
                         'velocity': [self.player.vel.x / self.fps, self.player.vel.y / self.fps],
                         'speed': self.AGENT_SPEED / self.fps,
@@ -138,19 +138,21 @@ class PacWorld(PyGameWrapper):
         for i in order:
             c = self.creeps.sprites()[i]
             creep_state = {'type':'creep', 
-                           'type_index': [1, c.reward],  
+                           'type_index': [1, c.reward, -1],  
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
                            '_color': c.idx,
                            '_jitter_speed': c.jitter_speed,
+                           '_type': "GOOD",
                           }
             state.append(creep_state)
 
         global_state = {'shape': [self.width, self.height],
-                        'rate_of_progress': (self.ticks * self.AGENT_SPEED) / (self.width + self.height),
-                        'ticks': self.ticks,
+                        'rate_of_progress': (self.ticks * self.AGENT_SPEED) / ((self.width + self.height) / 2),
+                        'ticks': int(self.ticks * self.fps + 0.5),
+                        'times': int(((self.width + self.height) / 2) / (self.AGENT_SPEED / self.fps) + 0.5),
                         'score': self.score}
         return {'local':state, 'global':global_state}
 
@@ -178,7 +180,7 @@ class PacWorld(PyGameWrapper):
             if info["type"] == "creep":
                 reward = info["type_index"][1]
                 creep = Creep(
-                    (5, info["color"], 10),
+                    (5, info["_color"], 10),
                     self.CREEP_RADII[0],
                     info["position"],
                     info["velocity"],
@@ -205,14 +207,13 @@ class PacWorld(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0) or self.ticks * self.AGENT_SPEED >= self.width + self.height
+        return (self.creep_counts['GOOD'] + self.creep_counts['BAD'] == 0) or self.ticks * self.AGENT_SPEED >= ((self.width + self.height) / 2)
 
     def init(self):
         """
             Starts/Resets the game to its inital state
         """
-        self.assigned_values = self.rng.rand((self.N_CREEPS))
-        self.assigned_values.sort()
+        self.assigned_values = list(range(self.N_CREEPS))
         self.creep_counts = {"GOOD": 0, "BAD": 0}
         self.AGENT_INIT_POS = self.rng.uniform(self.AGENT_RADIUS, self.height - self.AGENT_RADIUS, size=2)
 
@@ -236,7 +237,7 @@ class PacWorld(PyGameWrapper):
 
         sum_assigned_values = sum(self.assigned_values)
         for i in range(self.N_CREEPS):
-            self._add_creep(0, self.assigned_values[i], self.assigned_values[i] / sum_assigned_values)
+            self._add_creep(0, self.assigned_values[i] / self.assigned_values[-1], self.assigned_values[i] / sum_assigned_values)
 
         self.score = 0
         self.ticks = 0
@@ -251,11 +252,8 @@ class PacWorld(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        dt /= 1000.0
+        dt = 1 / self.fps
         self.screen.fill(self.BG_COLOR)
-
-        self.score += self.rewards["tick"]
-
         self._handle_player_events()
         self.player.update(self.dx, self.dy, dt)
         self.creeps.update(dt)
@@ -266,7 +264,7 @@ class PacWorld(PyGameWrapper):
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
-        self.ticks += dt
+        self.ticks += 1 / self.fps
         # print(self.creep_counts["GOOD"], self.creep_counts["BAD"])
 
 if __name__ == "__main__":

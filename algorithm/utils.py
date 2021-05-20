@@ -5,8 +5,8 @@ from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaz
 from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
 from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
 from randomness import Random
-from greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2
-from planning import PlanningCollect
+from greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2, GreedyCollectMax
+from planning import PlanningCollect, PlanningPacV0, PlanningPacV1
 
 import pygame
 import json
@@ -15,7 +15,9 @@ import numpy as np
 game_names = ['BilliardWorld', 'BilliardWorldMaze', 'BomberMan', 'BomberManMaze',
              'PacWorld', 'PacWorldMaze', 'ShootWorld', 'ShootWorld1d', 'ShootWorldMaze',
              'WaterWorld', 'WaterWorld1d', 'WaterWorldMaze']
-algorithm_names = ['Random', 'OneStep', 'TwoStep', 'GreedyCollectV0', 'GreedyCollectV1', 'GreedyCollectV2', 'PlanningCollect']
+algorithm_names = ['Random', 'OneStep', 'TwoStep', 'GreedyCollectV0', 
+                   'GreedyCollectV1', 'GreedyCollectV2', 'GreedyCollectMax', 
+                   'PlanningCollect', 'PlanningPacV0', 'PlanningPacV1']
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):

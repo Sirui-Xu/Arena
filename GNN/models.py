@@ -167,7 +167,7 @@ class PointConv(nn.Module):
             nn.Linear(64, 64),
         )
         local_nn = nn.Sequential(
-            nn.Linear(32 + 64 + 10, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(32 + 64 + pos_dim, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
             nn.Linear(512, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
             nn.Linear(512, 512),
         )

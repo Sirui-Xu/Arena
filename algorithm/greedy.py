@@ -59,7 +59,7 @@ class GreedyCollectV0:
         self.n_action = len(env.getActionSet())
         self.name = env.name
         self.env = env
-        assert self.name[:5] == "Water" or self.name[:8] == "Billiard"
+        assert self.name[:5] == "Water" or self.name[:8] == "Billiard" or self.name[:3] == "Pac"
         assert self.name[-4:] != "Maze" or self.name[-2:] != "1d"
         self.directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
         self.actions_name = ["left", "right", "up", "down", "noop"]
@@ -81,7 +81,7 @@ class GreedyCollectV0:
         names = [self.actions_name[i] for i in range(len(projection)) if projection[i] > 0]
         projection = [projection[i] for i in range(len(projection)) if projection[i] > 0]
         assert len(names) <= 2
-        if projection[0] / sum(projection) >= random.random():
+        if projection[0] / sum(projection) >= 0.5:
             return self.env.getActionIndex(names[0])
         else:
             return self.env.getActionIndex(names[1])
@@ -124,7 +124,7 @@ class GreedyCollectV1:
             actions = [i for i in range(self.n_action) if rewards[i] == max(rewards)]
             return self.env.getActionIndex(self.actions_name[random.choice(actions)])
         else:
-            if projection[0] / sum(projection) >= random.random():
+            if projection[0] / sum(projection) >= 0.5:
                 return self.env.getActionIndex(names[0])
             else:
                 return self.env.getActionIndex(names[1])
@@ -171,7 +171,40 @@ class GreedyCollectV2:
             actions = [i for i in range(self.n_action) if rewards[i] == max(rewards)]
             return self.env.getActionIndex(self.actions_name[random.choice(actions)])
         else:
-            if projection[0] / sum(projection) >= random.random():
+            if projection[0] / sum(projection) >= 0.5:
                 return self.env.getActionIndex(names[0])
             else:
                 return self.env.getActionIndex(names[1])
+
+class GreedyCollectMax:
+    def __init__(self, env):
+        self.n_action = len(env.getActionSet())
+        self.name = env.name
+        self.env = env
+        assert self.name[:3] == "Pac"
+        assert self.name[-4:] != "Maze" or self.name[-2:] != "1d"
+        self.directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+        self.actions_name = ["left", "right", "up", "down", "noop"]
+
+
+    def exe(self):
+        env_state = self.env.getEnvState()
+        assert env_state["state"]["local"][0]["type"] == "player"
+        player_pos = env_state["state"]["local"][0]["position"]
+        min_dis = [self.env.game.width + 1, self.env.game.height + 1]
+        max_value = 0
+        for info in env_state["state"]["local"]:
+            if info["type"] == "creep":
+                creep_pos = info["position"]
+                dis = [creep_pos[0] - player_pos[0], creep_pos[1] - player_pos[1]]
+                if info["type_index"][1] > max_value:
+                    min_dis = dis
+                    max_value = info["type_index"][1]
+        projection = [d[0] * min_dis[0] + d[1] * min_dis[1] for d in self.directions]
+        names = [self.actions_name[i] for i in range(len(projection)) if projection[i] > 0]
+        projection = [projection[i] for i in range(len(projection)) if projection[i] > 0]
+        assert len(names) <= 2
+        if projection[0] / sum(projection) >= 0.5:
+            return self.env.getActionIndex(names[0])
+        else:
+            return self.env.getActionIndex(names[1])
