@@ -1,12 +1,10 @@
 import pygame
-import sys
-sys.path.append('..')
-from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
-from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
-from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
+from ..games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
+from ..games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
+from ..games import WaterWorld, WaterWorld1d, WaterWorldMaze
 from randomness import Random
 from greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2, GreedyCollectMax
-from planning import PlanningCollect, PlanningPacV0, PlanningPacV1
+from planning import PlanningCollect, PlanningPacV0, PlanningPacV1, PlanningShoot1d
 
 import pygame
 import json
@@ -17,20 +15,9 @@ game_names = ['BilliardWorld', 'BilliardWorldMaze', 'BomberMan', 'BomberManMaze'
              'WaterWorld', 'WaterWorld1d', 'WaterWorldMaze']
 algorithm_names = ['Random', 'OneStep', 'TwoStep', 'GreedyCollectV0', 
                    'GreedyCollectV1', 'GreedyCollectV2', 'GreedyCollectMax', 
-                   'PlanningCollect', 'PlanningPacV0', 'PlanningPacV1']
+                   'PlanningCollect', 'PlanningPacV0', 'PlanningPacV1',
+                   'PlanningShoot1d']
 
-class NpEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, tuple):
-            return list(obj)
-        else:
-            return super(NpEncoder, self).default(obj)
 
 def load_game(game_name, window_size, maze_width, num_creeps, fps):
     lower2upper = {name.lower():name for name in game_names}

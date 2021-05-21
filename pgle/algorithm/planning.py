@@ -277,3 +277,127 @@ class PlanningPacV1:
             return self.env.getActionIndex(names[0])
         else:
             return self.env.getActionIndex(names[1])
+
+class PlanningShoot1d:
+    def __init__(self, env, srange=2):
+        assert env.name[:5] == "Shoot" and env.name[-2:] == "1d"
+        self.directions = [(-1, 0), (1, 0), None, (0, 0)]
+        self.actions_name = ["left", "right", "fire", "noop"]
+        self.fps = env.game.fps
+        self.env = env
+        self.game = env.game
+        self.srange = srange
+        self.init()
+
+    def get_real_speed(self, speed):
+        return speed / 1000.0 * (1000.0 / self.fps)
+    
+    def cal_time(self, creep):
+        speed_x, speed_y = self.get_real_speed(creep.direction.x*creep.speed), self.get_real_speed(creep.direction.y*creep.speed)
+        speed_a = self.get_real_speed(self.game.AGENT_SPEED)
+        speed_b = self.get_real_speed(self.game.BULLET_SPEED)
+        dx = creep.pos.x - self.game.player.pos.x
+        dy = -(creep.pos.y - self.game.player.pos.y)
+        t_1 = (speed_x * dy + (speed_b - speed_y) * dx) / (speed_a*speed_b - speed_x*speed_b - speed_y*speed_a)
+        t_2 = (speed_y * dx + (speed_a - speed_x) * dy) / (speed_a*speed_b - speed_x*speed_b - speed_y*speed_a)
+        if t_1 < 0:
+            t_1 = (speed_x * dy + (speed_b - speed_y) * dx) / (-speed_a*speed_b - speed_x*speed_b + speed_y*speed_a)
+            t_2 = (speed_y * dx + (-speed_a - speed_x) * dy) / (-speed_a*speed_b - speed_x*speed_b + speed_y*speed_a)
+        if t_2 < 0:
+            return (t_1, -t_2, t_1 - t_2)
+        else:
+            return (t_1, t_2, t_1 + t_2)
+
+    def init(self):
+        # print('begin to initialize...')
+        self.ready2hit = {}
+        self.target = None
+        self.times = [(creep, self.cal_time(creep)) for creep in self.env.game.creeps.sprites()]
+        self.times.sort(key=lambda x:x[1][2])
+
+    def action(self):
+        self.actions = []
+        self.path = []
+        pop_item = []
+
+        for creep in self.ready2hit.keys():
+            if self.ready2hit[creep] <= 0:
+                pop_item.append(creep)
+            else:
+                self.ready2hit[creep] -= 1
+        self.ready2hit = {key:val for key, val in self.ready2hit.items() if key not in pop_item}
+
+        find_out = False
+        for i, (creep, (t1, t2, _)) in enumerate(self.times):
+            if self.target == None:
+                if creep in self.ready2hit.keys():
+                    continue
+                else:
+                    self.target = creep
+                    find_out = True
+                    break
+
+            if creep == self.target:
+                find_out = True
+                break
+        # print('target = ', self.target, t1, t2)
+        # print(self.ready2hit)
+        # print(self.times)
+        if find_out:
+            find_out = False
+            t1s = list(range(int(t1) - self.srange // 2 + 1, int(t1) - self.srange // 2 + self.srange + 1))
+            t2s = list(range(int(t2) - self.srange // 2 + 1, int(t2) - self.srange // 2 + self.srange + 1))
+            for t_1 in t1s:
+                for t_2 in t2s[::-1]:
+                    if t_1 < 0 or t_2 < 0:
+                        continue
+                    creep_x = creep.pos.x + self.get_real_speed(creep.direction.x*creep.speed) * (t_1 + t_2)
+                    creep_y = creep.pos.y + self.get_real_speed(creep.direction.y*creep.speed) * (t_1 + t_2)
+                    dx = creep_x - self.game.player.pos.x
+                    if dx > 0:
+                        bullet_x = self.game.player.pos.x + self.get_real_speed(self.game.AGENT_SPEED) * t_1
+                    else:
+                        bullet_x = self.game.player.pos.x - self.get_real_speed(self.game.AGENT_SPEED) * t_1
+                    bullet_y = self.game.player.pos.y - self.get_real_speed(self.game.BULLET_SPEED) * t_2
+                    if in_box([bullet_x, bullet_y], circle2box([creep_x, creep_y], creep.radius+self.env.game.BULLET_RADIUS-1)):
+                        if t_1 == 0:
+                            if not in_box([creep_x, creep_y], [0, 0, self.game.width*1.1, self.game.height*1.1]):
+                                continue
+                            else:
+                                self.ready2hit[creep] = t_2
+                                self.target = None
+                        find_out = True
+                        
+                        if dx > 0:
+                            self.actions.extend(['right' for _ in range(t_1)] + ['fire'])
+                        else:
+                            self.actions.extend(['left' for _ in range(t_1)] + ['fire'])
+                        break
+                if find_out:
+                    return True
+            if not find_out:
+                # print("not find out: ", creep, t1, t2, dx)
+                if t1s[0] > 0:
+                    if dx > 0:
+                        self.actions.extend(['right'])
+                    else:
+                        self.actions.extend(['left'])
+                else:
+                    self.actions.append(['left','right'][random.randrange(0, 2)])
+                return True
+        else:
+            # print("only one nodes")
+            self.actions.append(['left','right'][random.randrange(0, 2)])
+            return True
+
+        return True
+
+    def reset(self):
+        self.times = [(creep, self.cal_time(creep)) for creep in self.env.game.creeps.sprites()]
+        self.times.sort(key=lambda x:x[1][2])
+  
+    def exe(self):
+        self.reset()
+        self.action()
+        action_name = self.actions[0]
+        return self.env.getActionIndex(action_name)

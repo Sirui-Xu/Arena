@@ -1,9 +1,9 @@
 import pygame
 import numpy as np
 import sys
-from pgle.games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
-from pgle.games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
-from pgle.games import WaterWorld, WaterWorld1d, WaterWorldMaze
+from .games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
+from .games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
+from .games import WaterWorld, WaterWorld1d, WaterWorldMaze
 import os
 os.environ.pop("SDL_VIDEODRIVER")
 
