@@ -2,7 +2,7 @@ import pygame
 import sys
 import math
 
-from ..base import PyGameWrapper, Player, Creep, Wall, Bomb
+from ..base import PyGameWrapper, Player, Creep, Wall, Bomb, Explosion
 
 from ..utils import vec2d, percent_round_int, generate_random_maze
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
@@ -43,7 +43,7 @@ class BomberManMaze(PyGameWrapper):
         PyGameWrapper.__init__(self, width, width, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD"]
+        self.CREEP_TYPES = ["BAD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
         radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
@@ -60,13 +60,13 @@ class BomberManMaze(PyGameWrapper):
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
         self.creep_counts = {
-            "GOOD": 0,
+            "BAD": 0,
         }
 
         self.WALL_COLOR = (5, 5, 30)
         self.FIX_WALL_COLOR = (30, 5, 5)
         self.BOMB_COLOR = (70, 30, 30)
-        self.BOMB_RADIUS = percent_round_int(self.wall_width, 0.48)
+        self.BOMB_RADIUS = percent_round_int(self.wall_width, 0.25)
         self.BOMB_LIFE = 8
         self.BOMB_RANGE = 2
         self.EXPLODE_COLOR = (120, 220, 180)
@@ -150,7 +150,7 @@ class BomberManMaze(PyGameWrapper):
             if self.maze[vir_pos[0], vir_pos[1]] == 1:
                 deldirs.append(direction)
             self.maze[vir_pos[0], vir_pos[1]] = 0
-            explosion = Wall(pos, self.EXPLODE_SHAPE[0], self.EXPLODE_SHAPE[1], self.EXPLODE_COLOR)
+            explosion = Explosion(pos, self.EXPLODE_SHAPE[0], self.EXPLODE_SHAPE[1], self.EXPLODE_COLOR)
             self.explosion.add(explosion)
         dirs = [direction for direction in dirs if direction not in deldirs]
         return (bomb_range + 1, dirs)
@@ -313,7 +313,7 @@ class BomberManMaze(PyGameWrapper):
 
     def loadGameState(self, state):
         self.maze = state["global"]["maze"].copy()
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         if self.creeps is None:
             self.creeps = pygame.sprite.Group()
         else:
@@ -397,7 +397,7 @@ class BomberManMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) or self.player is None# or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['BAD'] == 0) or self.player is None# or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -405,7 +405,7 @@ class BomberManMaze(PyGameWrapper):
         """
         self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.2, density=.2)
         # print(self.maze)
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         vir_pos = (self.rng.randint(0, self.real_width // 2)*2+1, self.rng.randint(0, self.real_width//2)*2+1)
         self.AGENT_INIT_POS = self.vir2real(*vir_pos)
 
@@ -452,11 +452,11 @@ class BomberManMaze(PyGameWrapper):
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):
-                if i % 2 == 0 and j % 2 == 0:
+                if (i % 2 == 0 and j % 2 == 0) or i == 0 or j == 0 or i == self.maze.shape[0] - 1 or j == self.maze.shape[1] - 1:
                     self.maze[i, j] = 2
                     self.fix_walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.FIX_WALL_COLOR))
                 elif self.maze[i, j] == 1:
-                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR, FIXED=False))
 
 
         self.score = 0
@@ -483,7 +483,7 @@ class BomberManMaze(PyGameWrapper):
         if self.ticks % self.fps == 0:
             self.bomb_dict = {}
             self.after_explosion = False
-            self.explosion.empty()
+            # self.explosion.empty()
             self.score += self.rewards["tick"]
             self.dx, self.dy, self.shoot = self.dx_next, self.dy_next, self.shoot_next
             self.dx_next, self.dy_next, self.shoot_next = 0, 0, 0
@@ -508,7 +508,8 @@ class BomberManMaze(PyGameWrapper):
                     bomb.kill()
         self.creeps.update(1 / self.fps)     
         self.bombs.update(1 / self.fps)   
-
+        self.explosion.update(1 / self.fps)
+        
         if len(self.bomb_dict) > 0:
             self.explode()
 
@@ -540,7 +541,7 @@ class BomberManMaze(PyGameWrapper):
             self.score += creep.reward
             # self._add_creep(1)
 
-        if self.creep_counts["GOOD"] == 0:
+        if self.creep_counts["BAD"] == 0:
             self.score += self.rewards["win"]
 
         hits = pygame.sprite.groupcollide(self.walls, self.explosion, True, False)

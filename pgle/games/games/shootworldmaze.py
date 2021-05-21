@@ -2,7 +2,7 @@ import pygame
 import sys
 import math
 
-from ..base import PyGameWrapper, Player, Creep, Wall, Bullet
+from ..base import PyGameWrapper, Player, Creep, Wall, Bullet, Explosion
 
 from ..utils import vec2d, percent_round_int, generate_random_maze
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
@@ -43,7 +43,7 @@ class ShootWorldMaze(PyGameWrapper):
         PyGameWrapper.__init__(self, width, width, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD"]
+        self.CREEP_TYPES = ["BAD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
         radius = percent_round_int(self.wall_width, 0.23)
         # print(width, self.wall_width, self.real_width, radius)
@@ -60,7 +60,7 @@ class ShootWorldMaze(PyGameWrapper):
         self.AGENT_INIT_POS = (0, 0)
         self.UNIFORM_SPEED = True
         self.creep_counts = {
-            "GOOD": 0,
+            "BAD": 0,
         }
 
         self.WALL_COLOR = (20, 10, 10)
@@ -77,7 +77,9 @@ class ShootWorldMaze(PyGameWrapper):
         self.player = None
         self.creeps = None
         self.walls = None
+        self.fix_walls = None
         self.maze = None
+        self.explosions = None
         self.bullets = None
         self.fps = fps
 
@@ -264,7 +266,7 @@ class ShootWorldMaze(PyGameWrapper):
 
     def loadGameState(self, state):
         self.maze = state["global"]["maze"].copy()
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         if self.creeps is None:
             self.creeps = pygame.sprite.Group()
         else:
@@ -345,7 +347,7 @@ class ShootWorldMaze(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) # or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['BAD'] == 0) # or self.ticks * self.wall_width / self.fps >= self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
@@ -353,7 +355,7 @@ class ShootWorldMaze(PyGameWrapper):
         """
         self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.2, density=.2)
         # print(self.maze)
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         vir_pos = (self.rng.randint(0, self.real_width // 2)*2+1, self.rng.randint(0, self.real_width//2)*2+1)
         self.AGENT_INIT_POS = self.vir2real(*vir_pos)
 
@@ -380,18 +382,31 @@ class ShootWorldMaze(PyGameWrapper):
         else:
             self.walls.empty()
 
+        if self.fix_walls is None:
+            self.fix_walls = pygame.sprite.Group()
+        else:
+            self.fix_walls.empty()
+
         for i in range(self.N_CREEPS):
             self._add_creep(0)
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):
-                if self.maze[i, j] == 1:
-                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+                if i == 0 or j == 0 or i == self.maze.shape[0] - 1 or j == self.maze.shape[1] - 1:
+                    self.maze[i, j] = 2
+                    self.fix_walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR))
+                elif self.maze[i, j] == 1:
+                    self.walls.add(Wall(self.vir2real(i, j), self.wall_width, self.wall_width, self.WALL_COLOR, FIXED=False))
 
         if self.bullets is None:
             self.bullets = pygame.sprite.Group()
         else:
             self.bullets.empty()
+
+        if self.explosions is None:
+            self.explosions = pygame.sprite.Group()
+        else:
+            self.explosions.empty()            
 
         self.score = 0
         self.ticks = 0
@@ -402,6 +417,7 @@ class ShootWorldMaze(PyGameWrapper):
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
+        self.fix_walls.draw(self.screen)
         self.bullets.draw(self.screen)
 
     def step(self):
@@ -439,6 +455,7 @@ class ShootWorldMaze(PyGameWrapper):
         self.player.update(self.dx, self.dy, 1 / self.fps)   
         self.creeps.update(1 / self.fps)     
         self.bullets.update(1 / self.fps)   
+        self.explosions.update(1 / self.fps)
 
         hits = pygame.sprite.spritecollide(self.player, self.creeps, False)
         for creep in hits:
@@ -451,22 +468,30 @@ class ShootWorldMaze(PyGameWrapper):
             for walls in hits[bullet]:
                 vir_walls_pos = self.real2vir(walls.pos.x, walls.pos.y)
                 if vir_walls_pos[0] < self.maze.shape[0] - 1 and vir_walls_pos[0] > 0 and vir_walls_pos[1] < self.maze.shape[1] - 1 and vir_walls_pos[1] > 0:
+                    self.explosions.add(Explosion((walls.pos.x, walls.pos.y), self.wall_width, self.wall_width, (0, 0, 0)))
                     self.maze[self.real2vir(walls.pos.x, walls.pos.y)] = 0
                     walls.kill()
+        
+        hits = pygame.sprite.groupcollide(self.bullets, self.fix_walls, True, False)
+        for bullet in hits.keys():
+            self.explosions.add(Explosion((bullet.pos.x, bullet.pos.y), self.BULLET_RADIUS, self.BULLET_RADIUS, (0, 0, 0)))
 
         hits = pygame.sprite.groupcollide(self.bullets, self.creeps, True, True)
         for bullet in hits.keys():
             for creep in hits[bullet]:
+                self.explosions.add(Explosion((creep.pos.x, creep.pos.y), 2 * creep.radius, 2 * creep.radius, (0, 0, 0)))
                 self.creep_counts[creep.TYPE] -= 1
                 self.score += creep.reward
 
-        if self.creep_counts["GOOD"] == 0:
+        if self.creep_counts["BAD"] == 0:
             self.score += self.rewards["win"]
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.walls.draw(self.screen)
         self.bullets.draw(self.screen)
+        self.explosions.draw(self.screen)
+        self.fix_walls.draw(self.screen)
         self.ticks += 1
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import pygame
 import sys
 import math
 
-from ..base import PyGameWrapper, Player, Creep, Bomb, Wall
+from ..base import PyGameWrapper, Player, Creep, Bomb, Wall, Explosion
 
 from ..utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
@@ -40,7 +40,7 @@ class BomberMan(PyGameWrapper):
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD"]
+        self.CREEP_TYPES = ["BAD"]
         self.CREEP_COLORS = [(40, 240, 40)]
         radius = percent_round_int(min(width, height), 0.047)
         self.CREEP_RADII = radius
@@ -49,14 +49,14 @@ class BomberMan(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = width
+            self.CREEP_SPEED = width / 2
         self.AGENT_COLOR = (30, 30, 30)
-        self.AGENT_SPEED = width
+        self.AGENT_SPEED = width / 2
         self.AGENT_RADIUS = radius
         self.AGENT_INIT_POS = None
         self.UNIFORM_SPEED = True
         self.creep_counts = {
-            "GOOD": 0
+            "BAD": 0
         }
         self.BOMB_COLOR = (70, 30, 30)
         self.BOMB_RADIUS = int(radius * 1.1)
@@ -158,11 +158,11 @@ class BomberMan(PyGameWrapper):
                 vir_pos = (bomb.pos.x + direction[0]*bomb_range*self.EXPLODE_SHAPE[0], bomb.pos.y + direction[1]*bomb_range*self.EXPLODE_SHAPE[1])
                 if vir_pos[0] < self.EXPLODE_SHAPE[0] / 2 or vir_pos[0] >= self.width - self.EXPLODE_SHAPE[0] / 2 or vir_pos[1] < self.EXPLODE_SHAPE[1] / 2 or vir_pos[1] >= self.height - self.EXPLODE_SHAPE[1] / 2:
                     continue
-                explosion = Wall(vir_pos, self.EXPLODE_SHAPE[0], self.EXPLODE_SHAPE[1], self.EXPLODE_COLOR)
+                explosion = Explosion(vir_pos, self.EXPLODE_SHAPE[0], self.EXPLODE_SHAPE[1], self.EXPLODE_COLOR)
                 self.explosion.add(explosion)
 
     def explode(self):
-        self.explosion.empty()
+        # self.explosion.empty()
         for bomb in self.bombs:
             if bomb.life < 1 / self.fps:
                 self._cal_explode_pos(bomb)
@@ -218,13 +218,13 @@ class BomberMan(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) or self.player == None # or self.ticks > 2 * self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['BAD'] == 0) or self.player == None # or self.ticks > 2 * self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
             Starts/Resets the game to its inital state
         """
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         self.AGENT_INIT_POS = self.rng.uniform(self.AGENT_RADIUS, self.height - self.AGENT_RADIUS, size=2)
 
         if self.player is None:
@@ -301,6 +301,7 @@ class BomberMan(PyGameWrapper):
                 self.player.vel.y = 0
             
         self.creeps.update(dt)
+        self.explosion.update(dt)
         hits = pygame.sprite.groupcollide(self.creeps, self.bombs, False, False)
         for creep in hits.keys():
             creep.direction.x, creep.direction.y = -creep.direction.x, -creep.direction.y
@@ -350,7 +351,7 @@ class BomberMan(PyGameWrapper):
             self.score += creep.reward
             # self._add_creep(1)
 
-        if self.creep_counts["GOOD"] == 0:
+        if self.creep_counts["BAD"] == 0:
             self.score += self.rewards["win"]
 
         self.ticks += self.AGENT_SPEED * dt

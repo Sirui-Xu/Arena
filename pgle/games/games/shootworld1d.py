@@ -2,7 +2,7 @@ import pygame
 import sys
 import math
 
-from ..base import PyGameWrapper, Player, Creep, Bullet
+from ..base import PyGameWrapper, Player, Creep, Bullet, Explosion
 
 from ..utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
@@ -41,7 +41,7 @@ class ShootWorld1d(PyGameWrapper):
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_CREEPS = num_creeps
-        self.CREEP_TYPES = ["GOOD"]
+        self.CREEP_TYPES = ["BAD"]
         self.CREEP_COLORS = [(40, 240, 40)]
         radius = percent_round_int(min(width, height), 0.047)
         self.CREEP_RADII = [radius, radius]
@@ -57,7 +57,7 @@ class ShootWorld1d(PyGameWrapper):
         self.AGENT_INIT_POS = (self.width // 2, self.height)
         self.UNIFORM_SPEED = UNIFORM_SPEED
         self.creep_counts = {
-            "GOOD": 0
+            "BAD": 0
         }
         self.BULLET_TYPE = "BULLET"
         self.BULLET_COLOR = (70, 30, 30)
@@ -69,6 +69,7 @@ class ShootWorld1d(PyGameWrapper):
         self.player = None
         self.creeps = None
         self.bullets = None
+        self.explosions = None
         self.fps = fps
 
     def _handle_player_events(self):
@@ -170,7 +171,7 @@ class ShootWorld1d(PyGameWrapper):
                                          'score': self.score}}
 
     def loadGameState(self, state):
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         if self.creeps is None:
             self.creeps = pygame.sprite.Group()
         else:
@@ -239,13 +240,13 @@ class ShootWorld1d(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return (self.creep_counts['GOOD'] == 0) # or self.ticks > self.N_CREEPS * (self.width + self.height)
+        return (self.creep_counts['BAD'] == 0) # or self.ticks > self.N_CREEPS * (self.width + self.height)
 
     def init(self):
         """
             Starts/Resets the game to its inital state
         """
-        self.creep_counts = {"GOOD": 0}
+        self.creep_counts = {"BAD": 0}
         self.AGENT_INIT_POS = (self.rng.uniform(self.AGENT_RADIUS, self.width - self.AGENT_RADIUS), self.height - self.AGENT_RADIUS)
 
         if self.player is None:
@@ -270,6 +271,11 @@ class ShootWorld1d(PyGameWrapper):
             self.bullets = pygame.sprite.Group()
         else:
             self.bullets.empty()
+
+        if self.explosions is None:
+            self.explosions = pygame.sprite.Group()
+        else:
+            self.explosions.empty()
 
         for i in range(self.N_CREEPS):
             self._add_creep(0, self.CREEP_RADII[0])
@@ -299,19 +305,22 @@ class ShootWorld1d(PyGameWrapper):
         self.player.update(self.dx, 0, dt)
         self.creeps.update(dt)
         self.bullets.update(dt)
+        self.explosions.update(dt)
         hits = pygame.sprite.groupcollide(self.bullets, self.creeps, True, True)
         for bullet in hits.keys():
             for creep in hits[bullet]:
+                self.explosions.add(Explosion((creep.pos.x, creep.pos.y), 2 * creep.radius, 2 * creep.radius, (0, 0, 0)))
                 self.creep_counts[creep.TYPE] -= 1
                 self.score += creep.reward
                 # self._add_creep(1)
 
-        if self.creep_counts["GOOD"] == 0:
+        if self.creep_counts["BAD"] == 0:
             self.score += self.rewards["win"]
 
         self.player.draw(self.screen)
         self.creeps.draw(self.screen)
         self.bullets.draw(self.screen)
+        self.explosions.draw(self.screen)
         self.ticks += self.AGENT_SPEED * dt
 
 if __name__ == "__main__":
