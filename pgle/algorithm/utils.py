@@ -2,9 +2,9 @@ import pygame
 from ..games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
 from ..games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
 from ..games import WaterWorld, WaterWorld1d, WaterWorldMaze
-from randomness import Random
-from greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2, GreedyCollectMax
-from planning import PlanningCollect, PlanningPacV0, PlanningPacV1, PlanningShoot1d
+from .randomness import Random
+from .greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2, GreedyCollectMax
+from .planning import PlanningCollect, PlanningPacV0, PlanningPacV1, PlanningShoot1d
 
 import pygame
 import json
