@@ -26,7 +26,7 @@ setup(
 	author_email='xusirui@pku.edu.cn',
 	keywords='',
 	license="MIT",
-	packages=find_packages(exclude=['Example*']),
+	packages=find_packages(exclude=['example*']),
         include_package_data=False,
         zip_safe=False,
         install_requires=install_requires
