@@ -45,7 +45,7 @@ class PacWorld(PyGameWrapper):
         self.N_CREEPS = num_creeps
         self.CREEP_TYPES = ["GOOD", "BAD"]
         self.CREEP_COLORS = [(40, 240, 40), (150, 95, 95)]
-        radius = percent_round_int(min(width, height), 0.047)
+        radius = percent_round_int(min(width, height), 0.040)
         self.CREEP_RADII = [radius, radius]
         self.CREEP_REWARD = [
             self.rewards["positive"],
@@ -108,7 +108,7 @@ class PacWorld(PyGameWrapper):
 
         creep = Creep(
             (5, 150*rand+50, 10),
-            self.CREEP_RADII[creep_type],
+            int(self.CREEP_RADII[creep_type] * value * self.N_CREEPS) + 1,
             pos,
             self.rng.uniform(-1, 1, size=2),
             self.rng.rand() * self.CREEP_SPEED,
@@ -181,7 +181,7 @@ class PacWorld(PyGameWrapper):
                 reward = info["type_index"][1]
                 creep = Creep(
                     (5, info["_color"], 10),
-                    self.CREEP_RADII[0],
+                    int(self.CREEP_RADII[0] * reward / self.CREEP_REWARD[0]) + 1,
                     info["position"],
                     info["velocity"],
                     info["speed"] * self.fps,

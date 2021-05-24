@@ -89,15 +89,15 @@ for frequency in frequency_list:
                     output_movie = cv2.VideoWriter(os.path.join('./result/video', '{}_{}_{}_{}_{}_{}.mp4'.format(game_name, alg_name, maze_size, num_creeps, window_size, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
                 
                 for j in range(200):
+                    action = algorithm.exe()
+                    
                     if args.store_video:
                         output_movie.write(env.render())
                     if args.visualize:
                         print("State: {}".format(state))
                         cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
-
-                    action = algorithm.exe()
-                    
+                        
                     if args.store_data:
                         action_list = [0 for _ in env.actions]
                         action_list[action] = 1

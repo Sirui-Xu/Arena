@@ -265,7 +265,7 @@ class WaterWorld1d(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        dt /= 1000.0
+        dt = 1 / self.fps
         self.screen.fill(self.BG_COLOR)
 
         self.score += self.rewards["tick"]

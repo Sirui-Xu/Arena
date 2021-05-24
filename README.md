@@ -35,7 +35,7 @@ If there was a wall in the map, the agent could not pass through the wall, but s
 For example, The game WaterWorld with maze is called WaterWorldMaze.
 
 
-**Complexity Analysis**
+<!-- **Complexity Analysis**
 
 assumed that the moving range of each step of the agent is $m_a$. The moving range of each step of the agent is $m_o$. The density of objects in the game is $\rho$ and there are $n$ objects. The number of bombs placed is $n_b$
 
@@ -49,7 +49,7 @@ If the number of nodes and diameter of the maze graph is $n_w$ and $d_w$
 |Game Setting| w/o maze | w/ maze|
 |---|---|---|
 |Graph size| $s$ | $s+n_w$|
-|Graph diameter| $d$ | $d+d_w$|
+|Graph diameter| $d$ | $d+d_w$| -->
 ## Algorithms
 
 We also provide handcrafted algorithms for every game. These algorithms can be used as a baseline for the comparison of graph neural networks, and can also be used as teacher policies for graph neural networks to imitate, since it is not very successful to use graph neural networks directly for reinforcement learning in some of our games at present.
@@ -59,11 +59,6 @@ We also provide handcrafted algorithms for every game. These algorithms can be u
 The main part of PGLE only requires the following dependencies:
 * numpy
 * pygame
-
-If you also want to use our code to test the heuristic algorithm, you would also need the following dependencies:
-* argparse
-* json
-* opencv
   
 Clone the repo and install with pip.
 
@@ -78,8 +73,8 @@ pip install -e .
 Hear's an example of playing bomberman. 
 
 ```bash
-cd PyGame-Graph-Based-Learning-Environment/
-python play.py bomberman
+cd example/
+python play.py bombermanmaze
 ``` 
 
 You need the `w, s, a, d` and `space` keys on your keyboard to move and place bombs.
@@ -132,10 +127,10 @@ The state contains the local and the global information. Here's an example.
 
 ```python
 state = {"local": local_state, "global": global_state}
-local_state = [ {'type': 'player', 'type_index': 0, 'position': [472.5, 402.5], 'velocity': [0, 0], 'speed': 70, 'box': [388, 458, 416, 486], 'discrete_position': [13, 11]}, 
-                {'type': 'creep', 'type_index': 3, 'position': [315.0, 52.5], 'velocity': [35.0, 0.0], 'speed': 35, 'box': [38, 301, 66, 329], 'discrete_position': [9, 1]}, 
-                {'type': 'creep', 'type_index': 2, 'position': [52.5, 280.0], 'velocity': [0.0, -35.0], 'speed': 35, 'box': [266, 38, 294, 66], 'discrete_position': [1, 8]} ]
-global_state = {'map_shape': [15, 15], 
+local_state = [ {'type': 'player', 'type_index': 0, 'position': [472.5, 402.5], 'velocity': [0, 0], 'speed': 70, 'box': [388, 458, 416, 486]}, 
+                {'type': 'creep', 'type_index': 3, 'position': [315.0, 52.5], 'velocity': [35.0, 0.0], 'speed': 35, 'box': [38, 301, 66, 329], }, 
+                {'type': 'creep', 'type_index': 2, 'position': [52.5, 280.0], 'velocity': [0.0, -35.0], 'speed': 35, 'box': [266, 38, 294, 66] ]
+global_state = {
                 'maze': array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                             [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                             [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
@@ -155,15 +150,15 @@ global_state = {'map_shape': [15, 15],
                }
 ```
 
-Just like that we have our agent interacting with our game environment. A specific example can be referred to `algorithm/test.py`
+Just like that we have our agent interacting with our game environment. A specific example can be referred to `example/test.py`
 
 ## Test heuristic algorithm
 
 ```bash
-cd algorithm
+cd example
 python test.py --game ${game_name} --algorithm ${algorithm_name}
 ```
-${game_name} should be one of the available game's name. ${algorithm_name} should be something like `randomalgorithm`.
+${game_name} should be one of the available game's name. ${algorithm_name} should be something like `random`.
 
 
 ## Acknowledgement

@@ -4,7 +4,7 @@ from ..games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorld
 from ..games import WaterWorld, WaterWorld1d, WaterWorldMaze
 from .randomness import Random
 from .greedy import OneStep, TwoStep, GreedyCollectV0, GreedyCollectV1, GreedyCollectV2, GreedyCollectMax
-from .planning import PlanningCollect, PlanningPacV0, PlanningPacV1, PlanningShoot1d
+from .planning import PlanningCollect, PlanningPac, PlanningShoot1d
 
 import pygame
 import json
@@ -15,8 +15,7 @@ game_names = ['BilliardWorld', 'BilliardWorldMaze', 'BomberMan', 'BomberManMaze'
              'WaterWorld', 'WaterWorld1d', 'WaterWorldMaze']
 algorithm_names = ['Random', 'OneStep', 'TwoStep', 'GreedyCollectV0', 
                    'GreedyCollectV1', 'GreedyCollectV2', 'GreedyCollectMax', 
-                   'PlanningCollect', 'PlanningPacV0', 'PlanningPacV1',
-                   'PlanningShoot1d']
+                   'PlanningCollect', 'PlanningPac', 'PlanningShoot1d']
 
 
 def load_game(game_name, window_size, maze_width, num_creeps, fps):

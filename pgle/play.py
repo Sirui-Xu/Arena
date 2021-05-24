@@ -6,7 +6,7 @@ from .games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldM
 from .games import WaterWorld, WaterWorld1d, WaterWorldMaze
 import os
 
-def play(game_name):
+def play(game_name, fps=50):
     os.environ.pop("SDL_VIDEODRIVER")
     lower2upper = {upper.lower():upper for upper in globals().keys()}
     game = globals()[lower2upper[game_name.lower()]]
@@ -17,10 +17,9 @@ def play(game_name):
         game.clock = pygame.time.Clock()
         game.rng = np.random.RandomState(24)
         game.init()
-        fps = 5
         while True:
             for i in range(game.fps):
-                dt = game.clock.tick_busy_loop(fps*game.fps)
+                dt = game.clock.tick_busy_loop(fps)
                 game.step()
                 pygame.display.update()
 
@@ -30,13 +29,13 @@ def play(game_name):
                 break
             print(game.getGameState(), '\n')
     else:
-        game = game(width=512, height=512, num_creeps=3)
+        game = game(width=512, height=512, num_creeps=3, fps=fps*5)
         game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
         game.clock = pygame.time.Clock()
         game.rng = np.random.RandomState(24)
         game.init()
         while True:
-            dt = game.clock.tick_busy_loop(30)
+            dt = game.clock.tick_busy_loop(fps)
             game.step(dt)
             pygame.display.update()
             if game.game_over() is True:

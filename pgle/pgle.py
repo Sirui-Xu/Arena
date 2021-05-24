@@ -153,6 +153,7 @@ class PGLE(object):
         img = self.game.getScreenRGB()
         img = np.rot90(img, 1)
         img = img[::-1, :, :]
+        img[:, :, [0, 2]] = img[:, :, [2, 0]]
         return img
     
     def getScreenDims(self):

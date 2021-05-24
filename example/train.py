@@ -32,7 +32,7 @@ parser.add_argument('--model', type=str, default="pointconv",
                     help='model name')
 args = parser.parse_args()
 BATCH_SIZE = 32
-SAVE_EPOCH = 10
+SAVE_EPOCH = 5
 PRINT_EPOCH = 200
 CROSS_ENTROPY = True
 LOSS_BALANCE = False
@@ -116,6 +116,7 @@ else:
     weight = torch.ones(dataset[0].y.shape[1]).to('cuda')
 
 num_epochs = args.num_epochs
+min_val_loss = 1e5
 for i_epochs in range(resume_epoch, num_epochs):
     # Initialize the environment and state
     scheduler_warmup.step(i_epochs + 1)
@@ -179,6 +180,11 @@ for i_epochs in range(resume_epoch, num_epochs):
         save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format((i_epochs+1)))
         torch.save(save_state, save_path)
         
+        if losses / len(val_dataloader) < min_val_loss:
+            min_val_loss = losses / len(val_dataloader)
+            save_state = {'policy_net': policy_net.state_dict(), 'optim': optimizer.state_dict()}
+            save_path = os.path.join(args.checkpoints_path, 'best_model')
+            torch.save(save_state, save_path)
         policy_net.train()
       
 print('Complete')
