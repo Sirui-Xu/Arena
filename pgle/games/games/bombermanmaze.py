@@ -335,7 +335,7 @@ class BomberManMaze(PyGameWrapper):
 
                 else:
                     self.player.pos = vec2d(self.AGENT_INIT_POS)
-                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.vel = vec2d(info["velocity"])
                     self.player.rect.center = self.AGENT_INIT_POS
 
             if info["type"] == "creep":
@@ -509,7 +509,7 @@ class BomberManMaze(PyGameWrapper):
         self.creeps.update(1 / self.fps)     
         self.bombs.update(1 / self.fps)   
         self.explosion.update(1 / self.fps)
-        
+
         if len(self.bomb_dict) > 0:
             self.explode()
 

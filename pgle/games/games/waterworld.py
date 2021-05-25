@@ -170,7 +170,7 @@ class WaterWorld(PyGameWrapper):
 
                 else:
                     self.player.pos = vec2d(self.AGENT_INIT_POS)
-                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.vel = vec2d(info["velocity"])
                     self.player.rect.center = self.AGENT_INIT_POS
             if info["type"] == "creep":
                 creep_type = info["type_index"][1]

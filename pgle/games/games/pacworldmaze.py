@@ -53,7 +53,7 @@ class PacWorldMaze(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = self.wall_width
+            self.CREEP_SPEED = self.wall_width / 2
         self.AGENT_COLOR = (30, 30, 70)
         self.AGENT_SPEED = self.wall_width
         self.AGENT_RADIUS = radius
@@ -244,7 +244,7 @@ class PacWorldMaze(PyGameWrapper):
 
                 else:
                     self.player.pos = vec2d(self.AGENT_INIT_POS)
-                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.vel = vec2d(info["velocity"])
                     self.player.rect.center = self.AGENT_INIT_POS
             if info["type"] == "creep":
                 reward = info["type_index"][1]

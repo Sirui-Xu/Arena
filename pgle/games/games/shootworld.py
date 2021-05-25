@@ -202,7 +202,7 @@ class ShootWorld(PyGameWrapper):
 
                 else:
                     self.player.pos = vec2d(self.AGENT_INIT_POS)
-                    self.player.vel = vec2d((0.0, 0.0))
+                    self.player.vel = vec2d(info["velocity"])
                     self.player.rect.center = self.AGENT_INIT_POS
                 self.player.last_vel.x, self.player.last_vel.y = info["last_velocity"][0], info["last_velocity"][1]
 
