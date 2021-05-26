@@ -414,9 +414,9 @@ class PlanningShoot1d:
             if creep == self.target:
                 find_out = True
                 break
-        print('target = ', self.target, t1, t2)
-        print(self.ready2hit)
-        print(self.times)
+        # print('target = ', self.target, t1, t2)
+        # print(self.ready2hit)
+        # print(self.times)
         if find_out:
             find_out = False
             t1s = list(range(int(t1) - self.srange // 2 + 1, int(t1) - self.srange // 2 + self.srange + 1))

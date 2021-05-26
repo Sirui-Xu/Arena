@@ -119,7 +119,7 @@ class BilliardWorldMaze(PyGameWrapper):
                 (self.player.pos.x - pos[0])**2 + (self.player.pos.y - pos[1])**2)
 
         creep = Creep(
-            (5, 25 + 200*color, 10),
+            (5, 20, 25 + 200*color),
             self.CREEP_RADII[creep_type],
             pos,
             (0, 0),
@@ -247,7 +247,7 @@ class BilliardWorldMaze(PyGameWrapper):
             if info["type"] == "creep":
                 creep_type = self.CREEP_TYPES.index(info["_type"])
                 creep = Creep(
-                    (5, self.assigned_values[info["type_index"][1]]*200 + 25, 10),
+                    (5, 20, self.assigned_values[info["type_index"][1] - 1]*200 + 25),
                     self.CREEP_RADII[creep_type],
                     info["position"],
                     info["velocity"],
@@ -288,8 +288,8 @@ class BilliardWorldMaze(PyGameWrapper):
             Starts/Resets the game to its inital state
         """
 
-        self.assigned_values = self.rng.rand((self.N_CREEPS))
-        self.assigned_values.sort()
+        self.assigned_values = list(range(1, self.N_CREEPS+1))
+        self.assigned_values = [_ / self.assigned_values[-1] for _ in self.assigned_values]
         self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.1, density=.1)
         # print(self.maze)
         self.creep_counts = {"GOOD": 0, "BAD": 0}
@@ -319,9 +319,9 @@ class BilliardWorldMaze(PyGameWrapper):
         else:
             self.walls.empty()
 
-        self._add_creep(0, 0, self.assigned_values[0])
+        self._add_creep(0, 1, self.assigned_values[0])
         for i in range(self.N_CREEPS - 1):
-            self._add_creep(1, i+1, self.assigned_values[i+1])
+            self._add_creep(1, i+2, self.assigned_values[i+1])
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):
@@ -378,7 +378,7 @@ class BilliardWorldMaze(PyGameWrapper):
                 creep.kill()
             else:
                 self.score += -1.1
-                self._add_creep(1, creep.idx, self.assigned_values[creep.idx])
+                self._add_creep(1, creep.idx, self.assigned_values[creep.idx - 1])
                 creep.kill()
                 self.creep_counts["BAD"] -= 1
 
@@ -387,15 +387,15 @@ class BilliardWorldMaze(PyGameWrapper):
             
             find_min = False
             for creep in self.creeps.sprites():
-                assert creep.idx >= self.N_CREEPS - self.creep_counts["BAD"]
-                if creep.idx == self.N_CREEPS - self.creep_counts["BAD"]:
+                assert creep.idx > self.N_CREEPS - self.creep_counts["BAD"]
+                if creep.idx == self.N_CREEPS - self.creep_counts["BAD"] + 1:
                     find_min = True
                     break
             assert find_min
             # print(self.creeps.sprites()[0].idx, creep.idx)
             # creep = self.creeps.sprites()[0]
             creep_new = Creep(
-                (5, self.assigned_values[creep.idx]*200 + 25, 10),
+                (5, 20, self.assigned_values[creep.idx - 1]*200 + 25),
                 self.CREEP_RADII[0],
                 (creep.pos.x, creep.pos.y),
                 (creep.direction.x, creep.direction.y),

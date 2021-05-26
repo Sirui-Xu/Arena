@@ -164,28 +164,30 @@ class Creep(pygame.sprite.Sprite):
         self.direction = vec2d(dir_init)
         self.direction.normalize()  # normalized
 
-        self.animation = []
-        self.load_animations(radius * 2, TYPE)
+        if self.idx != 0:
+            image = pygame.Surface((radius * 2, radius * 2))
+            image.fill((0, 0, 0))
+            image.set_colorkey((0, 0, 0))
 
-        # image = pygame.Surface((radius * 2, radius * 2))
-        # image.fill((0, 0, 0))
-        # image.set_colorkey((0, 0, 0))
-
-        # pygame.draw.circle(
-        #     image,
-        #     color,
-        #     (radius, radius),
-        #     radius,
-        #     0
-        # )
-
-        self.image = self.animation[0][0]
-        self.index = [1, 0, 0, 0]
-        # self.image = image.convert()
+            pygame.draw.circle(
+                image,
+                color,
+                (radius, radius),
+                radius,
+                0
+            )
+            self.image = image.convert()
+        else:
+            self.animation = []
+            self.load_animations(radius * 2, TYPE)
+            self.image = self.animation[0][0]
+            self.index = [1, 0, 0, 0]
         self.rect = self.image.get_rect()
         self.rect.center = pos_init
 
     def update_image(self, dx, dy, dt):
+        if self.idx != 0:
+            return
         if dx != 0 or dy != 0:
             if abs(dx) >= abs(dy):
                 dy = 0

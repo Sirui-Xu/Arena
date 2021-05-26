@@ -53,7 +53,7 @@ class PacWorldMaze(PyGameWrapper):
         if NO_SPEED:
             self.CREEP_SPEED = 0
         else:
-            self.CREEP_SPEED = self.wall_width / 2
+            self.CREEP_SPEED = self.wall_width
         self.AGENT_COLOR = (30, 30, 70)
         self.AGENT_SPEED = self.wall_width
         self.AGENT_RADIUS = radius
@@ -288,7 +288,7 @@ class PacWorldMaze(PyGameWrapper):
             Starts/Resets the game to its inital state
         """
 
-        self.assigned_values = list(range(self.N_CREEPS))
+        self.assigned_values = list(range(1, self.N_CREEPS+1))
         self.maze = generate_random_maze(self.real_width, self.real_width, complexity=.1, density=.1)
         # print(self.maze)
         self.creep_counts = {"GOOD": 0, "BAD": 0}
@@ -320,7 +320,7 @@ class PacWorldMaze(PyGameWrapper):
 
         sum_assigned_values = sum(self.assigned_values)
         for i in range(self.N_CREEPS):
-            self._add_creep(0, self.assigned_values[i], self.assigned_values[i] / sum_assigned_values)
+            self._add_creep(0, self.assigned_values[i] / self.assigned_values[-1], self.assigned_values[i] / sum_assigned_values)
 
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):

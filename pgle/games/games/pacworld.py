@@ -108,7 +108,7 @@ class PacWorld(PyGameWrapper):
 
         creep = Creep(
             (5, 150*rand+50, 10),
-            int(self.CREEP_RADII[creep_type] * value * self.N_CREEPS) + 1,
+            self.CREEP_RADII[creep_type],
             pos,
             self.rng.uniform(-1, 1, size=2),
             self.rng.rand() * self.CREEP_SPEED,
@@ -181,7 +181,7 @@ class PacWorld(PyGameWrapper):
                 reward = info["type_index"][1]
                 creep = Creep(
                     (5, info["_color"], 10),
-                    int(self.CREEP_RADII[0] * reward / self.CREEP_REWARD[0]) + 1,
+                    self.CREEP_RADII[0],
                     info["position"],
                     info["velocity"],
                     info["speed"] * self.fps,
@@ -213,7 +213,7 @@ class PacWorld(PyGameWrapper):
         """
             Starts/Resets the game to its inital state
         """
-        self.assigned_values = list(range(self.N_CREEPS))
+        self.assigned_values = list(range(1, self.N_CREEPS+1))
         self.creep_counts = {"GOOD": 0, "BAD": 0}
         self.AGENT_INIT_POS = self.rng.uniform(self.AGENT_RADIUS, self.height - self.AGENT_RADIUS, size=2)
 
