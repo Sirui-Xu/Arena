@@ -10,3 +10,4 @@ from .games import ShootWorldMaze
 from .games import WaterWorld
 from .games import WaterWorld1d
 from .games import WaterWorldMaze
+from .games import ARENA

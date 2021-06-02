@@ -37,23 +37,29 @@ class Creep:
     def split(self, maze):
         for i, old_direction in enumerate(directions):
             for old_position in self.distribution[i]:
-                new_directions = self.posible_directions(old_direction, old_position, maze)
-                update_possibility = self.distribution[self.dir2id(old_direction)][old_position] / len(new_directions)
-                for new_direction in new_directions:
+                new_directions, possibilities = self.posible_directions(old_direction, old_position, maze)
+                update_possibility = self.distribution[self.dir2id(old_direction)][old_position]
+                for j, new_direction in enumerate(new_directions):
                     new_position = creep_walk(old_position, new_direction)
-                    self.distribution_add(update_possibility, new_direction, new_position)
+                    self.distribution_add(update_possibility * possibilities[j], new_direction, new_position)
 
-    def posible_directions(self, old_direction, old_position, maze):
+    def posible_directions(self, old_direction, old_position, maze, p=0.9):
         new_directions = [new_direction for new_direction in directions[:-1] 
                                if (new_direction != backward(old_direction)) and
                                (maze[creep_walk(old_position, new_direction)] == 0)]
         if len(new_directions) > 0:
-            return new_directions
+            possibility = []
+            if old_direction in new_directions:
+                possibility = [(1 - p) / len(new_directions) for _ in new_directions]
+                possibility[new_directions.index(old_direction)] += p 
+            else:
+                possibility = [1 / len(new_directions) for _ in new_directions]
+            return new_directions, possibility
         
         if maze[creep_walk(old_position, backward(old_direction))] == 0:
-            return [backward(old_direction)]
+            return [backward(old_direction)], [1]
 
-        return [directions[-1]]
+        return [directions[-1]], [1]
 
     def collision(self, agent_old_position, agent_old_direction):
         return self.distribution_remove_direction(agent_old_position, backward(agent_old_direction))
@@ -115,7 +121,7 @@ class Creeps:
             position = env.game.real2vir(c.pos.x, c.pos.y)
             direction = (int(c.direction.x), int(c.direction.y))
             self.creeps.append(Creep(position, direction))
-        self.creeps_ = copy.deepcopy(self.creeps)
+        # self.creeps_ = copy.deepcopy(self.creeps)
         self.danger_all = [0 for _ in self.creeps]
         self.reward_all = [0 for _ in self.creeps]
 
@@ -196,7 +202,7 @@ class Bombs:
         explode_bomb_pos = []
         for bomb_pos in self.bombs_dict.keys():
             self.bombs_dict[bomb_pos] -= 1
-            if self.bombs_dict[bomb_pos] == 0:
+            if self.bombs_dict[bomb_pos] <= 0.5:
                 explode_bomb_pos.append(bomb_pos)
 
         for pos in explode_bomb_pos:
@@ -312,9 +318,10 @@ class State:
         s += '\n'
         return s
 
-class BomberMan:
-    def __init__(self, env, depth=8, buffer_length=6*6*2):
+class SearchBomberManMaze:
+    def __init__(self, env, depth=4, buffer_length=6*6*2):
         super().__init__()
+        assert env.name[:6] == "Bomber" and env.name[-4:] == "Maze"
         self.env = env
         self.action_space = ['j', 'n', 'w', 's', 'a', 'd']
         self.reference_action = []
@@ -322,6 +329,7 @@ class BomberMan:
         self.init()
         self.depth = depth
         self.buffer_length = buffer_length
+
 
     def init(self):
         self.reset()
@@ -379,9 +387,10 @@ class BomberMan:
         buffer = []
         states = []
         states.append(self.state)
-        print(self.state)
+        # print(self.state)
         # print(pos2dirs, pos2prob)
         for i in range(self.depth):
+            # print(i)
             random.shuffle(states)
             states.sort(reverse=True)
             buffer = states[:self.buffer_length]
@@ -408,14 +417,14 @@ class BomberMan:
                 self.reference_action = states[0].actions[1:]
             else:
                 self.reference_action = []
-            print(states[0])
+            # print(states[0])
             return states[0].actions, states[0].score, states[0].danger, states[0].reward
         else:
             self.reference_action = []
             return ['n'], -1, 1, 0
                 
 
-    def action(self):
+    def exe(self):
         self.init()
         creeps_pos = [creep.position for creep in self.state.creeps.creeps]
         bombs_pos = self.state.bombs.bombs_dict.keys()
@@ -427,14 +436,14 @@ class BomberMan:
             self.distance = -1
             self.direction = 'n'
         self.actions, self.scores, self.danger_scores, self.explosion_scores = self.search()
-        print(self.actions, self.scores, self.danger_scores, self.explosion_scores, self.distance, self.direction)
+        # print(self.actions, self.scores, self.danger_scores, self.explosion_scores, self.distance, self.direction)
         if self.danger_scores < 1e-1 and self.explosion_scores < 1e-1 and not simple_in_danger(bombs_pos, self.depth, self.state.player_pos, creeps_pos):
             self.actions = [self.direction]
-        return self.actions
+        action_name = ['fire', 'noop', 'up', 'down', 'left', 'right']
+        action_space = ['j', 'n', 'w', 's', 'a', 'd']
+        action_name = action_name[action_space.index(self.actions[0])]
+        return self.env.getActionIndex(action_name)
 
-    def show_screen(self):
-        img = self.env.getScreenRGB()
-        return img
 
 def simple_in_danger(bombs_pos, depth, player_pos, creeps_pos):
     for i, pos in enumerate(bombs_pos):
@@ -488,13 +497,13 @@ def find_shortest_path(player_pos, creeps_pos, maze):
     while(father != None):
         path.append(end_point)
         if end_point.pos[0] < father.pos[0]:
-            actions.append('w')
-        if end_point.pos[0] > father.pos[0]:
-            actions.append('s')
-        if end_point.pos[1] < father.pos[1]:
             actions.append('a')
-        if end_point.pos[1] > father.pos[1]:
+        if end_point.pos[0] > father.pos[0]:
             actions.append('d')
+        if end_point.pos[1] < father.pos[1]:
+            actions.append('w')
+        if end_point.pos[1] > father.pos[1]:
+            actions.append('s')
         
         end_point = father
         father = end_point.father
@@ -503,13 +512,13 @@ def find_shortest_path(player_pos, creeps_pos, maze):
     return find_out, actions, path
 
 def walk(action, player_pos):
-    if action == 'w':
+    if action == 'a':
         _player_pos = (player_pos[0] - 1, player_pos[1])
-    elif action == 's':
-        _player_pos = (player_pos[0] + 1, player_pos[1])
-    elif action == 'a':
-        _player_pos = (player_pos[0], player_pos[1] - 1)
     elif action == 'd':
+        _player_pos = (player_pos[0] + 1, player_pos[1])
+    elif action == 'w':
+        _player_pos = (player_pos[0], player_pos[1] - 1)
+    elif action == 's':
         _player_pos = (player_pos[0], player_pos[1] + 1)
     else:
         _player_pos = player_pos

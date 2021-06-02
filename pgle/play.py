@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from .games import BilliardWorld, BilliardWorldMaze, BomberMan, BomberManMaze
 from .games import PacWorld, PacWorldMaze, ShootWorld, ShootWorld1d, ShootWorldMaze
-from .games import WaterWorld, WaterWorld1d, WaterWorldMaze
+from .games import WaterWorld, WaterWorld1d, WaterWorldMaze, ARENA
 import os
 
 def play(game_name, fps=50):
@@ -29,7 +29,7 @@ def play(game_name, fps=50):
                 break
             print(game.getGameState(), '\n')
     else:
-        game = game(width=512, height=512, num_creeps=3, fps=fps*5)
+        game = game(width=512, height=512, fps=50)
         game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
         game.clock = pygame.time.Clock()
         game.rng = np.random.RandomState(24)
@@ -39,10 +39,10 @@ def play(game_name, fps=50):
             game.step(dt)
             pygame.display.update()
             if game.game_over() is True:
-                print(game.getGameState(), '\n')
+                #print(game.getGameState(), '\n')
                 print("The overall score is {}.".format(game.score))
                 break
-            print(game.getGameState(), '\n')
+            #print(game.getGameState(), '\n')
 
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 

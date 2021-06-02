@@ -356,6 +356,7 @@ class PlanningShoot1d:
         self.directions = [(-1, 0), (1, 0), None, (0, 0)]
         self.actions_name = ["left", "right", "fire", "noop"]
         self.fps = env.game.fps
+        assert self.fps >= 15
         self.env = env
         self.game = env.game
         self.srange = srange
