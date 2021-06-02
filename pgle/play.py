@@ -39,10 +39,10 @@ def play(game_name, fps=50):
             game.step(dt)
             pygame.display.update()
             if game.game_over() is True:
-                #print(game.getGameState(), '\n')
+                print(game.getGameState(), '\n')
                 print("The overall score is {}.".format(game.score))
                 break
-            #print(game.getGameState(), '\n')
+            print(game.getGameState(), '\n')
 
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 

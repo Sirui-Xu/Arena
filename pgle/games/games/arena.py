@@ -197,7 +197,7 @@ class ARENA(PyGameWrapper):
                 self.SHAPE // 2,
                 pos,
                 self.BOMB_LIFE,
-                self.BOMB_RANGE,
+                self.BOMB_RANGE*self.SHAPE,
             )
 
             if len(pygame.sprite.spritecollide(bomb, self.bombs, False)) == 0:
@@ -235,28 +235,70 @@ class ARENA(PyGameWrapper):
             hits = pygame.sprite.groupcollide(self.bombs, self.blasts, True, False)
 
     def getGameState(self):
-        player_state = {'type':'player', 
-                        'type_index': [0, -1], 
-                        'position': [self.agent.pos.x, self.agent.pos.y],
-                        'velocity': [self.agent.vel.x / self.fps, self.agent.vel.y / self.fps],
-                        'speed': self.AGENT_SPEED / self.fps,
-                        'box': [self.agent.rect.left, self.agent.rect.top, self.agent.rect.right, self.agent.rect.bottom],
-                       }
-        state = [player_state]
-        order = list(range(len(self.enemies.sprites())))
-        # self.rng.shuffle(order)
-        for i in order:
-            c = self.enemies.sprites()[i]
+        state = []
+        if self.agent is not None:
+            player_state = {'type':'agent', 
+                            'type_index': [0, 0, -1, -1], 
+                            'position': [self.agent.pos.x, self.agent.pos.y],
+                            'velocity': [self.AGENT_SPEED * self.agent.direction.x / self.fps, self.AGENT_SPEED * self.agent.direction.y / self.fps],
+                            'speed': self.AGENT_SPEED / self.fps,
+                            'box': [self.agent.rect.left, self.agent.rect.top, self.agent.rect.right, self.agent.rect.bottom],
+                        }
+            state.append(player_state)
+        for c in self.enemies.sprites():
             enemy_state = {'type':'enemy', 
-                           'type_index': [1, self.enemy_TYPES.index(c.TYPE)], 
+                           'type_index': [1, -1, -1, -1], 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
                            'speed': c.speed / self.fps,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
-                           '_jitter_speed': c.jitter_speed,
-                           '_type': c.TYPE,
                           }
             state.append(enemy_state)
+        for c in self.reward_nodes.sprites():
+            reward_state = {'type':'reward', 
+                           'type_index': [2, c.reward, -1, -1], 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [0, 0],
+                           'speed': 0,
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                          }
+            state.append(reward_state)
+        for c in self.bombs.sprites():
+            bomb_state = {'type':'bombs', 
+                           'type_index': [3, 0, c.life, c.explode_range], 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [0, 0],
+                           'speed': 0,
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                          }
+            state.append(bomb_state)
+        for c in self.projectiles.sprites():
+            projectile_state = {'type':'projectile', 
+                                'type_index': [4, -1, -1, -1], 
+                                'position': [c.pos.x, c.pos.y],
+                                'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
+                                'speed': c.speed / self.fps,
+                                'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                            }
+            state.append(projectile_state)
+        for c in self.obstacles.sprites():
+            obstacle_state = {'type':'obstacle', 
+                           'type_index': [5, -1, -1, -1], 
+                           'position': [c.pos.x, c.pos.y],
+                           'velocity': [0, 0],
+                           'speed': 0,
+                           'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                          }
+            state.append(obstacle_state)
+        for c in self.blasts.sprites():
+            blast_state = {'type':'blast', 
+                                'type_index': [6, -1, c.life, -1], 
+                                'position': [c.pos.x, c.pos.y],
+                                'velocity': [0, 0],
+                                'speed': 0,
+                                'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
+                            }
+            state.append(blast_state)
 
         return {'local':state, 'global':{'ticks': self.ticks, 'shape': [self.width, self.height],
                                          'score': self.score}}
@@ -452,7 +494,7 @@ class ARENA(PyGameWrapper):
         hits = pygame.sprite.groupcollide(self.projectiles, self.obstacles, True, True)
         for bullet in hits.keys():
             for obstacles in hits[bullet]:
-                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 5))
+                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 2))
         hits = pygame.sprite.groupcollide(self.projectiles, self.blasts, True, False)
         hits = pygame.sprite.groupcollide(self.projectiles, self.enemies, True, True)
         for bullet in hits.keys():

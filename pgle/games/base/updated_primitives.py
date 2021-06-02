@@ -294,12 +294,14 @@ class Blast(pygame.sprite.Sprite):
 
         self.image = self.animation[0]
         self.index = 0
+        self.life = len(self.animation) / 12
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
     def update(self, dt):
         self.image = self.animation[int(self.index)]
         self.index += 12 * dt
+        self.life -= dt
         if self.index >= len(self.animation):
             self.kill()
 
