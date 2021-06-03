@@ -2,6 +2,7 @@ import pygame
 import sys
 import math
 import random
+import numpy as np
 from ..base import PyGameWrapper
 from ..base import Agent, Bombv, Blast, Enemy, Obstacle, Projectile, Reward
 
@@ -31,9 +32,10 @@ class ARENA(PyGameWrapper):
                  real_size=64,
                  num_reward=50,
                  num_enemies=100,
-                 num_bombs=1,
-                 num_projectiles=1,
-                 num_obstacles=100,
+                 num_bombs=3,
+                 num_projectiles=3,
+                 num_obstacles=300,
+                 num_obstacles_groups=300,
                  enemy_speed=0.20,
                  agent_speed=0.20,
                  projectile_speed=1,
@@ -55,6 +57,7 @@ class ARENA(PyGameWrapper):
         self.N_BOMBS = num_bombs
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
+        self.N_OBSTACLE_GROUPS = num_obstacles_groups
         self.SHAPE = min(width, height) // real_size
         assert self.SHAPE >= 2
         self.ENEMY_SPEED = enemy_speed * self.SHAPE
@@ -99,87 +102,116 @@ class ARENA(PyGameWrapper):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-
-    def _add_obstacle(self):
-        obstacle = None
-        pos = (0, 0)
-        dist = 0.0
-        for t in range(10):
-            radius = 0.5 * self.SHAPE + 1
-            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
-            dist = math.sqrt(
-                (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
-            obstacle = Obstacle(
-                pos, self.SHAPE // 2
-            )
-            if len(pygame.sprite.spritecollide(obstacle, self.obstacles, False)) > 0:
-                obstacle.kill()
-                continue
-            else:
-                if dist > 2 * self.SHAPE:
-                    self.obstacles.add(obstacle)
-                    return True
-                else:
-                    continue
-        return False
-
     
-    def _add_enemy(self):
-        enemy = None
-        pos = (0, 0)
-        dist = 0.0
-        for t in range(10):
-            radius = 0.5 * self.SHAPE + 1
-            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
-            dist = math.sqrt(
-                (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
+    def generate_random_maze(self, width, height, num, complexity):
+        r"""Generate a random maze array. 
+        
+        It only contains two kind of objects, obstacle and free space. The numerical value for obstacle
+        is ``1`` and for free space is ``0``. 
+        
+        Code from https://en.wikipedia.org/wiki/Maze_generation_algorithm
+        """
+        # Only odd shapes
+        shape = (width, height)
+        # Build actual maze
+        Z = np.zeros(shape, dtype=bool)
+        t = 0
+        # Fill borders
+        # Z[0, :] = Z[-1, :] = 1
+        # Z[:, 0] = Z[:, -1] = 1
+        # Make aisles
+        while True:
+            y, x = self.rng.randint(0, (shape[0]-1)//2 + 1) * 2, self.rng.randint(0, (shape[1]-1)//2 + 1) * 2
+            Z[y, x] = 1
+            t += 1
+            if t == num:
+                break
+            for j in range(complexity):
+                neighbours = []
+                if x > 1:             neighbours.append((y, x - 2))
+                if x < shape[1] - 2:  neighbours.append((y, x + 2))
+                if y > 1:             neighbours.append((y - 2, x))
+                if y < shape[0] - 2:  neighbours.append((y + 2, x))
+                if len(neighbours):
+                    y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
+                    if Z[y_, x_] == 0:
+                        Z[y_, x_] = 1
+                        t += 1
+                        if t == num:
+                            break
+                        Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
+                        t += 1
+                        if t == num:
+                            break
+                        x, y = x_, y_
+            if t == num:
+                break                       
+        return Z.astype(int)
 
-            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-            enemy = Enemy(
-                self.SHAPE // 2,
-                pos,
-                directions[self.rng.choice(list(range(4)))],
-                self.ENEMY_SPEED,
-                self.width,
-                self.height,
-            )
-            if len(pygame.sprite.spritecollide(enemy, self.obstacles, False)) > 0:
-                enemy.kill()
-                continue
-            else:
-                if dist > 2 * self.SHAPE:
-                    self.enemies.add(enemy)
-                    return True
-                else:
-                    continue
-        return False
+    def _add_obstacles(self, shape, edge_x, edge_y):
+        self.maze = self.generate_random_maze(self.width // shape, self.height // shape, num=self.N_OBSTACLES, complexity=max(0, (self.N_OBSTACLES // self.N_OBSTACLE_GROUPS - 1)))
+        for i in range(self.width // shape):
+            for j in range(self.height // shape):
+                obstacle = None
+                pos = (i, j)
+                if self.maze[pos] == 1:
+                    real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
+                    obstacle = Obstacle(
+                        real_pos, shape // 2
+                    )
+                    self.obstacles.add(obstacle)
 
-    def _add_reward(self, shape, reward):
-        node = None
-        pos = (0, 0)
-        dist = 0.0
-        for t in range(10):
-            radius = shape / 2 + 1
-            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
-            dist = math.sqrt(
-                (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
+    def _add_agent(self, shape, edge_x, edge_y):
+        pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+        while(self.maze[pos] > 0):
+            pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+        
+        AGENT_INIT_POS = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
+        self.agent.pos = vec2d(AGENT_INIT_POS)
+        self.agent.rect.center = AGENT_INIT_POS
 
-            node = Reward(
-                pos,
-                shape // 2,
-                reward,
-            )
-            if len(pygame.sprite.spritecollide(node, self.obstacles, False)) > 0:
-                node.kill()
-                continue
-            else:
-                if dist > shape + self.SHAPE:
-                    self.reward_nodes.add(node)
-                    return True
-                else:
-                    continue
-        return False
+
+    def _add_enemies(self, shape, edge_x, edge_y):
+        for i in range(self.N_ENEMIES):
+            enemy = None
+            for t in range(10):
+                pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+                if self.maze[pos] == 0:
+                    real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
+                    dist = math.sqrt((self.agent.pos.x - real_pos[0])**2 + (self.agent.pos.y - real_pos[1])**2)
+                    if dist > 2 * self.SHAPE:
+                        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+                        enemy = Enemy(
+                            self.SHAPE // 2,
+                            real_pos,
+                            directions[self.rng.choice(list(range(4)))],
+                            self.ENEMY_SPEED,
+                            self.width,
+                            self.height,
+                        )
+                        self.enemies.add(enemy)
+                        break
+            if t >= 10:
+                print("WARNING: Need a bigger map!")
+
+    def _add_rewards(self, shape, edge_x, edge_y):
+        for i in range(self.N_ENEMIES):
+            reward = None
+            for t in range(10):
+                pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+                if self.maze[pos] == 0:
+                    real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
+                    dist = math.sqrt((self.agent.pos.x - real_pos[0])**2 + (self.agent.pos.y - real_pos[1])**2)
+                    if dist > 2 * self.SHAPE:
+                        reward = Reward(
+                            real_pos,
+                            self.SHAPE // 2,
+                            1,
+                        )
+                        self.reward_nodes.add(reward)
+                        break
+            if t >= 10:
+                print("WARNING: Need a bigger map!")
     
     def add_projectile(self):
         if len(self.projectiles) < self.N_PROJECTILES and self.shoot > 0:
@@ -366,8 +398,10 @@ class ARENA(PyGameWrapper):
         """
             Starts/Resets the game to its inital state
         """
-        AGENT_INIT_POS = (self.rng.uniform((self.SHAPE / 2 + 1), self.width - (self.SHAPE / 2 + 1)), 
-                          self.rng.uniform((self.SHAPE / 2 + 1), self.height - (self.SHAPE / 2 + 1)))
+        # self.assigned_values = list(range(1, self.N_ENEMIES+1))
+        # self.assigned_values = [_ / self.assigned_values[-1] for _ in self.assigned_values]
+
+        AGENT_INIT_POS = (0, 0)
 
         if self.agent is None:
             self.agent = Agent(
@@ -378,9 +412,6 @@ class ARENA(PyGameWrapper):
         else:
             self.agent.pos = vec2d(AGENT_INIT_POS)
             self.agent.rect.center = AGENT_INIT_POS
-
-        # self.assigned_values = list(range(1, self.N_ENEMIES+1))
-        # self.assigned_values = [_ / self.assigned_values[-1] for _ in self.assigned_values]
 
         if self.enemies is None:
             self.enemies = pygame.sprite.Group()
@@ -441,21 +472,15 @@ class ARENA(PyGameWrapper):
         # # self.fix_obstacles.add(obstacle((self.width - self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
         # # self.fix_obstacles.add(obstacle((self.width / 2, self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
         # # self.fix_obstacles.add(obstacle((self.width / 2, self.height - self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
+        shape = self.SHAPE + 4
+        edge_x = (self.width - (self.width // shape) * shape) / 2
+        edge_y = (self.height - (self.height // shape) * shape) / 2
 
-        for i in range(self.N_ENEMIES):
-            FLAG = self._add_enemy()
-            if FLAG is False:
-                print("need a bigger map")
-
-        for i in range(self.N_OBSTACLES):
-            FLAG = self._add_obstacle()
-            if FLAG is False:
-                print("need a bigger map")
-
-        for i in range(self.N_REWARDS):
-            FLAG = self._add_reward(self.SHAPE, 1)
-            if FLAG is False:
-                print("need a bigger map")
+        self._add_obstacles(shape, edge_x, edge_y)
+        self._add_agent(shape, edge_x, edge_y)
+            
+        self._add_enemies(shape, edge_x, edge_y)
+        self._add_rewards(shape, edge_x, edge_y)
         
         self.score = 0
         self.ticks = 0
