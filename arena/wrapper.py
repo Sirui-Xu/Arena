@@ -6,7 +6,7 @@ import pygame
 from .games.base.pygamewrapper import PyGameWrapper
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
 
-class PGLE(object):
+class GameWrapper(object):
     def __init__(self, game, rng=24):
 
         self.game = game

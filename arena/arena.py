@@ -3,14 +3,15 @@ import sys
 import math
 import random
 import numpy as np
-from ..base import PyGameWrapper
-from ..base import Agent, Bombv, Blast, Enemy, Obstacle, Projectile, Reward
+from base.primitives import Agent, Bombv, Blast, Enemy, Obstacle, Projectile, Reward
+from base.pygamewrapper import PyGameWrapper
+from base.vec2d import vec2d
+from base import percent_round_int
 
-from ..utils import vec2d, percent_round_int
 from pygame.constants import K_w, K_a, K_s, K_d, K_j, K_SPACE
 
 
-class ARENA(PyGameWrapper):
+class Arena(PyGameWrapper):
     """
     Parameters
     ----------
@@ -47,8 +48,8 @@ class ARENA(PyGameWrapper):
     """
 
     def __init__(self,
-                 width=512,
-                 height=512,
+                 width=1024,
+                 height=768,
                  object_size=8,
                  num_rewards=50,
                  num_enemies=100,
@@ -528,21 +529,20 @@ class ARENA(PyGameWrapper):
         self.enemies.draw(self.screen)
         self.agent.draw(self.screen)
 
-    def step(self, dt):
+    def step(self):
         """
             Perform one step of game emulation.
         """
-        dt = 1
         self.score += -0.001
 
         self._handle_player_events()
-        self.agent.update(self.dx, self.dy, dt, self.obstacles)
+        self.agent.update(self.dx, self.dy, self.obstacles)
         self.add_projectile()
         self.add_bomb()
-        self.enemies.update(dt, self.obstacles)
-        self.projectiles.update(dt)
-        self.bombs.update(dt)
-        self.blasts.update(dt)
+        self.enemies.update(self.obstacles)
+        self.projectiles.update()
+        self.bombs.update()
+        self.blasts.update()
 
         hits = pygame.sprite.spritecollide(self.agent, self.reward_nodes, True)
         for node in hits:
@@ -575,24 +575,24 @@ class ARENA(PyGameWrapper):
 
         if self.visualize:
             self.draw()
-        self.ticks += dt
+        self.ticks += 1
 
 
-if __name__ == "__main__":
-    import numpy as np
+#if __name__ == "__main__":
+#    import numpy as np
 
-    pygame.init()
-    game = ARENA(width=512, height=512)
-    game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
-    game.clock = pygame.time.Clock()
-    game.rng = np.random.RandomState(24)
-    game.init()
+#    pygame.init()
+#    game = ARENA(width=512, height=512)
+#    game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
+#    game.clock = pygame.time.Clock()
+#    game.rng = np.random.RandomState(24)
+#    game.init()
 
-    while True:
-        dt = game.clock.tick_busy_loop(30)
-        game.step(dt)
-        pygame.display.update()
-        if game.game_over() is True:
-            print("The overall score is {}.".format(game.score))
-            break
-        print(game.getGameState(), '\n')
+#    while True:
+#        game.clock.tick_busy_loop(30)
+#        game.step()
+#        pygame.display.update()
+#        if game.game_over() is True:
+#            print("The overall score is {}.".format(game.score))
+#            break
+#        print(game.getGameState(), '\n')

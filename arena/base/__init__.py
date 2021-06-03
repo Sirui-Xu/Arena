@@ -1,5 +1,4 @@
 import numpy as np
-from .vec2d import vec2d
 
 def percent_round_int(percent, x):
     return np.round(percent * x).astype(int)

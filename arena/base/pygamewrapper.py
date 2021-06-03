@@ -179,12 +179,5 @@ class PyGameWrapper(object):
         """
         raise NotImplementedError("Please override this method")
 
-    def step(self, dt):
-        """
-        This method steps the game forward one step in time equal to the dt parameter. The game does not run unless this method is called.
-        Parameters
-        ----------
-        dt : integer
-            This is the amount of time elapsed since the last frame in milliseconds.
-        """
+    def step(self):
         raise NotImplementedError("Please override this method")
