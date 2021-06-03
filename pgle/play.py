@@ -29,7 +29,7 @@ def play(game_name, fps=50):
                 break
             print(game.getGameState(), '\n')
     else:
-        game = game(width=512, height=512, fps=50)
+        game = game(width=1024, height=768)
         game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
         game.clock = pygame.time.Clock()
         game.rng = np.random.RandomState(24)

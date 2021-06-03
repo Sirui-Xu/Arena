@@ -26,15 +26,18 @@ class ARENA(PyGameWrapper):
     """
 
     def __init__(self,
-                 width=256,
-                 height=256,
-                 num_reward=5,
-                 num_enemies=5,
-                 num_bombs=3,
-                 num_projectiles=3,
-                 num_obstacles=20,
-                 visualize=True,
-                 fps=20):
+                 width=512,
+                 height=512,
+                 real_size=64,
+                 num_reward=50,
+                 num_enemies=100,
+                 num_bombs=1,
+                 num_projectiles=1,
+                 num_obstacles=100,
+                 enemy_speed=0.20,
+                 agent_speed=0.20,
+                 projectile_speed=1,
+                 visualize=True):
 
         actions = {
             "up": K_w,
@@ -52,11 +55,11 @@ class ARENA(PyGameWrapper):
         self.N_BOMBS = num_bombs
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
-        self.SHAPE = 30
-        self.SPEED = 30
-        self.ENEMY_SPEED = self.SPEED * 2
-        self.AGENT_SPEED = self.SPEED * 2
-        self.BULLET_SPEED = self.SPEED * 4
+        self.SHAPE = min(width, height) // real_size
+        assert self.SHAPE >= 2
+        self.ENEMY_SPEED = enemy_speed * self.SHAPE
+        self.AGENT_SPEED = agent_speed * self.SHAPE
+        self.BULLET_SPEED = projectile_speed * self.SHAPE
         self.BOMB_LIFE = 5
         self.BOMB_RANGE = 2 
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
@@ -104,7 +107,7 @@ class ARENA(PyGameWrapper):
         dist = 0.0
         for t in range(10):
             radius = 0.5 * self.SHAPE + 1
-            pos = self.rng.uniform(radius, self.height - radius, size=2)
+            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
             dist = math.sqrt(
                 (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
             obstacle = Obstacle(
@@ -128,7 +131,7 @@ class ARENA(PyGameWrapper):
         dist = 0.0
         for t in range(10):
             radius = 0.5 * self.SHAPE + 1
-            pos = self.rng.uniform(radius, self.height - radius, size=2)
+            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
             dist = math.sqrt(
                 (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
 
@@ -158,7 +161,7 @@ class ARENA(PyGameWrapper):
         dist = 0.0
         for t in range(10):
             radius = shape / 2 + 1
-            pos = self.rng.uniform(radius, self.height - radius, size=2)
+            pos = (self.rng.uniform(radius, self.width - radius), self.rng.uniform(radius, self.height - radius))
             dist = math.sqrt(
                 (self.agent.pos.x - pos[0])**2 + (self.agent.pos.y - pos[1])**2)
 
@@ -218,7 +221,7 @@ class ARENA(PyGameWrapper):
     def blast(self):
         # self.blasts.empty()
         for bomb in self.bombs:
-            if bomb.life < 1 / self.fps:
+            if bomb.life < 1:
                 self._cal_blast_pos(bomb)
                 bomb.kill()
 
@@ -240,8 +243,8 @@ class ARENA(PyGameWrapper):
             player_state = {'type':'agent', 
                             'type_index': [0, 0, -1, -1], 
                             'position': [self.agent.pos.x, self.agent.pos.y],
-                            'velocity': [self.AGENT_SPEED * self.agent.direction.x / self.fps, self.AGENT_SPEED * self.agent.direction.y / self.fps],
-                            'speed': self.AGENT_SPEED / self.fps,
+                            'velocity': [self.AGENT_SPEED * self.agent.direction.x, self.AGENT_SPEED * self.agent.direction.y],
+                            'speed': self.AGENT_SPEED,
                             'box': [self.agent.rect.left, self.agent.rect.top, self.agent.rect.right, self.agent.rect.bottom],
                         }
             state.append(player_state)
@@ -249,8 +252,8 @@ class ARENA(PyGameWrapper):
             enemy_state = {'type':'enemy', 
                            'type_index': [1, -1, -1, -1], 
                            'position': [c.pos.x, c.pos.y],
-                           'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
-                           'speed': c.speed / self.fps,
+                           'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                           'speed': c.speed,
                            'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
                           }
             state.append(enemy_state)
@@ -265,7 +268,7 @@ class ARENA(PyGameWrapper):
             state.append(reward_state)
         for c in self.bombs.sprites():
             bomb_state = {'type':'bombs', 
-                           'type_index': [3, 0, c.life, c.explode_range], 
+                           'type_index': [3, 0, int(c.life), c.explode_range], 
                            'position': [c.pos.x, c.pos.y],
                            'velocity': [0, 0],
                            'speed': 0,
@@ -276,8 +279,8 @@ class ARENA(PyGameWrapper):
             projectile_state = {'type':'projectile', 
                                 'type_index': [4, -1, -1, -1], 
                                 'position': [c.pos.x, c.pos.y],
-                                'velocity': [c.direction.x * c.speed / self.fps, c.direction.y * c.speed / self.fps],
-                                'speed': c.speed / self.fps,
+                                'velocity': [c.direction.x * c.speed, c.direction.y * c.speed],
+                                'speed': c.speed,
                                 'box': [c.rect.left, c.rect.top, c.rect.right, c.rect.bottom],
                             }
             state.append(projectile_state)
@@ -292,7 +295,7 @@ class ARENA(PyGameWrapper):
             state.append(obstacle_state)
         for c in self.blasts.sprites():
             blast_state = {'type':'blast', 
-                                'type_index': [6, -1, c.life, -1], 
+                                'type_index': [6, -1, int(c.life), -1], 
                                 'position': [c.pos.x, c.pos.y],
                                 'velocity': [0, 0],
                                 'speed': 0,
@@ -331,7 +334,7 @@ class ARENA(PyGameWrapper):
                     self.enemy_RADII[enemy_type],
                     info["position"],
                     info["velocity"],
-                    info["speed"] * self.fps,
+                    info["speed"],
                     self.enemy_REWARD[enemy_type],
                     self.enemy_TYPES[enemy_type],
                     self.width,
@@ -363,7 +366,8 @@ class ARENA(PyGameWrapper):
         """
             Starts/Resets the game to its inital state
         """
-        AGENT_INIT_POS = self.rng.uniform(self.SHAPE / 2 + 1, self.height - self.SHAPE / 2 - 1, size=2)
+        AGENT_INIT_POS = (self.rng.uniform((self.SHAPE / 2 + 1), self.width - (self.SHAPE / 2 + 1)), 
+                          self.rng.uniform((self.SHAPE / 2 + 1), self.height - (self.SHAPE / 2 + 1)))
 
         if self.agent is None:
             self.agent = Agent(
@@ -375,8 +379,8 @@ class ARENA(PyGameWrapper):
             self.agent.pos = vec2d(AGENT_INIT_POS)
             self.agent.rect.center = AGENT_INIT_POS
 
-        self.assigned_values = list(range(1, self.N_ENEMIES+1))
-        self.assigned_values = [_ / self.assigned_values[-1] for _ in self.assigned_values]
+        # self.assigned_values = list(range(1, self.N_ENEMIES+1))
+        # self.assigned_values = [_ / self.assigned_values[-1] for _ in self.assigned_values]
 
         if self.enemies is None:
             self.enemies = pygame.sprite.Group()
@@ -449,7 +453,7 @@ class ARENA(PyGameWrapper):
                 print("need a bigger map")
 
         for i in range(self.N_REWARDS):
-            FLAG = self._add_reward(int(self.SHAPE * (self.assigned_values[i] + 1)), self.assigned_values[i])
+            FLAG = self._add_reward(self.SHAPE, 1)
             if FLAG is False:
                 print("need a bigger map")
         
@@ -472,7 +476,7 @@ class ARENA(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        dt = 1 / self.fps
+        dt = 1
         self.score += -0.001
 
         self._handle_player_events()
@@ -494,7 +498,7 @@ class ARENA(PyGameWrapper):
         hits = pygame.sprite.groupcollide(self.projectiles, self.obstacles, True, True)
         for bullet in hits.keys():
             for obstacles in hits[bullet]:
-                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 2))
+                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 5))
         hits = pygame.sprite.groupcollide(self.projectiles, self.blasts, True, False)
         hits = pygame.sprite.groupcollide(self.projectiles, self.enemies, True, True)
         for bullet in hits.keys():
