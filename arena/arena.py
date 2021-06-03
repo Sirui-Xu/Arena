@@ -8,7 +8,7 @@ from base.pygamewrapper import PyGameWrapper
 from base.vec2d import vec2d
 from base import percent_round_int
 
-from pygame.constants import K_w, K_a, K_s, K_d, K_j, K_SPACE
+from pygame.constants import K_w, K_a, K_s, K_d, K_j, K_SPACE, K_TAB
 
 
 class Arena(PyGameWrapper):
@@ -48,22 +48,25 @@ class Arena(PyGameWrapper):
     """
 
     def __init__(self,
-                 width=1024,
-                 height=768,
-                 object_size=8,
+                 width=1280,
+                 height=720,
+                 object_size=32,
                  num_rewards=50,
-                 num_enemies=100,
-                 num_bombs=3,
-                 num_projectiles=3,
-                 num_obstacles=300,
-                 num_obstacles_groups=100,
-                 agent_speed=0.5,
-                 enemy_speed=0.5,
-                 projectile_speed=2.5,
+                 num_enemies=50,
+
+                 num_bombs=1,
+                 num_projectiles=1,
+                 num_obstacles_groups=1,
+
+                 num_obstacles=200,
+                 agent_speed=0.1,
+                 enemy_speed=0.1,
+                 projectile_speed=2,
                  bomb_life=100,
-                 bomb_range=4,
+                 bomb_range=5,
                  visualize=True):
 
+        self.frozen = False
         actions = {
             "up": K_w,
             "left": K_a,
@@ -74,7 +77,7 @@ class Arena(PyGameWrapper):
         }
 
         PyGameWrapper.__init__(self, width, height, actions=actions)
-        self.BG_COLOR = (255, 255, 255)
+        self.BG_COLOR = (126, 168, 237)
         self.N_ENEMIES = num_enemies
         self.N_REWARDS = num_rewards
         self.N_BOMBS = num_bombs
@@ -119,17 +122,12 @@ class Arena(PyGameWrapper):
             self.dy -= self.AGENT_SPEED
         elif keys[self.actions["down"]]:
             self.dy += self.AGENT_SPEED
+        elif keys[self.actions["shoot"]]:
+            self.shoot += 1
+        elif keys[self.actions["fire"]]:
+            self.fire += 1
 
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                key = event.key
-
-                if key == self.actions["shoot"]:
-                    self.shoot += 1
-
-                if key == self.actions["fire"]:
-                    self.fire += 1
-
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -146,37 +144,38 @@ class Arena(PyGameWrapper):
         shape = (width, height)
         # Build actual maze
         Z = np.zeros(shape, dtype=bool)
-        t = 0
-        # Fill borders
-        # Z[0, :] = Z[-1, :] = 1
-        # Z[:, 0] = Z[:, -1] = 1
-        # Make aisles
-        while True:
-            y, x = self.rng.randint(0, (shape[0]-1)//2 + 1) * 2, self.rng.randint(0, (shape[1]-1)//2 + 1) * 2
-            Z[y, x] = 1
-            t += 1
-            if t == num:
-                break
-            for j in range(complexity):
-                neighbours = []
-                if x > 1:             neighbours.append((y, x - 2))
-                if x < shape[1] - 2:  neighbours.append((y, x + 2))
-                if y > 1:             neighbours.append((y - 2, x))
-                if y < shape[0] - 2:  neighbours.append((y + 2, x))
-                if len(neighbours):
-                    y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
-                    if Z[y_, x_] == 0:
-                        Z[y_, x_] = 1
-                        t += 1
-                        if t == num:
-                            break
-                        Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
-                        t += 1
-                        if t == num:
-                            break
-                        x, y = x_, y_
-            if t == num:
-                break                       
+        if num > 0:
+            t = 0
+            # Fill borders
+            # Z[0, :] = Z[-1, :] = 1
+            # Z[:, 0] = Z[:, -1] = 1
+            # Make aisles
+            while True:
+                y, x = self.rng.randint(1, (shape[0]-1)//2) * 2, self.rng.randint(1, (shape[1]-1)//2) * 2
+                Z[y, x] = 1
+                t += 1
+                if t == num:
+                    break
+                for j in range(complexity):
+                    neighbours = []
+                    if x > 2:             neighbours.append((y, x - 2))
+                    if x < shape[1] - 3:  neighbours.append((y, x + 2))
+                    if y > 2:             neighbours.append((y - 2, x))
+                    if y < shape[0] - 3:  neighbours.append((y + 2, x))
+                    if len(neighbours):
+                        y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
+                        if Z[y_, x_] == 0:
+                            Z[y_, x_] = 1
+                            t += 1
+                            if t == num:
+                                break
+                            Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
+                            t += 1
+                            if t == num:
+                                break
+                            x, y = x_, y_
+                if t == num:
+                    break                       
         return Z.astype(int)
 
     def _add_obstacles(self, shape, edge_x, edge_y):
@@ -475,36 +474,7 @@ class Arena(PyGameWrapper):
         else:
             self.projectiles.empty()
 
-        # edge_x = (self.width - (self.width // self.SHAPE - 2) * self.SHAPE) // 2
-        # edge_y = (self.height - (self.height // self.SHAPE - 2) * self.SHAPE) // 2
-
-        # for i in range(self.width // self.SHAPE):
-        #     for j in range(self.height // self.SHAPE):
-        #         if i == 0 and j == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == 0 and j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, self.height - edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1 and j == 0:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1 and j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, self.height - edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, edge_y + (j - 0.5) * self.SHAPE), edge_x, self.SHAPE, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, edge_y + (j - 0.5) * self.SHAPE), edge_x, self.SHAPE, color=(0,0,0), FIXED=True))
-        #         elif j == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, edge_y / 2), self.SHAPE, edge_y, color=(0,0,0), FIXED=True))
-        #         elif j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, self.height - edge_y / 2), self.SHAPE, edge_y, color=(0,0,0), FIXED=True))
-        #         else:
-        #             pass
-        #             # self.background.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, edge_y + (j - 0.5) * self.SHAPE), self.SHAPE, self.SHAPE, color=(0,0,0), FIXED=True, GRASS=True))
-
-        # # self.fix_obstacles.add(obstacle((self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width - self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width / 2, self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width / 2, self.height - self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
-        shape = self.SHAPE + 4
+        shape = self.SHAPE + 8
         edge_x = (self.width - (self.width // shape) * shape) / 2
         edge_y = (self.height - (self.height // shape) * shape) / 2
 
@@ -533,66 +503,55 @@ class Arena(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        self.score += -0.001
 
-        self._handle_player_events()
-        self.agent.update(self.dx, self.dy, self.obstacles)
-        self.add_projectile()
-        self.add_bomb()
-        self.enemies.update(self.obstacles)
-        self.projectiles.update()
-        self.bombs.update()
-        self.blasts.update()
+        if not self.frozen:
+            self.score += -0.001
+            self._handle_player_events()
+            self.agent.update(self.dx, self.dy, self.obstacles)
+            self.add_projectile()
+            self.add_bomb()
+            self.enemies.update(self.obstacles)
+            self.projectiles.update()
+            self.bombs.update()
+            self.blasts.update()
 
-        hits = pygame.sprite.spritecollide(self.agent, self.reward_nodes, True)
-        for node in hits:
-            self.score += node.reward
-        
-        self.blast()
-        hits = pygame.sprite.groupcollide(self.enemies, self.blasts, True, False)
-        hits = pygame.sprite.groupcollide(self.obstacles, self.blasts, True, False)
-        hits = pygame.sprite.groupcollide(self.projectiles, self.obstacles, True, True)
-        for bullet in hits.keys():
-            for obstacles in hits[bullet]:
-                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 5))
-        hits = pygame.sprite.groupcollide(self.projectiles, self.blasts, True, False)
-        hits = pygame.sprite.groupcollide(self.projectiles, self.enemies, True, True)
-        for bullet in hits.keys():
-            for enemy in hits[bullet]:
-                self.blasts.add(Blast((enemy.pos.x, enemy.pos.y), self.SHAPE // 5))
+            hits = pygame.sprite.spritecollide(self.agent, self.reward_nodes, True)
+            for node in hits:
+                self.score += node.reward
+            
+            self.blast()
+            hits = pygame.sprite.groupcollide(self.enemies, self.blasts, True, False)
+            hits = pygame.sprite.groupcollide(self.obstacles, self.blasts, True, False)
+            hits = pygame.sprite.groupcollide(self.projectiles, self.obstacles, True, True)
+            for bullet in hits.keys():
+                for obstacles in hits[bullet]:
+                    self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 5))
+            hits = pygame.sprite.groupcollide(self.projectiles, self.blasts, True, False)
+            hits = pygame.sprite.groupcollide(self.projectiles, self.enemies, True, True)
+            for bullet in hits.keys():
+                for enemy in hits[bullet]:
+                    self.blasts.add(Blast((enemy.pos.x, enemy.pos.y), self.SHAPE // 5))
 
-        hits = pygame.sprite.spritecollide(self.agent, self.enemies, True)
-        if len(hits) > 0:
-            self.agent.kill()
-            self.agent = None
-            return
+            hits = pygame.sprite.spritecollide(self.agent, self.enemies, True)
+            if len(hits) > 0:
+                self.agent.kill()
+                self.agent = None
+                return
 
-        hits = pygame.sprite.spritecollide(self.agent, self.blasts, False)
-        if len(hits) != 0:
-            self.agent.kill()
-            self.agent = None
-            return
+            hits = pygame.sprite.spritecollide(self.agent, self.blasts, False)
+            if len(hits) != 0:
+                self.agent.kill()
+                self.agent = None
+                return
+            self.ticks += 1
 
         if self.visualize:
             self.draw()
-        self.ticks += 1
-
-
-#if __name__ == "__main__":
-#    import numpy as np
-
-#    pygame.init()
-#    game = ARENA(width=512, height=512)
-#    game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
-#    game.clock = pygame.time.Clock()
-#    game.rng = np.random.RandomState(24)
-#    game.init()
-
-#    while True:
-#        game.clock.tick_busy_loop(30)
-#        game.step()
-#        pygame.display.update()
-#        if game.game_over() is True:
-#            print("The overall score is {}.".format(game.score))
-#            break
-#        print(game.getGameState(), '\n')
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    key = event.key
+                    if key == K_TAB:
+                        self.frozen = False
