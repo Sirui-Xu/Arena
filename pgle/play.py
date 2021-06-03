@@ -28,8 +28,23 @@ def play(game_name, fps=50):
                 print("The overall score is {}.".format(game.score))
                 break
             print(game.getGameState(), '\n')
-    else:
+    elif game.__name__ == "ARENA":
         game = game(width=1024, height=768)
+        game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
+        game.clock = pygame.time.Clock()
+        game.rng = np.random.RandomState(24)
+        game.init()
+        while True:
+            dt = game.clock.tick_busy_loop(20)
+            game.step(dt)
+            pygame.display.update()
+            if game.game_over() is True:
+                print(game.getGameState(), '\n')
+                print("The overall score is {}.".format(game.score))
+                break
+            print(game.getGameState(), '\n')
+    else:
+        game = game(width=512, height=512, fps=fps*5)
         game.screen = pygame.display.set_mode(game.getScreenDims(), 0, 32)
         game.clock = pygame.time.Clock()
         game.rng = np.random.RandomState(24)

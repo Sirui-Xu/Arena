@@ -18,27 +18,49 @@ class ARENA(PyGameWrapper):
         Screen width.
     height : int
         Screen height, recommended to be same dimension as width.
-    num_enemies : int (default: 3)
+    object_size : int (default: 8)
+        object size
+    num_rewards : int (default: 50)
+        The number of rewards on the screen at once.
+    num_enemies : int (default: 100)
         The number of enemies on the screen at once.
     num_bombs : int (default: 3)
         The number of bombs that agent can placed.
     num_projectiles : int (default: 3)
         The number of projectiles that agent can fired.
+    num_obstacles : int (default: 300)
+        The number of obstacles on the screen at once.
+    num_obstacle_groups : int (default: 50)
+        The number of obstacles' groups.
+    agent_speed : float (default: 0.5)
+        The speed of agent.
+    enemy_speed : float (default: 0.5)
+        The speed of enemy.
+    projectile_speed : float (default: 2.5)
+        The speed of projectile.
+    bomb_life : int (default: 100)
+        The time for bombs to explode
+    bomb_range : int (default: 3)
+        The explosion scope for bombs
+    visualize : bool (default: True)
+        rendering or not?
     """
 
     def __init__(self,
                  width=512,
                  height=512,
-                 real_size=64,
-                 num_reward=50,
+                 object_size=8,
+                 num_rewards=50,
                  num_enemies=100,
                  num_bombs=3,
                  num_projectiles=3,
                  num_obstacles=300,
-                 num_obstacles_groups=300,
-                 enemy_speed=0.20,
-                 agent_speed=0.20,
-                 projectile_speed=1,
+                 num_obstacles_groups=100,
+                 agent_speed=0.5,
+                 enemy_speed=0.5,
+                 projectile_speed=2.5,
+                 bomb_life=100,
+                 bomb_range=4,
                  visualize=True):
 
         actions = {
@@ -53,18 +75,26 @@ class ARENA(PyGameWrapper):
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (255, 255, 255)
         self.N_ENEMIES = num_enemies
-        self.N_REWARDS = num_reward
+        self.N_REWARDS = num_rewards
         self.N_BOMBS = num_bombs
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
         self.N_OBSTACLE_GROUPS = num_obstacles_groups
-        self.SHAPE = min(width, height) // real_size
-        assert self.SHAPE >= 2
+        if not (num_enemies >= 0 and num_rewards >= 0 and num_bombs >= 0 and 
+                num_projectiles >= 0 and num_obstacles >= 0 and num_obstacles_groups >= 0):
+            raise Exception('Need a positive number of objects or stuff.')
+        self.SHAPE = object_size
+        if not (object_size >= 2):
+            raise Exception('The objects must have at least two pixel width and height.')
         self.ENEMY_SPEED = enemy_speed * self.SHAPE
         self.AGENT_SPEED = agent_speed * self.SHAPE
         self.BULLET_SPEED = projectile_speed * self.SHAPE
-        self.BOMB_LIFE = 5
-        self.BOMB_RANGE = 2 
+        if not (self.ENEMY_SPEED >= 1 and self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
+            raise Exception('Need larger speed.')
+        self.BOMB_LIFE = bomb_life
+        self.BOMB_RANGE = bomb_range
+        if not (self.AGENT_SPEED * self.BOMB_LIFE > self.BOMB_RANGE * self.SHAPE):
+            raise Exception('Agent cannot escape the explosion just setting off, need larger speed or longer bomb time or smaller bomb range')
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
         self.agent = None
         self.enemies = None
@@ -241,11 +271,12 @@ class ARENA(PyGameWrapper):
                 bomb.kill()
     
     def _cal_blast_pos(self, bomb):
-        dirs = [(0,1),(0,-1),(1,0),(-1,0)]
-        for bomb_range in range(self.BOMB_RANGE+1):
-            for direction in dirs:
-                vir_pos = (bomb.pos.x + direction[0]*bomb_range*self.SHAPE, bomb.pos.y + direction[1]*bomb_range*self.SHAPE)
+        for i in range(-self.BOMB_RANGE, self.BOMB_RANGE+1):
+            for j in range(-self.BOMB_RANGE, self.BOMB_RANGE+1):
+                vir_pos = (bomb.pos.x + i*self.SHAPE, bomb.pos.y + j*self.SHAPE)
                 if vir_pos[0] < self.SHAPE / 2 or vir_pos[0] >= self.width - self.SHAPE / 2 or vir_pos[1] < self.SHAPE / 2 or vir_pos[1] >= self.height - self.SHAPE / 2:
+                    continue
+                if i*i + j*j > self.BOMB_RANGE * self.BOMB_RANGE:
                     continue
                 blast = Blast(vir_pos, self.SHAPE // 2)
                 self.blasts.add(blast)

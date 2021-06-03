@@ -32,7 +32,7 @@ class Bombv(pygame.sprite.Sprite):
         if self.life <= -1:
             self.kill()
         self.image = self.animation[int(self.index)]
-        self.index += 3 * dt
+        self.index += dt
         if self.index >= len(self.animation):
             self.index = self.index % len(self.animation)
 
@@ -152,7 +152,7 @@ class Enemy(pygame.sprite.Sprite):
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         index = directions.index((self.direction.x, self.direction.y))
         self.image = self.animation[index][int(self.index[index])]
-        self.index[index] += 5 * dt
+        self.index[index] += dt
         if self.index[index] >= len(self.animation[index]):
             self.index[index] = self.index[index] % len(self.animation[index])
 
@@ -294,13 +294,13 @@ class Blast(pygame.sprite.Sprite):
 
         self.image = self.animation[0]
         self.index = 0
-        self.life = len(self.animation) / 12
+        self.life = len(self.animation)
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
     def update(self, dt):
         self.image = self.animation[int(self.index)]
-        self.index += 12 * dt
+        self.index += dt
         self.life -= dt
         if self.index >= len(self.animation):
             self.kill()
@@ -354,7 +354,7 @@ class Agent(pygame.sprite.Sprite):
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         index = directions.index((self.direction.x, self.direction.y))
         self.image = self.animation[index][int(self.index[index])]
-        self.index[index] += 10 * dt
+        self.index[index] += dt
         if self.index[index] >= len(self.animation[index]):
             self.index[index] = self.index[index] % len(self.animation[index])
 
