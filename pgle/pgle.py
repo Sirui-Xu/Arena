@@ -4,7 +4,7 @@ import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame
 from .games.base.pygamewrapper import PyGameWrapper
-from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE
+from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE, K_j
 
 class PGLE(object):
     def __init__(self, game, rng=24):
@@ -31,6 +31,7 @@ class PGLE(object):
             K_d:"right",
             K_s:"down",
             K_SPACE:"fire",
+            K_j:"shoot"
         }
         self.name2actions = {
             "up":K_w,
@@ -38,6 +39,7 @@ class PGLE(object):
             "right":K_d,
             "down":K_s,
             "fire":K_SPACE,
+            "shoot":K_j,
         }
 
     def init(self):

@@ -96,6 +96,7 @@ for frequency in frequency_list:
                         cv2.imshow('PGLE - {}'.format(game_name), env.render())
                         c = cv2.waitKey(0)
                     action = algorithm.exe()   
+                    print(env.getActionName(action))
                     if args.store_data:
                         action_list = [0 for _ in env.actions]
                         action_list[action] = 1

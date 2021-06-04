@@ -82,16 +82,16 @@ class Projectile(pygame.sprite.Sprite):
         dx = self.direction.x * self.speed * dt
         dy = self.direction.y * self.speed * dt
 
-        if self.pos.x + dx > self.SCREEN_WIDTH - self.radius:
+        if self.pos.x + dx > self.SCREEN_WIDTH:
             self.kill()
-        elif self.pos.x + dx <= self.radius:
+        elif self.pos.x + dx <= 0:
             self.kill()
         else:
             self.pos.x = self.pos.x + dx
 
-        if self.pos.y + dy > self.SCREEN_HEIGHT - self.radius:
+        if self.pos.y + dy > self.SCREEN_HEIGHT:
             self.kill()
-        elif self.pos.y + dy <= self.radius:
+        elif self.pos.y + dy <= 0:
             self.kill()
         else:
             self.pos.y = self.pos.y + dy
@@ -338,6 +338,7 @@ class Agent(pygame.sprite.Sprite):
 
         self.pos = vec2d(pos_init)
         self.direction = vec2d((0, 1))
+        self.vel = vec2d((0, speed))
         self.animation = []
         self.load_animations(radius * 2)
         self.direction.normalize()
@@ -380,8 +381,16 @@ class Agent(pygame.sprite.Sprite):
                 self.direction.x = dx
                 self.direction.y = dy
                 self.direction.normalize()
+                self.vel.x = dx
+                self.vel.y = dy
                 self.update_image(dt)
             else:
+                self.direction.x = dx
+                self.direction.y = dy
+                self.vel.x = 0
+                self.vel.y = 0
+                self.direction.normalize()
+                self.update_image(dt)
                 self.rect.center = (self.pos.x, self.pos.y)
 
 
