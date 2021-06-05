@@ -234,6 +234,8 @@ class GreedyArena:
         agent_speed = 0
         agent_vel = [0, 0]
         agent_box = [0, 0, 0, 0]
+        projectile_directions = []
+        projectile_speed = 0
         for i, info in enumerate(env_state["state"]["local"]):
             if info["type"] == "agent":
                 agent_pos = info["position"]
@@ -262,13 +264,13 @@ class GreedyArena:
 
             if info["type"] == "enemy":
                 enemy_pos = info["position"]
-                enemy_radius = info["radius"]
+                enemy_radius = 1.2 * info["radius"]
                 enemy_speed = info["speed"]
                 enemy_pos_new = [enemy_pos[0] + info["velocity"][0], enemy_pos[1] + info["velocity"][1]]
                 dis = abs(enemy_pos[0] - agent_pos[0]) + abs(enemy_pos[1] - agent_pos[1])
                 if enemy_pos_new[0] < enemy_radius or enemy_pos_new[0] > width - enemy_radius or enemy_pos_new[1] < enemy_radius or enemy_pos_new[1] > height - enemy_radius:
                     enemy_speed = info["speed"]
-                    for direction in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                    for direction in [[0, 1], [1, 0], [0, -1], [-1, 0]]:
                         if direction[0] * info["velocity"][0] + direction[1] * info["velocity"][1] > 0:
                             continue
                         enemy_pos_new = [enemy_pos[0] + enemy_speed * direction[0], enemy_pos[1] + enemy_speed * direction[1]]
@@ -278,8 +280,8 @@ class GreedyArena:
                         new_dis = abs(enemy_pos_new[0] - agent_pos[0]) + abs(enemy_pos_new[1] - agent_pos[1])
                         new_time = (max(abs(enemy_pos_new[0] - agent_pos[0]) - agent_radius - enemy_radius, 0)
                                  + max(abs(enemy_pos_new[1] - agent_pos[1]) - agent_radius - enemy_radius, 0)) / agent_speed
-                        if new_dis < dis and new_time <= 4:
-                            threat.append((1 / 3, enemy_pos_new))         
+                        if new_dis < dis and new_time <= 6:
+                            threat.append([1 / 3, enemy_pos_new, direction])         
                 else:        
                     enemy_box_new = [int(enemy_pos_new[0] - enemy_radius - 1), int(enemy_pos_new[1] - enemy_radius - 1),
                                     int(enemy_pos_new[0] + enemy_radius + 1), int(enemy_pos_new[1] + enemy_radius + 1)]
@@ -287,8 +289,9 @@ class GreedyArena:
                     new_dis = abs(enemy_pos_new[0] - agent_pos[0]) + abs(enemy_pos_new[1] - agent_pos[1])
                     new_time = (max(abs(enemy_pos_new[0] - agent_pos[0]) - agent_radius - enemy_radius, 0)
                              + max(abs(enemy_pos_new[1] - agent_pos[1]) - agent_radius - enemy_radius, 0)) / agent_speed
-                    if new_dis < dis and new_dis <= 4:
-                        threat.append((1, enemy_pos_new))
+                    # print(new_dis, dis, new_time)
+                    if new_dis < dis and new_time <= 6:
+                        threat.append([1, enemy_pos_new, info["velocity"]])
 
 
             if info["type"] == "bomb":
@@ -303,8 +306,11 @@ class GreedyArena:
                     self.map[bomb_box[0]:bomb_box[2], bomb_box[1]:bomb_box[3]] = info["type_index"][0]
             
             if info["type"] == "projectile":
-                pass
-
+                projectile_pos = info["position"]
+                projectile_box = info["box"]
+                projectile_speed = info["speed"]
+                self.map[projectile_box[0]:projectile_box[2], projectile_box[1]:projectile_box[3]] = info["type_index"][0]
+        # print(threat, self.map)
         heuristics = []
         choice = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
         random.shuffle(choice)
@@ -317,20 +323,29 @@ class GreedyArena:
                 heuristics.append(1000)
                 continue
             
+            heuristic = 0
+            if np.sum(self.map[agent_box_new[0]:agent_box_new[2], agent_box_new[1]:agent_box_new[3]] == 2) > 0:
+                heuristic += 2
+            
             reward_info = env_state["state"]["local"][min_dis_reward_index]
-            heuristic = (max((abs(agent_pos_new[0] - reward_info["position"][0]) - agent_radius - enemy_radius), 0)
-                      + max((abs(agent_pos_new[1] - reward_info["position"][1]) - agent_radius - enemy_radius), 0)) / agent_speed
+            heuristic = (max((abs(agent_pos_new[0] - reward_info["position"][0]) - agent_radius - reward_radius + 1), 0)
+                      + max((abs(agent_pos_new[1] - reward_info["position"][1]) - agent_radius - reward_radius + 1), 0)) / agent_speed
             for enemy_info in threat:
-                c, enemy_pos_new = enemy_info
-                time = ((max((abs(agent_pos_new[0] - enemy_pos_new[0]) - agent_radius - enemy_radius), 0)
+                c, enemy_pos_new, enemy_direction = enemy_info
+                if enemy_direction[0] == 0:
+                    time = (2 * (max((abs(agent_pos_new[0] - enemy_pos_new[0]) - agent_radius - enemy_radius), 0)
                             + max((abs(agent_pos_new[1] - enemy_pos_new[1]) - agent_radius - enemy_radius), 0)) / agent_speed)
+                else:
+                    time = ((max((abs(agent_pos_new[0] - enemy_pos_new[0]) - agent_radius - enemy_radius), 0)
+                            + 2 * max((abs(agent_pos_new[1] - enemy_pos_new[1]) - agent_radius - enemy_radius), 0)) / agent_speed)
                 if time > 0:
-                    heuristic += 1 / time
+                    heuristic += c / time 
                 else:
                     heuristic += 100
             heuristics.append(heuristic)
         
         move_action_index = self.directions.index(choice[heuristics.index(min(heuristics))])
+        # print(heuristics, self.actions_name[move_action_index])
         if self.actions_name[move_action_index] == "noop":
             if random.random() > 1 / (env_state["state"]["global"]["projectiles_left"] + 1):
                 return self.env.getActionIndex("shoot")
@@ -338,30 +353,50 @@ class GreedyArena:
                 return self.env.getActionIndex("noop")
         
         if agent_vel[0] * self.directions[move_action_index][0] + agent_vel[1] * self.directions[move_action_index][1] > 0:
+            # print("judge")
             t = 1
             pos = [agent_pos[0], agent_pos[1]]
+            vel = agent_vel
             while True:
-                pos = [pos[0] + agent_vel[0], pos[1] + agent_vel[1]]
+                pos = [pos[0] + vel[0], pos[1] + vel[1]]
                 if agent_vel[0] != 0:
                     dis = abs(pos[0] - env_state["state"]["local"][min_dis_reward_index]["position"][0])
                 else:
                     dis = abs(pos[1] - env_state["state"]["local"][min_dis_reward_index]["position"][1])
                 
                 if pos[0] > width - agent_radius or pos[0] < agent_radius or pos[1] > height - agent_radius or pos[1] < agent_radius:
+                    # print(t, "out of map")
                     return self.env.getActionIndex(self.actions_name[move_action_index])
 
                 box = [int(pos[0] - agent_radius), int(pos[1] - agent_radius),
                        int(pos[0] + agent_radius), int(pos[1] + agent_radius)]
                 if np.sum(self.map[box[0]:box[2], box[1]:box[3]] == 2) > 0:
+                    # print(t, "meet obstacle")
                     if random.random() < 1 / t:
                         return self.env.getActionIndex("shoot")
                     else:
                         return self.env.getActionIndex(self.actions_name[move_action_index])
+                
+                if t < 6:
+                    for enemy_info in threat:
+                        c, enemy_pos_new, enemy_vel = enemy_info
+                        # print(enemy_pos_new)
+                        if abs(enemy_pos_new[0] - pos[0]) < agent_radius + enemy_radius and abs(enemy_pos_new[1] - pos[1]) < agent_radius + enemy_radius:
+                            # print("meet enemy")
+                            if t == 1 or random.random() < c / (t - 1):
+                                return self.env.getActionIndex("shoot")  
+                        enemy_pos_new = [enemy_pos_new[0] + enemy_vel[0], enemy_pos_new[1] + enemy_vel[1]]
+                                                    
 
-                if dis < agent_radius + enemy_radius:
+                if np.sum(self.map[box[0]:box[2], box[1]:box[3]] == 6) > 0:
+                    # print(t, "have shoot")
+                    return self.env.getActionIndex(self.actions_name[move_action_index])
+
+                if dis < agent_radius + reward_radius:
+                    # print(t, "meet reward")
                     return self.env.getActionIndex(self.actions_name[move_action_index])
                 t += 1
                 if t > 100:
                     break
-        else:
-            return self.env.getActionIndex(self.actions_name[move_action_index])
+        
+        return self.env.getActionIndex(self.actions_name[move_action_index])

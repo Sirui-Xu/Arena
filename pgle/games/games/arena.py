@@ -57,7 +57,7 @@ class ARENA(PyGameWrapper):
                  num_obstacles=300,
                  num_obstacles_groups=100,
                  agent_speed=0.25,
-                 enemy_speed=0.25,
+                 enemy_speed=0.15,
                  projectile_speed=1,
                  bomb_life=100,
                  bomb_range=4,
@@ -89,6 +89,8 @@ class ARENA(PyGameWrapper):
         self.ENEMY_SPEED = enemy_speed * self.SHAPE
         self.AGENT_SPEED = agent_speed * self.SHAPE
         self.BULLET_SPEED = projectile_speed * self.SHAPE
+        if not (enemy_speed <= 1 and agent_speed <= 1 and projectile_speed <= 1):
+            raise Exception('Speed must less than 1.')
         if not (self.ENEMY_SPEED >= 1 and self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
             raise Exception('Need larger speed.')
         self.BOMB_LIFE = bomb_life

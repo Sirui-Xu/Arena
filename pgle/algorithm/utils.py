@@ -34,7 +34,7 @@ def load_game(game_name, window_size, maze_width, num_creeps, fps):
                     num_obstacles=num_creeps,
                     num_obstacles_groups=num_creeps,
                     agent_speed=0.5,
-                    enemy_speed=0.5,
+                    enemy_speed=0.25,
                     projectile_speed=1,
                     bomb_life=100,
                     bomb_range=4,
