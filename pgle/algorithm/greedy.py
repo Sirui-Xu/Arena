@@ -347,7 +347,7 @@ class GreedyArena:
         move_action_index = self.directions.index(choice[heuristics.index(min(heuristics))])
         # print(heuristics, self.actions_name[move_action_index])
         if self.actions_name[move_action_index] == "noop":
-            if random.random() > 1 / (env_state["state"]["global"]["projectiles_left"] + 1):
+            if random.random() > 0.5 + 1 / (env_state["state"]["global"]["projectiles_left"] + 2):
                 return self.env.getActionIndex("shoot")
             else:
                 return self.env.getActionIndex("noop")
