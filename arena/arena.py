@@ -54,16 +54,16 @@ class Arena(PyGameWrapper):
                  num_rewards=50,
                  num_enemies=50,
 
-                 num_bombs=1,
-                 num_projectiles=1,
-                 num_obstacles_groups=1,
+                 num_bombs=3,
+                 num_projectiles=3,
+                 num_obstacles_groups=10,
 
                  num_obstacles=200,
                  agent_speed=0.1,
                  enemy_speed=0.1,
                  projectile_speed=2,
-                 bomb_life=100,
-                 bomb_range=5,
+                 bomb_life=300,
+                 bomb_range=4,
                  visualize=True):
 
         self.frozen = False
@@ -77,7 +77,8 @@ class Arena(PyGameWrapper):
         }
 
         PyGameWrapper.__init__(self, width, height, actions=actions)
-        self.BG_COLOR = (126, 168, 237)
+        #self.BG_COLOR = (126, 168, 237)
+        self.BG_COLOR = (0, 0, 0)
         self.N_ENEMIES = num_enemies
         self.N_REWARDS = num_rewards
         self.N_BOMBS = num_bombs
@@ -113,6 +114,18 @@ class Arena(PyGameWrapper):
 
     def _handle_player_events(self):
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            #elif event.type == pygame.KEYDOWN:
+            #    key = event.key
+            #    if key == self.actions["shoot"]:
+            #        self.shoot += 1
+            #        return
+            #    if key == self.actions["fire"]:
+            #        self.fire += 1
+            #        return
         keys = pygame.key.get_pressed()
         if keys[self.actions["left"]]:
             self.dx -= self.AGENT_SPEED
@@ -126,11 +139,6 @@ class Arena(PyGameWrapper):
             self.shoot += 1
         elif keys[self.actions["fire"]]:
             self.fire += 1
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
     
     def generate_random_maze(self, width, height, num, complexity):
         r"""Generate a random maze array. 
@@ -151,7 +159,7 @@ class Arena(PyGameWrapper):
             # Z[:, 0] = Z[:, -1] = 1
             # Make aisles
             while True:
-                y, x = self.rng.randint(1, (shape[0]-1)//2) * 2, self.rng.randint(1, (shape[1]-1)//2) * 2
+                y, x = self.rng.randint(2, shape[0] - 2), self.rng.randint(2, shape[1] - 2) 
                 Z[y, x] = 1
                 t += 1
                 if t == num:
@@ -276,7 +284,7 @@ class Arena(PyGameWrapper):
                 vir_pos = (bomb.pos.x + i*self.SHAPE, bomb.pos.y + j*self.SHAPE)
                 if vir_pos[0] < self.SHAPE / 2 or vir_pos[0] >= self.width - self.SHAPE / 2 or vir_pos[1] < self.SHAPE / 2 or vir_pos[1] >= self.height - self.SHAPE / 2:
                     continue
-                if i*i + j*j > self.BOMB_RANGE * self.BOMB_RANGE:
+                if abs(i) + abs(j) > self.BOMB_RANGE:
                     continue
                 blast = Blast(vir_pos, self.SHAPE // 2)
                 self.blasts.add(blast)
