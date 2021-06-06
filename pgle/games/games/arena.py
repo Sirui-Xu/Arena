@@ -80,7 +80,7 @@ class ARENA(PyGameWrapper):
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
         self.N_OBSTACLE_GROUPS = num_obstacles_groups
-        if not (num_enemies >= 0 and num_rewards >= 0 and num_bombs >= 0 and 
+        if not (num_enemies >= 0 and num_rewards > 0 and num_bombs >= 0 and 
                 num_projectiles >= 0 and num_obstacles >= 0 and num_obstacles_groups >= 0):
             raise Exception('Need a positive number of objects or stuff.')
         self.SHAPE = object_size
@@ -193,7 +193,11 @@ class ARENA(PyGameWrapper):
         return Z.astype(int)
 
     def _add_obstacles(self, shape, edge_x, edge_y):
-        self.maze = self.generate_random_maze(self.width // shape, self.height // shape, num=self.N_OBSTACLES, complexity=max(0, (self.N_OBSTACLES // self.N_OBSTACLE_GROUPS - 1)))
+        if self.N_OBSTACLES == 0 or self.N_OBSTACLE_GROUPS == 0:
+            self.maze = np.zeros((self.width // shape, self.height // shape))
+            return
+        else:
+            self.maze = self.generate_random_maze(self.width // shape, self.height // shape, num=self.N_OBSTACLES, complexity=max(0, (self.N_OBSTACLES // self.N_OBSTACLE_GROUPS - 1)))
         for i in range(self.width // shape):
             for j in range(self.height // shape):
                 obstacle = None
@@ -239,7 +243,7 @@ class ARENA(PyGameWrapper):
                 print("WARNING: Need a bigger map!")
 
     def _add_rewards(self, shape, edge_x, edge_y):
-        for i in range(self.N_ENEMIES):
+        for i in range(self.N_REWARDS):
             reward = None
             for t in range(10):
                 pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
