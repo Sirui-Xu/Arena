@@ -126,10 +126,22 @@ class ARENA(PyGameWrapper):
             self.dy -= self.AGENT_SPEED
         elif keys[self.actions["down"]]:
             self.dy += self.AGENT_SPEED
-
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 key = event.key
+
+                if self.dx == 0 and self.dy == 0:
+                    if key == self.actions["left"]:
+                        self.dx -= self.AGENT_SPEED
+
+                    if key == self.actions["right"]:
+                        self.dx += self.AGENT_SPEED
+
+                    if key == self.actions["up"]:
+                        self.dy -= self.AGENT_SPEED
+
+                    if key == self.actions["down"]:
+                        self.dy += self.AGENT_SPEED
 
                 if key == self.actions["shoot"]:
                     self.shoot += 1
