@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch_geometric.data import Data, DataLoader
 
+
 dqn_root = os.path.dirname(__file__)
 project_root = os.path.dirname(os.path.dirname(dqn_root))
 sys.path.append(project_root)
@@ -17,7 +18,7 @@ dataset_root = dqn_root + '/saved_data'
 from models import *
 from data_utils import ReplayGraphDataset, input_to_graph_input, parse_edge_outputs
 
-Qnet_fn=TBD
+
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
@@ -26,9 +27,12 @@ TAU = 1e-3  # for soft update of target parameters
 LR = 5e-4  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
 
+
+
+
 class DQGNN_agent():
 
-    def __init__(self, state_input_dim, state_output_dim, device, seed):
+    def __init__(self, Qnet_fn, state_input_dim, state_output_dim, device, seed):
         self.state_input_dim = state_input_dim
         self.state_output_dim = state_output_dim
         self.device=device

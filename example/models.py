@@ -4,6 +4,13 @@ import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool
+import os
+
+
+model_root = os.path.dirname(__file__)
+project_root = os.path.dirname(os.path.dirname(model_root))
+sys.path.append(project_root)
+sys.path.append(model_root)
 
 class EdgeConv(nn.Module):
     def __init__(self, aggr='max', input_dim=1, edge_dim=4, pos_dim=4, output_dim=4):

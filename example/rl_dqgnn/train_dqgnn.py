@@ -1,4 +1,3 @@
-import gym
 import random
 import torch
 import numpy as np
@@ -6,8 +5,8 @@ from collections import deque
 import matplotlib.pyplot as plt
 import argparse
 
-import ENV
-from models import *
+from pgle import PGLE
+from pgle.games import ARENA
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', action='store_true')
@@ -20,18 +19,147 @@ num_episodes=5000
 is_train=args.train
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-env = ENV(TBD)
-env_name=env.name
-env.seed(0)
 
-print('State shape: ', env.observation_space.shape)
-print('Number of actions: ', env.action_space.n)
+game = ARENA(
+    width=128,
+    height=128,
+    object_size=8,
+    num_rewards=5,
+    num_enemies=0,
+    num_bombs=0,
+    num_projectiles=3,
+    num_obstacles=0,
+    num_obstacles_groups=100, # What is this?
+    agent_speed=1,
+    enemy_speed=1,
+    projectile_speed=1,
+    bomb_life=100,
+    bomb_range=4,
+)
+env = PGLE(game)
+env.init()
+state = env.reset()
+state, reward, game_over, info = env.step(0)
+for obj in state['local']:
+    print(obj)
+# TODO: graph construction (maybe just use a complete graph, at least for the first game)
 
-model=NETWORK
+from collections import namedtuple
+
+DataPoint = namedtuple('DataPoint', ['x', 'batch', 'pos', 'edge_index'])
+
+def construct_graph_and_get_state(state):
+    local_state = state['local']
+    x, pos = [], []
+    edge_index = torch.ones(len(local_state), len(local_state), dtype=torch.LongTensor)
+    edge_index = edge_index.to_sparse()
+    for node in local_state:
+        x.append(node['type_index'] + node['velocity'])
+        pos.append(node['position'])
+    x = torch.tensor(x)
+    pos = torch.tensor(pos)
+    data_point = DataPoint(x=x, pos=pos, edge_index=edge_index) #`batch` that is used in torch_geo API? 
+    return data_point
+         
+
+
+#env.seed(0)  TODO
+
+import torch_geometric.nn as gnn
+from torch_scatter import scatter
+from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool
+
+class MyPointConv(gnn.PointConv):
+    def __init__(self, aggr, local_nn=None, global_nn=None, **kwargs):
+        super(gnn.PointConv, self).__init__(aggr=aggr, **kwargs)
+        self.local_nn = local_nn
+        self.global_nn = global_nn
+        self.reset_parameters()
+        self.add_self_loops = True
+
+class PointConv(nn.Module):
+
+    def __init__(self, aggr='max', input_dim=1, pos_dim=4, edge_dim=4, output_dim=5):
+        super().__init__()
+
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32),
+        )
+        self.encoder_pos = nn.Sequential(
+            nn.Linear(pos_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64),
+        )
+        local_nn = nn.Sequential(
+            nn.Linear(32 + 64 + pos_dim, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512),
+        )
+        global_nn = nn.Sequential(
+            nn.Linear(512, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256),
+        )
+        gate_nn = nn.Sequential(
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 1),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, output_dim),
+        )
+        self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
+        self.aggr = aggr
+
+    def forward(self, data, batch_size=None, **kwargs):
+        x = data.x
+        batch = data.batch
+        edge_index = data.edge_index
+        pos = data.pos
+
+        # infer real batch size
+        if batch_size is None:
+            batch_size = data['size'].sum().item()
+
+        x = self.encoder(x)
+        pos_feature = self.encoder_pos(pos)
+        task_feature = x
+        feature = torch.cat([task_feature, pos_feature], dim=1)
+        # print(x.shape, pos.shape, pos_feature.shape, feature.shape)
+        x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
+        x = self.attention(x, batch, size=batch_size)  # TODO: I am not familiar with torch_geo. What is batch here?
+        x = F.dropout(x, p=0.1, training=self.training)
+        q = self.decoder(x)
+        '''
+        if self.aggr == 'max':
+            q = gnn.global_max_pool(x, batch, size=batch_size)
+        elif self.aggr == 'sum':
+            q = gnn.global_add_pool(x, batch, size=batch_size)
+        else:
+            raise NotImplementedError()
+        '''
+        out_dict = {
+            'q': q,
+            'task_feature': task_feature,
+        }
+
+        return out_dict
+
+    def reset_parameters(self):
+        for name, module in self.named_modules():
+            if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d, nn.ConvTranspose2d)):
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
 from dqgnn_agent import DQGNN_agent
 
-agent = DQGNN_agent(state_input_dim=env.observation_space.shape, state_output_dim=env.action_space.n,
-                    device=device, seed=0)
+agent = DQGNN_agent(PointConv, state_input_dim=100, state_output_dim=6,
+                    device=device, seed=0) # 100 is a random number (not used)
+exit()
 
 # watch an untrained agent
 '''
@@ -102,7 +230,6 @@ if is_train:
 else:
     agent.qnetwork_local.load_state_dict(torch.load(model_path))
 
-    env = ENV(TBD)
     num_test_episodes=1000
     num_correct=0
     num_trivial=0
