@@ -1,6 +1,6 @@
 # PyGame-Graph-Based-Learning-Environment
 
-**PyGame Graph Based Learning Environment (PGLE)** is a learning environment, mimicking the [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment) interface and [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment). This platform is designed to support the community to investigate compositional generalizability (a.k.a. combinatorial generalizability) of models and algorithms, especially **Graph Neural Netwworks**.
+**PyGame Graph Based Learning Environment (PGLE)** is a learning environment, mimicking the [Arcade Learning Environment](https://github.com/mgbellemare/Arcade-Learning-Environment) interface and [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment). This platform is designed to support the community to investigate compositional generalizability (a.k.a. combinatorial generalizability) of models and algorithms, especially **Graph Neural Networks**.
 
 ## Games
 
