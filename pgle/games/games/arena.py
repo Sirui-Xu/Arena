@@ -49,9 +49,9 @@ class ARENA(PyGameWrapper):
     def __init__(self,
                  width=512,
                  height=512,
-                 object_size=8,
+                 object_size=16,
                  num_rewards=50,
-                 num_enemies=100,
+                 num_enemies=50,
                  num_bombs=3,
                  num_projectiles=3,
                  num_obstacles=300,
@@ -62,7 +62,7 @@ class ARENA(PyGameWrapper):
                  bomb_life=100,
                  bomb_range=4,
                  visualize=True,
-                 duration=200,):
+                 duration=2000,):
 
         actions = {
             "up": K_w,
@@ -126,32 +126,20 @@ class ARENA(PyGameWrapper):
             self.dy -= self.AGENT_SPEED
         elif keys[self.actions["down"]]:
             self.dy += self.AGENT_SPEED
-        else:
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    key = event.key
 
-                    if key == self.actions["left"]:
-                        self.dx -= self.AGENT_SPEED
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                key = event.key
 
-                    if key == self.actions["right"]:
-                        self.dx += self.AGENT_SPEED
+                if key == self.actions["shoot"]:
+                    self.shoot += 1
 
-                    if key == self.actions["up"]:
-                        self.dy -= self.AGENT_SPEED
+                if key == self.actions["fire"]:
+                    self.fire += 1
 
-                    if key == self.actions["down"]:
-                        self.dy += self.AGENT_SPEED
-                        
-                    if key == self.actions["shoot"]:
-                        self.shoot += 1
-
-                    if key == self.actions["fire"]:
-                        self.fire += 1
-
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
     
     def generate_random_maze(self, width, height, num, complexity):
         r"""Generate a random maze array. 
