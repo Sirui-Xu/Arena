@@ -61,7 +61,8 @@ class ARENA(PyGameWrapper):
                  projectile_speed=1,
                  bomb_life=100,
                  bomb_range=4,
-                 visualize=True):
+                 visualize=True,
+                 duration=200,):
 
         actions = {
             "up": K_w,
@@ -110,7 +111,9 @@ class ARENA(PyGameWrapper):
         self.blasts = None
 
         self.visualize = visualize
-        self.fps = 25
+        self.duration = duration
+        self.fps = 20
+
 
     def _handle_player_events(self):
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
@@ -449,7 +452,7 @@ class ARENA(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return len(self.reward_nodes) == 0 or self.player == None # or self.ticks > self.N_ENEMIES * (self.width + self.height)
+        return len(self.reward_nodes) == 0 or self.player == None or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
 
     def init(self):
         """
