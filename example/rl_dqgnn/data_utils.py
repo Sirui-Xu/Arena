@@ -33,17 +33,12 @@ def parse_edge_outputs(graphs, outputs, actions, mode):
 
 def parse_edge_output(edge_num, node_num, output, action, mode='action'):
     edge_output = output[:edge_num]
-    #base_q_value = edge_output[:, 0].sum()
-    #q_value = edge_output[:, 1] + base_q_value
     q_value = edge_output[:,0]
-    #print('q=',q_value)
     if mode=='action':
-        #print('\nparse with action, q=%s, action=%d'%(q_value,action))
         return q_value[action]
     elif mode=='max':
         return q_value.max(dim=0).values
     elif mode=='argmax':
-        #print('\nq=',q_value)
         return q_value.argmax()
     elif mode=='softmax':
         return F.softmax(q_value)
@@ -71,17 +66,12 @@ def parse_node_outputs(graphs, outputs, actions, mode):
 
 def parse_node_output(edge_num, node_num, output, action, mode='action'):
     edge_output = output[:edge_num]
-    #base_q_value = edge_output[:, 0].sum()
-    #q_value = edge_output[:, 1] + base_q_value
     q_value = edge_output[:,0]
-    #print('q=',q_value)
     if mode=='action':
-        #print('\nparse with action, q=%s, action=%d'%(q_value,action))
         return q_value[action]
     elif mode=='max':
         return q_value.max(dim=0).values
     elif mode=='argmax':
-        #print('\nq=',q_value)
         return q_value.argmax()
     elif mode=='softmax':
         return F.softmax(q_value)
