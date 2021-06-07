@@ -4,22 +4,32 @@ import numpy as np
 from collections import deque
 import matplotlib.pyplot as plt
 import argparse
+from torch import nn
 
 from pgle import PGLE
 from pgle.games import ARENA
+
+from torch_geometric.data import Data, DataLoader
+from torch.utils.data import Dataset
+import torch.nn.functional as F
+import os
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', action='store_true')
 parser.add_argument('--model_path', type=str, help='Q network path to save/load, for train/eval mode')
 parser.add_argument('--num_episode', type=int, default=5000)
+parser.add_argument('--num_rewards', type=int, default=5)
+parser.add_argument('--fix_num_rewards', type=bool, default=False)
 args= parser.parse_args()
 
 #env = gym.make('LunarLander-v2')
-num_episodes=5000
+num_episodes=args.num_episode
 is_train=args.train
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+# PacWorld
 game = ARENA(
     width=128,
     height=128,
@@ -30,40 +40,28 @@ game = ARENA(
     num_projectiles=3,
     num_obstacles=0,
     num_obstacles_groups=100, # What is this?
-    agent_speed=1,
-    enemy_speed=1,
-    projectile_speed=1,
+    agent_speed=0.25,
+    enemy_speed=0.25, # Since there is no enemy, the speed does not matter.
+    projectile_speed=0.25,
     bomb_life=100,
     bomb_range=4,
 )
 env = PGLE(game)
 env.init()
-state = env.reset()
-state, reward, game_over, info = env.step(0)
-for obj in state['local']:
-    print(obj)
-# TODO: graph construction (maybe just use a complete graph, at least for the first game)
 
-from collections import namedtuple
+def change_num_rewards(env):
+    if args.fix_num_rewards:
+        env.game.N_REWARDS = args.num_rewards
+    else:
+        n_rewards = random.choice(np.arange(1,6))
+        env.game.N_REWARDS = n_rewards
 
-DataPoint = namedtuple('DataPoint', ['x', 'batch', 'pos', 'edge_index'])
-
-def construct_graph_and_get_state(state):
-    local_state = state['local']
-    x, pos = [], []
-    edge_index = torch.ones(len(local_state), len(local_state), dtype=torch.LongTensor)
-    edge_index = edge_index.to_sparse()
-    for node in local_state:
-        x.append(node['type_index'] + node['velocity'])
-        pos.append(node['position'])
-    x = torch.tensor(x)
-    pos = torch.tensor(pos)
-    data_point = DataPoint(x=x, pos=pos, edge_index=edge_index) #`batch` that is used in torch_geo API? 
-    return data_point
-         
-
-
-#env.seed(0)  TODO
+# Test
+#env.game.N_REWARDS = 7
+#state = env.reset()
+#print(len(state['local']))
+#for obj in state['local']:
+#    print(obj)
 
 import torch_geometric.nn as gnn
 from torch_scatter import scatter
@@ -79,7 +77,7 @@ class MyPointConv(gnn.PointConv):
 
 class PointConv(nn.Module):
 
-    def __init__(self, aggr='max', input_dim=1, pos_dim=4, edge_dim=4, output_dim=5):
+    def __init__(self, aggr='max', input_dim=8, pos_dim=2, edge_dim=None, output_dim=6): # edge_dim is not used!
         super().__init__()
 
         self.encoder = nn.Sequential(
@@ -114,16 +112,16 @@ class PointConv(nn.Module):
         )
         self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
         self.aggr = aggr
+        self.attention = gnn.GlobalAttention(gate_nn)
+
+        self.reset_parameters()
 
     def forward(self, data, batch_size=None, **kwargs):
+        assert batch_size is not None
         x = data.x
         batch = data.batch
         edge_index = data.edge_index
         pos = data.pos
-
-        # infer real batch size
-        if batch_size is None:
-            batch_size = data['size'].sum().item()
 
         x = self.encoder(x)
         pos_feature = self.encoder_pos(pos)
@@ -131,7 +129,7 @@ class PointConv(nn.Module):
         feature = torch.cat([task_feature, pos_feature], dim=1)
         # print(x.shape, pos.shape, pos_feature.shape, feature.shape)
         x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
-        x = self.attention(x, batch, size=batch_size)  # TODO: I am not familiar with torch_geo. What is batch here?
+        x = self.attention(x, batch, size=batch_size) 
         x = F.dropout(x, p=0.1, training=self.training)
         q = self.decoder(x)
         '''
@@ -147,7 +145,7 @@ class PointConv(nn.Module):
             'task_feature': task_feature,
         }
 
-        return out_dict
+        return q
 
     def reset_parameters(self):
         for name, module in self.named_modules():
@@ -155,27 +153,38 @@ class PointConv(nn.Module):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
 
+
 from dqgnn_agent import DQGNN_agent
 
-agent = DQGNN_agent(PointConv, state_input_dim=100, state_output_dim=6,
-                    device=device, seed=0) # 100 is a random number (not used)
-exit()
+qnet_local = PointConv()
+qnet_target = PointConv()
+qnet_target.load_state_dict(qnet_local.state_dict())
 
-# watch an untrained agent
-'''
-state = env.reset()
-for j in range(200):
-    action = agent.act(state)
-    env.render()
-    state, reward, done, _ = env.step(action)
-    if done:
-        break
-
-env.close()
-'''
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+agent = DQGNN_agent(qnet_local, qnet_target, device=device, seed=0) 
 
 
-def dqn(n_episodes=4000, max_t=1000, eps_start=1.0, eps_end=0.1, eps_decay=0.995):
+def process_state(state):
+    local_state = state['local']
+    num_objs = len(local_state)
+    edges = []
+    for i in range(num_objs):
+        for j in range(num_objs):
+            if i != j:
+                edges.append((i,j))
+    edges = (np.array(edges).T).astype(np.int64)
+    edge_index = torch.from_numpy(edges)
+
+    x, pos = [], []
+    for node in local_state:
+        x.append(node['type_index'] + node['velocity'] + node['position'])
+        pos.append(node['position'])
+    x = torch.tensor(x)
+    pos = torch.tensor(pos)
+    return Data(x=x, edge_index=edge_index, pos=pos)
+
+
+def dqn(n_episodes=4000, max_t=1000, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.
 
     Params
@@ -190,11 +199,14 @@ def dqn(n_episodes=4000, max_t=1000, eps_start=1.0, eps_end=0.1, eps_decay=0.995
     scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
+        change_num_rewards(env)
         state = env.reset()
+        state = process_state(state)
         score = 0
         for t in range(max_t):
             action, action_type = agent.act(state, eps)
             next_state, reward, done, _ = env.step(action)
+            next_state = process_state(next_state)
             agent.step(state, action, reward, next_state, done)
             state = next_state
             score += reward
@@ -216,9 +228,10 @@ def dqn(n_episodes=4000, max_t=1000, eps_start=1.0, eps_end=0.1, eps_decay=0.995
     return scores
 
 model_path=args.model_path
+os.makedirs(model_path, exist_ok=True)
 if is_train:
     scores = dqn(n_episodes=num_episodes)
-    torch.save(agent.qnetwork_local.state_dict(), model_path)
+    torch.save(agent.qnetwork_local.state_dict(), os.path.join(model_path, 'model.ckpt'))
     # plot the scores
     #fig = plt.figure()
     #ax = fig.add_subplot(111)
