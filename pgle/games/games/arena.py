@@ -111,7 +111,6 @@ class ARENA(PyGameWrapper):
         self.blasts = None
 
         self.visualize = visualize
-        self.duration = duration
         self.fps = 20
 
 
