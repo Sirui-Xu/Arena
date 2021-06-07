@@ -1,0 +1,11 @@
+To Zhiwei:
+
+I found that with 64x64 map, 5 coins(I use small graph so that random policy is easier to get rewards),
+if the environment is not reset to a fixed initial state but instead a random one,
+our current implementation of dqgnn barely learns.
+It will result in a policy that constantly walks along same direction
+(all directions have similar Q values, this direction may change as training proceeds).
+
+I then tried use 64x64 map, 1 coin, fixed initial state. I didn't train to converge, but the policy
+succeeded 70% of time. I use env.game.loadGameState() to reset game into fixed initial state in train_dqgnn.py.
+

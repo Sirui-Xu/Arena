@@ -17,15 +17,13 @@ sys.path.append(project_root)
 sys.path.append(dqn_root)
 dataset_root = dqn_root + '/saved_data'
 
-from data_utils import ReplayGraphDataset, input_to_graph_input, parse_edge_outputs
-
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 128  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
 LR = 5e-4  # learning rate
-UPDATE_EVERY = 1  # how often to update the network
+UPDATE_EVERY = 4  # how often to update the network
 
 
 class DQGNN_agent():
@@ -154,6 +152,10 @@ class ReplayBuffer:
         experiences = random.sample(self.memory, k=self.batch_size)
         states = next(iter(DataLoader(
             GraphDataset([e.state for e in experiences]), batch_size=self.batch_size, shuffle=False)))
+        #print('@dqgnn_agent.sample():')
+        #print('batch_size=', self.batch_size)
+        #print('state shape:', states.num_graphs)
+        #exit()
         next_states = next(iter(DataLoader(
             GraphDataset([e.next_state for e in experiences]), batch_size=self.batch_size, shuffle=False)))
         #print(experiences)

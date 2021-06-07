@@ -404,15 +404,18 @@ class ARENA(PyGameWrapper):
             self.enemies = pygame.sprite.Group()
         else:
             self.enemies.empty()
+        if self.reward_nodes is None:
+            self.reward_nodes = pygame.sprite.Group()
+        else:
+            self.reward_nodes.empty()
         for info in state["local"]:
-            if info["type"] == "player":
+            if info["type"] == "agent":
                 self.AGENT_INIT_POS = info["position"]
                 if self.player is None:
-                    self.player = Player(
-                        self.AGENT_RADIUS, self.AGENT_COLOR,
+                    self.player = Agent(
+                        self.SHAPE // 2,
                         self.AGENT_SPEED, self.AGENT_INIT_POS,
                         self.width, self.height,
-                        self.UNIFORM_SPEED
                     )
 
                 else:
@@ -437,6 +440,13 @@ class ARENA(PyGameWrapper):
                 self.enemies.add(enemy)
 
                 self.enemy_counts[self.enemy_TYPES[enemy_type]] += 1
+            if info['type'] == 'reward':
+                reward = Reward(
+                    info['position'],
+                    self.SHAPE // 2,
+                    1,
+                )
+                self.reward_nodes.add(reward)
 
         self.score = state["global"]["score"]
         self.ticks = state["global"]["ticks"]
