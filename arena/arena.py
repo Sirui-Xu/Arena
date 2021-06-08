@@ -48,22 +48,23 @@ class Arena(PyGameWrapper):
     """
 
     def __init__(self,
-                 width=1280,
-                 height=720,
-                 object_size=32,
-                 num_rewards=50,
-                 num_enemies=50,
+                 width=640,
+                 height=640,
+                 object_size=60,
+                 obstacle_size=80,
+                 num_rewards=5,
+                 num_enemies=5,
 
                  num_bombs=3,
                  num_projectiles=3,
-                 num_obstacles_groups=10,
+                 num_obstacles_groups=1,
 
-                 num_obstacles=200,
-                 agent_speed=0.1,
-                 enemy_speed=0.1,
-                 projectile_speed=2,
-                 bomb_life=300,
-                 bomb_range=4,
+                 num_obstacles=10,
+                 agent_speed=0.25,
+                 enemy_speed=0,
+                 projectile_speed=1,
+                 bomb_life=10000,
+                 bomb_range=3,
                  visualize=True):
 
         self.frozen = False
@@ -89,12 +90,13 @@ class Arena(PyGameWrapper):
                 num_projectiles >= 0 and num_obstacles >= 0 and num_obstacles_groups >= 0):
             raise Exception('Need a positive number of objects or stuff.')
         self.SHAPE = object_size
+        self.OBSTACLE_SHAPE = obstacle_size
         if not (object_size >= 2):
             raise Exception('The objects must have at least two pixel width and height.')
         self.ENEMY_SPEED = enemy_speed * self.SHAPE
         self.AGENT_SPEED = agent_speed * self.SHAPE
         self.BULLET_SPEED = projectile_speed * self.SHAPE
-        if not (self.ENEMY_SPEED >= 1 and self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
+        if not (self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
             raise Exception('Need larger speed.')
         self.BOMB_LIFE = bomb_life
         self.BOMB_RANGE = bomb_range
@@ -482,7 +484,7 @@ class Arena(PyGameWrapper):
         else:
             self.projectiles.empty()
 
-        shape = self.SHAPE + 8
+        shape = self.OBSTACLE_SHAPE
         edge_x = (self.width - (self.width // shape) * shape) / 2
         edge_y = (self.height - (self.height // shape) * shape) / 2
 
