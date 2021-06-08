@@ -27,6 +27,9 @@ Use `w, s, a, d` to move, `space` to place bombs, and `j` to fire projectiles.
 
 ## Getting started
 
+Instructions will be added very soon.
+
+<!--
 A `PGLE` instance requires a game exposing a set of control methods. To see the required methods look at `pgle/games/base.py`. 
 
 Here's an example of importing billiardworldmaze from the games library within PGLE:
@@ -107,7 +110,7 @@ python test.py --game ${game_name} --algorithm ${algorithm_name}
 ${game_name} should be one of the available game's name. ${algorithm_name} should be something like `random`.
 
 
-<!--
+
 ## Acknowledgement
 This environment refers a lot to ntasfi's [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment)
 
