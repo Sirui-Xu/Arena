@@ -478,6 +478,8 @@ class PlanningShoot1d:
         self.action()
         action_name = self.actions[0]
         return self.env.getActionIndex(action_name)
+    
+    
 class PlanningArena:
     def __init__(self, env):
         self.n_action = len(env.getActionSet())
