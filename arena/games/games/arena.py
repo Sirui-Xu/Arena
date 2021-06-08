@@ -11,58 +11,23 @@ from pygame.constants import K_w, K_a, K_s, K_d, K_j, K_SPACE
 
 
 class ARENA(PyGameWrapper):
-    """
-    Parameters
-    ----------
-    width : int
-        Screen width.
-    height : int
-        Screen height, recommended to be same dimension as width.
-    object_size : int (default: 8)
-        object size
-    num_rewards : int (default: 50)
-        The number of rewards on the screen at once.
-    num_enemies : int (default: 100)
-        The number of enemies on the screen at once.
-    num_bombs : int (default: 3)
-        The number of bombs that agent can placed.
-    num_projectiles : int (default: 3)
-        The number of projectiles that agent can fired.
-    num_obstacles : int (default: 300)
-        The number of obstacles on the screen at once.
-    num_obstacle_groups : int (default: 50)
-        The number of obstacles' groups.
-    agent_speed : float (default: 0.5)
-        The speed of agent.
-    enemy_speed : float (default: 0.5)
-        The speed of enemy.
-    projectile_speed : float (default: 2.5)
-        The speed of projectile.
-    bomb_life : int (default: 100)
-        The time for bombs to explode
-    bomb_range : int (default: 3)
-        The explosion scope for bombs
-    visualize : bool (default: True)
-        rendering or not?
-    """
-
     def __init__(self,
-                 width=512,
-                 height=512,
-                 object_size=16,
-                 num_rewards=50,
+                 width=1280,
+                 height=720,
+                 object_size=32,
+                 obstacle_size=40,
+                 num_coins=50,
                  num_enemies=50,
                  num_bombs=3,
                  num_projectiles=3,
-                 num_obstacles=300,
-                 num_obstacles_groups=100,
+                 num_obstacles=200,
                  agent_speed=0.25,
-                 enemy_speed=0.15,
+                 enemy_speed=0,
                  projectile_speed=1,
                  bomb_life=100,
                  bomb_range=4,
                  visualize=True,
-                 duration=2000,):
+                 ):
 
         actions = {
             "up": K_w,
@@ -74,15 +39,14 @@ class ARENA(PyGameWrapper):
         }
 
         PyGameWrapper.__init__(self, width, height, actions=actions)
-        self.BG_COLOR = (255, 255, 255)
+        self.BG_COLOR = (0, 0, 0)
         self.N_ENEMIES = num_enemies
-        self.N_REWARDS = num_rewards
+        self.N_REWARDS = num_coins
         self.N_BOMBS = num_bombs
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
-        self.N_OBSTACLE_GROUPS = num_obstacles_groups
-        if not (num_enemies >= 0 and num_rewards > 0 and num_bombs >= 0 and 
-                num_projectiles >= 0 and num_obstacles >= 0 and num_obstacles_groups >= 0):
+        if not (num_enemies >= 0 and num_coins > 0 and num_bombs >= 0 and 
+                num_projectiles >= 0 and num_obstacles >= 0):
             raise Exception('Need a positive number of objects or stuff.')
         self.SHAPE = object_size
         if not (object_size >= 2):
@@ -90,6 +54,7 @@ class ARENA(PyGameWrapper):
         self.ENEMY_SPEED = enemy_speed * self.SHAPE
         self.AGENT_SPEED = agent_speed * self.SHAPE
         self.BULLET_SPEED = projectile_speed * self.SHAPE
+        self.OBSTACLE_SIZE = obstacle_size
         if not (enemy_speed <= 1 and agent_speed <= 1 and projectile_speed <= 1):
             raise Exception('Speed must less than 1.')
         if not (self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
@@ -152,7 +117,7 @@ class ARENA(PyGameWrapper):
                 pygame.quit()
                 sys.exit()
     
-    def generate_random_maze(self, width, height, num, complexity):
+    def generate_random_maze(self, width, height, num):
         r"""Generate a random maze array. 
         
         It only contains two kind of objects, obstacle and free space. The numerical value for obstacle
@@ -169,18 +134,54 @@ class ARENA(PyGameWrapper):
         # Z[0, :] = Z[-1, :] = 1
         # Z[:, 0] = Z[:, -1] = 1
         # Make aisles
+        #while True:
+        #    y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
+        #    if Z[y, x] == 1:
+        #        continue
+        #    Z[y, x] = 1
+        #    t += 1
+        #    if t == num:
+        #        break
+        #    while True:
+        #        neighbours = []
+        #        if x > 1:             neighbours.append((y, x - 2))
+        #        if x < shape[1] - 2:  neighbours.append((y, x + 2))
+        #        if y > 1:             neighbours.append((y - 2, x))
+        #        if y < shape[0] - 2:  neighbours.append((y + 2, x))
+        #        flag = False
+        #        if len(neighbours):
+        #            y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
+        #            if Z[y_, x_] == 0:
+        #                Z[y_, x_] = 1
+        #                t += 1
+        #                flag = True
+        #                if t == num:
+        #                    break
+        #                if Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] == 0:
+        #                    Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
+        #                    t += 1
+        #                    flag = True
+        #                    if t == num:
+        #                        break
+        #            y, x = y_, x_
+        #            if not flag:
+        #                break
+        #    if t == num:
+        #        break
         while True:
-            y, x = self.rng.randint(0, (shape[0]-1)//2 + 1) * 2, self.rng.randint(0, (shape[1]-1)//2 + 1) * 2
+            y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
+            if Z[y, x] == 1:
+                continue
             Z[y, x] = 1
             t += 1
             if t == num:
                 break
-            for j in range(complexity):
+            while True:
                 neighbours = []
-                if x > 1:             neighbours.append((y, x - 2))
-                if x < shape[1] - 2:  neighbours.append((y, x + 2))
-                if y > 1:             neighbours.append((y - 2, x))
-                if y < shape[0] - 2:  neighbours.append((y + 2, x))
+                if x > 0 and Z[y, x - 1] == 0:             neighbours.append((y, x - 1))
+                if x < shape[1] - 1 and Z[y, x + 1] == 0:  neighbours.append((y, x + 1))
+                if y > 0 and Z[y - 1, x] == 0:             neighbours.append((y - 1, x))
+                if y < shape[0] - 1 and Z[y + 1, x] == 0:  neighbours.append((y + 1, x))
                 if len(neighbours):
                     y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
                     if Z[y_, x_] == 0:
@@ -188,21 +189,19 @@ class ARENA(PyGameWrapper):
                         t += 1
                         if t == num:
                             break
-                        Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
-                        t += 1
-                        if t == num:
-                            break
-                        x, y = x_, y_
+                    y, x = y_, x_
+                else:
+                    break
             if t == num:
-                break                       
+                break
         return Z.astype(int)
 
     def _add_obstacles(self, shape, edge_x, edge_y):
-        if self.N_OBSTACLES == 0 or self.N_OBSTACLE_GROUPS == 0:
+        if self.N_OBSTACLES == 0:
             self.maze = np.zeros((self.width // shape, self.height // shape))
             return
         else:
-            self.maze = self.generate_random_maze(self.width // shape, self.height // shape, num=self.N_OBSTACLES, complexity=max(0, (self.N_OBSTACLES // self.N_OBSTACLE_GROUPS - 1)))
+            self.maze = self.generate_random_maze(self.width // shape, self.height // shape, num=self.N_OBSTACLES)
         for i in range(self.width // shape):
             for j in range(self.height // shape):
                 obstacle = None
@@ -451,7 +450,7 @@ class ARENA(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return len(self.reward_nodes) == 0 or self.player == None or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
+        return len(self.reward_nodes) == 0 or self.player == None# or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
 
     def init(self):
         """
@@ -531,7 +530,7 @@ class ARENA(PyGameWrapper):
         # # self.fix_obstacles.add(obstacle((self.width - self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
         # # self.fix_obstacles.add(obstacle((self.width / 2, self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
         # # self.fix_obstacles.add(obstacle((self.width / 2, self.height - self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
-        shape = self.SHAPE + 8
+        shape = self.OBSTACLE_SIZE
         edge_x = (self.width - (self.width // shape) * shape) / 2
         edge_y = (self.height - (self.height // shape) * shape) / 2
 

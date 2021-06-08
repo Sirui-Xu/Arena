@@ -11,9 +11,9 @@ install_requires = [
 ]
 
 setup(
-	name='pgle',
+	name='Arena',
 	version='0.0.1',
-	description='PyGame Graph Based Learning Environment',
+	description='A Scalable and Configurable Benchmark for Policy Learning',
     classifiers=[
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
@@ -21,7 +21,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-	url='https://github.com/Sirui-Xu/PyGame-Graph-Based-Learning-Environment',
+	url='https://github.com/Sirui-Xu/Arena',
 	author='Sirui Xu',
 	author_email='xusirui@pku.edu.cn',
 	keywords='',
