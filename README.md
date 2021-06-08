@@ -1,4 +1,4 @@
-# Arena: A Scalable and Configurable Benchmark forPolicy Learning
+# Arena: A Scalable and Configurable Benchmark for Policy Learning
 
 Arena is a scalable and configurable benchmark for policy learning. It is an object-based game-like environment. The game logic is reminiscent of many classic games such as Pac-Man and Bomberman. An instance of the Arena benchmark starts with an arbitrarily sized region (i.e., the arena) containing a controllable agent as well as an arbitrary number of destructable obstacles, enemies, and collectable coins. The agent can move in four directions, fire projectiles, as well as place bombs. The goal is to control the agent to collect as many coins as possible in the shortest amount of time, potentially kill enemies and destroy obstacles using the projectiles and bombs along the way. 
  
