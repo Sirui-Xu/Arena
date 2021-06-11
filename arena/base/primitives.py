@@ -338,6 +338,7 @@ class Agent(pygame.sprite.Sprite):
 
         self.pos = vec2d(pos_init)
         self.direction = vec2d((0, 1))
+        self.vel = vec2d((0, speed))
         self.animation = []
         self.load_animations(radius * 2)
         self.direction.normalize()
@@ -373,15 +374,23 @@ class Agent(pygame.sprite.Sprite):
         if dx == 0 and dy == 0:
             pass
         else:
-            self.rect.center = (self.pos.x + dx, self.pos.y + dy)
+            self.rect.center = (self.pos.x + dx * dt, self.pos.y + dy * dt)
             if self.valid(walls):
-                self.pos.x += dx
-                self.pos.y += dy
+                self.pos.x += dx * dt
+                self.pos.y += dy * dt
                 self.direction.x = dx
                 self.direction.y = dy
                 self.direction.normalize()
-                self.update_image()
+                self.vel.x = dx
+                self.vel.y = dy
+                self.update_image(dt)
             else:
+                self.direction.x = dx
+                self.direction.y = dy
+                self.vel.x = 0
+                self.vel.y = 0
+                self.direction.normalize()
+                self.update_image(dt)
                 self.rect.center = (self.pos.x, self.pos.y)
 
 
