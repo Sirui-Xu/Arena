@@ -35,7 +35,7 @@ BATCH_SIZE = 32
 SAVE_EPOCH = 5
 PRINT_EPOCH = 200
 CROSS_ENTROPY = True
-LOSS_BALANCE = False
+LOSS_BALANCE = True
 
 data_path = args.dataset
 with open(data_path, 'r') as f:
@@ -70,16 +70,11 @@ writer = SummaryWriter(os.path.join(args.checkpoints_path, 'runs', time.strftime
 # save info
 with open(os.path.join(args.checkpoints_path, 'info.json'), 'w') as outfile:
     dataset_info = data_path.split('/')[-1].split('.')[0].split('_')
-    info = {"game": data["game"],
-            "algorithm": data["algorithm"],
-            "maze_size_list": data["maze_size_list"],
-            "num_creeps_list": data["num_creeps_list"],
-            "frequency_list": data["frequency_list"],
-            "window_size": data["window_size"],
-            "model": args.model,
-            "model_info": model_info}
+    info = copy.deepcopy(data)
+    info["model"] = args.model
+    info["model_info"] = model_info
     json.dump(info, outfile)
-    
+
 # save options
 with open(os.path.join(args.checkpoints_path, 'opt.txt'), 'w') as outfile:
     outfile.write(json.dumps(vars(args), indent=2))
@@ -108,6 +103,8 @@ val_dataloader = DataLoader(test_dataset,
 print("==> data size: {}\n".format(len(dataset)))
 if LOSS_BALANCE:
     class_sample_count = sum([data_batch.y for data_batch in dataset])
+    sum_class_sample_count = torch.sum(class_sample_count)
+    class_sample_count[class_sample_count == 0] = sum_class_sample_count
     weight = torch.sum(class_sample_count) / class_sample_count
     weight /= torch.sum(weight)
     weight = weight.squeeze_(0).to('cuda')
@@ -115,8 +112,8 @@ if LOSS_BALANCE:
 else:
     weight = torch.ones(dataset[0].y.shape[1]).to('cuda')
 
-num_epochs = args.num_epochs
 min_val_loss = 1e5
+num_epochs = args.num_epochs
 for i_epochs in range(resume_epoch, num_epochs):
     # Initialize the environment and state
     scheduler_warmup.step(i_epochs + 1)
@@ -179,12 +176,12 @@ for i_epochs in range(resume_epoch, num_epochs):
         save_state = {'policy_net': policy_net.state_dict(), 'optim': optimizer.state_dict()}
         save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format((i_epochs+1)))
         torch.save(save_state, save_path)
-        
         if losses / len(val_dataloader) < min_val_loss:
             min_val_loss = losses / len(val_dataloader)
             save_state = {'policy_net': policy_net.state_dict(), 'optim': optimizer.state_dict()}
             save_path = os.path.join(args.checkpoints_path, 'best_model')
             torch.save(save_state, save_path)
+        
         policy_net.train()
       
 print('Complete')

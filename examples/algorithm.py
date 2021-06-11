@@ -46,7 +46,7 @@ parser.add_argument('--num_coins_list', nargs='+', type=int, default=[1, 2, 3, 4
                     help='maximum number of coins\' list')
 parser.add_argument('--num_enemies_list', nargs='+', type=int, default=[0, 1, 2, 3, 4, 5],
                     help='maximum number of enemies\' list')
-parser.add_argument('--num_obstacles_list', nargs='+', type=int, default=[0, 1, 2, 3, 4, 5], 
+parser.add_argument('--num_obstacles_list', nargs='+', type=int, default=[0, 2, 4, 6, 8, 10], 
                     help='maximum number of obstacles\' list')
 parser.add_argument('--num_bombs', type=int, default=3, 
                     help='maximum number of bombs that can exist in the map')
