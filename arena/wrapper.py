@@ -3,10 +3,10 @@ import sys
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame
-from .games.base.pygamewrapper import PyGameWrapper
+from .base.pygamewrapper import PyGameWrapper
 from pygame.constants import K_w, K_a, K_s, K_d, K_SPACE, K_j
 
-class PGLE(object):
+class Wrapper(object):
     def __init__(self, game, rng=24):
 
         self.game = game

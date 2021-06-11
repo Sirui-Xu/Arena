@@ -3,14 +3,14 @@ import sys
 import math
 import random
 import numpy as np
-from ..base import PyGameWrapper
-from ..base import Agent, Bombv, Blast, Enemy, Obstacle, Projectile, Reward
+from .base import PyGameWrapper
+from .base import Agent, Bombv, Blast, Enemy, Obstacle, Projectile, Reward
 
-from ..utils import vec2d, percent_round_int
+from .base import vec2d
 from pygame.constants import K_w, K_a, K_s, K_d, K_j, K_SPACE
 
 
-class ARENA(PyGameWrapper):
+class Arena(PyGameWrapper):
     def __init__(self,
                  width=1280,
                  height=720,
@@ -19,13 +19,13 @@ class ARENA(PyGameWrapper):
                  num_coins=50,
                  num_enemies=50,
                  num_bombs=3,
+                 explosion_max_step=100,
+                 explosion_radius=128,
                  num_projectiles=3,
                  num_obstacles=200,
-                 agent_speed=0.25,
-                 enemy_speed=0,
-                 projectile_speed=1,
-                 bomb_life=100,
-                 bomb_range=4,
+                 agent_speed=8,
+                 enemy_speed=8,
+                 projectile_speed=32,
                  visualize=True,
                  ):
 
@@ -40,36 +40,41 @@ class ARENA(PyGameWrapper):
 
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (0, 0, 0)
+        if not (num_enemies >= 0 and num_coins > 0 and num_bombs >= 0 and 
+                num_projectiles >= 0 and num_obstacles >= 0):
+            raise Exception('Need a positive number of objects or stuff.')
         self.N_ENEMIES = num_enemies
         self.N_REWARDS = num_coins
         self.N_BOMBS = num_bombs
         self.N_PROJECTILES = num_projectiles
         self.N_OBSTACLES = num_obstacles
-        if not (num_enemies >= 0 and num_coins > 0 and num_bombs >= 0 and 
-                num_projectiles >= 0 and num_obstacles >= 0):
-            raise Exception('Need a positive number of objects or stuff.')
-        self.SHAPE = object_size
         if not (object_size >= 2):
             raise Exception('The objects must have at least two pixel width and height.')
-        self.ENEMY_SPEED = enemy_speed * self.SHAPE
-        self.AGENT_SPEED = agent_speed * self.SHAPE
-        self.BULLET_SPEED = projectile_speed * self.SHAPE
+        if not (obstacle_size >= 4 + object_size):
+            raise Exception('The obstacle must be four pixels larger than the object.') 
+        self.OBJECT_SIZE = object_size
         self.OBSTACLE_SIZE = obstacle_size
-        if not (enemy_speed <= 1 and agent_speed <= 1 and projectile_speed <= 1):
-            raise Exception('Speed must less than 1.')
-        if not (self.AGENT_SPEED >= 1 and self.BULLET_SPEED >= 1):
-            raise Exception('Need larger speed.')
-        if self.ENEMY_SPEED <= 1:
-            self.ENEMY_SPEED = 0
+        if not (enemy_speed < object_size and agent_speed < object_size and projectile_speed <= object_size):
+            raise Exception('Speed must less than object size.')
+        if not (agent_speed >= 1 and projectile_speed >= 1):
+            raise Exception('Agent and projectile must have speed must larger than 1.')
+        if enemy_speed < 1:
+            enemy_speed = 0
             print("enemies' speed is set to zero") 
-        self.BOMB_LIFE = bomb_life
-        self.BOMB_RANGE = bomb_range
-        if not (self.AGENT_SPEED * self.BOMB_LIFE > self.BOMB_RANGE * self.SHAPE):
-            raise Exception('Agent cannot escape the explosion just setting off, need larger speed or longer bomb time or smaller bomb range')
+        self.ENEMY_SPEED = enemy_speed
+        self.AGENT_SPEED = agent_speed
+        self.PROJECTILE_SPEED = projectile_speed
+        if (explosion_radius // object_size) * object_size != explosion_radius:
+            explosion_radius = (explosion_radius // object_size) * object_size
+            print("explosion radius is set to {} for convenience".format(explosion_radius))
+        self.EXPLOSION_MAX_STEP = explosion_max_step
+        self.EXPLOSION_RADIUS = explosion_radius
+        if not (self.AGENT_SPEED * self.EXPLOSION_MAX_STEP > self.EXPLOSION_RADIUS):
+            raise Exception('Agent cannot escape the explosion just setting off, need larger speed or longer explosion_max_step or smaller explosion_radius')
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
         self.player = None
         self.enemies = None
-        self.reward_nodes = None
+        self.reward_objects = None
         self.bombs = None
         self.projectiles = None
         self.obstacles = None
@@ -209,7 +214,7 @@ class ARENA(PyGameWrapper):
                 if self.maze[pos] == 1:
                     real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
                     obstacle = Obstacle(
-                        real_pos, shape // 2
+                        shape // 2, real_pos
                     )
                     self.obstacles.add(obstacle)
 
@@ -231,10 +236,10 @@ class ARENA(PyGameWrapper):
                 if self.maze[pos] == 0:
                     real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
                     dist = math.sqrt((self.player.pos.x - real_pos[0])**2 + (self.player.pos.y - real_pos[1])**2)
-                    if dist > 2 * self.SHAPE:
+                    if dist > 2 * self.OBJECT_SIZE:
                         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
                         enemy = Enemy(
-                            self.SHAPE // 2,
+                            self.OBJECT_SIZE // 2,
                             real_pos,
                             directions[self.rng.choice(list(range(4)))],
                             self.ENEMY_SPEED,
@@ -254,13 +259,13 @@ class ARENA(PyGameWrapper):
                 if self.maze[pos] == 0:
                     real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
                     dist = math.sqrt((self.player.pos.x - real_pos[0])**2 + (self.player.pos.y - real_pos[1])**2)
-                    if dist > 2 * self.SHAPE:
+                    if dist > 2 * self.OBJECT_SIZE:
                         reward = Reward(
+                            self.OBJECT_SIZE // 2,
                             real_pos,
-                            self.SHAPE // 2,
                             1,
                         )
-                        self.reward_nodes.add(reward)
+                        self.reward_objects.add(reward)
                         break
             if t >= 10:
                 print("WARNING: Need a bigger map!")
@@ -268,10 +273,10 @@ class ARENA(PyGameWrapper):
     def add_projectile(self):
         if len(self.projectiles) < self.N_PROJECTILES and self.shoot > 0:
             projectile = Projectile(
-                                    self.SHAPE // 2, 
+                                    self.OBJECT_SIZE // 2, 
                                     (self.player.pos.x, self.player.pos.y), 
                                     (self.player.direction.x, self.player.direction.y), 
-                                    self.BULLET_SPEED, 
+                                    self.PROJECTILE_SPEED, 
                                     self.width,
                                     self.height)
             self.projectiles.add(projectile)
@@ -281,10 +286,10 @@ class ARENA(PyGameWrapper):
             pos = (self.player.pos.x, self.player.pos.y)
 
             bomb = Bombv(
-                self.SHAPE // 2,
+                self.OBJECT_SIZE // 2,
                 pos,
-                self.BOMB_LIFE,
-                self.BOMB_RANGE*self.SHAPE,
+                self.EXPLOSION_MAX_STEP,
+                self.EXPLOSION_RADIUS,
             )
 
             if len(pygame.sprite.spritecollide(bomb, self.bombs, False)) == 0:
@@ -293,12 +298,14 @@ class ARENA(PyGameWrapper):
                 bomb.kill()
     
     def _cal_blast_pos(self, bomb):
-        for i in range(-self.BOMB_RANGE, self.BOMB_RANGE+1):
-            for j in range(-self.BOMB_RANGE, self.BOMB_RANGE+1):
-                vir_pos = (bomb.pos.x + i*self.SHAPE, bomb.pos.y + j*self.SHAPE)
-                if vir_pos[0] < self.SHAPE / 2 or vir_pos[0] >= self.width - self.SHAPE / 2 or vir_pos[1] < self.SHAPE / 2 or vir_pos[1] >= self.height - self.SHAPE / 2:
+        for i in range(-self.EXPLOSION_RADIUS // self.OBJECT_SIZE, self.EXPLOSION_RADIUS // self.OBJECT_SIZE + 1):
+            for j in range(-self.EXPLOSION_RADIUS // self.OBJECT_SIZE, self.EXPLOSION_RADIUS // self.OBJECT_SIZE + 1):
+                if abs(i) + abs(j) > self.EXPLOSION_RADIUS // self.OBJECT_SIZE:
                     continue
-                blast = Blast(vir_pos, self.SHAPE // 2)
+                vir_pos = (bomb.pos.x + i*self.OBJECT_SIZE, bomb.pos.y + j*self.OBJECT_SIZE)
+                if vir_pos[0] < self.OBJECT_SIZE / 2 or vir_pos[0] >= self.width - self.OBJECT_SIZE / 2 or vir_pos[1] < self.OBJECT_SIZE / 2 or vir_pos[1] >= self.height - self.OBJECT_SIZE / 2:
+                    continue
+                blast = Blast(self.OBJECT_SIZE // 2, vir_pos)
                 self.blasts.add(blast)
 
     def blast(self):
@@ -332,7 +339,7 @@ class ARENA(PyGameWrapper):
                             'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
                         }
             state.append(player_state)
-        for c in self.reward_nodes.sprites():
+        for c in self.reward_objects.sprites():
             reward_state = {'type':'reward', 
                            'type_index': [1, c.reward, -1, -1], 
                            'position': [c.pos.x, c.pos.y],
@@ -396,53 +403,6 @@ class ARENA(PyGameWrapper):
         return {'local':state, 'global':{'ticks': self.ticks, 'shape': [self.width, self.height],
                                          'score': self.score, 'bombs_left':self.N_BOMBS - len(self.bombs), 'projectiles_left': self.N_PROJECTILES - len(self.projectiles)}}
 
-    def loadGameState(self, state):
-        self.enemy_counts = {"GOOD": 0, "BAD": 0}
-        if self.enemies is None:
-            self.enemies = pygame.sprite.Group()
-        else:
-            self.enemies.empty()
-        for info in state["local"]:
-            if info["type"] == "player":
-                self.AGENT_INIT_POS = info["position"]
-                if self.player is None:
-                    self.player = Player(
-                        self.AGENT_RADIUS, self.AGENT_COLOR,
-                        self.AGENT_SPEED, self.AGENT_INIT_POS,
-                        self.width, self.height,
-                        self.UNIFORM_SPEED
-                    )
-
-                else:
-                    self.player.pos = vec2d(self.AGENT_INIT_POS)
-                    self.player.vel = vec2d(info["velocity"])
-                    self.player.rect.center = self.AGENT_INIT_POS
-            if info["type"] == "enemy":
-                enemy_type = info["type_index"][1]
-                enemy = enemy(
-                    self.enemy_COLORS[enemy_type],
-                    self.enemy_RADII[enemy_type],
-                    info["position"],
-                    info["velocity"],
-                    info["speed"],
-                    self.enemy_REWARD[enemy_type],
-                    self.enemy_TYPES[enemy_type],
-                    self.width,
-                    self.height,
-                    info["_jitter_speed"]
-                )
-
-                self.enemies.add(enemy)
-
-                self.enemy_counts[self.enemy_TYPES[enemy_type]] += 1
-
-        self.score = state["global"]["score"]
-        self.ticks = state["global"]["ticks"]
-        self.lives = -1
-        # self.screen.fill(self.BG_COLOR)
-        # self.player.draw(self.screen)
-        # self.enemies.draw(self.screen)
-
     def getScore(self):
         return self.score
 
@@ -450,7 +410,7 @@ class ARENA(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return len(self.reward_nodes) == 0 or self.player == None# or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
+        return len(self.reward_objects) == 0 or self.player == None# or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
 
     def init(self):
         """
@@ -463,8 +423,8 @@ class ARENA(PyGameWrapper):
 
         if self.player is None:
             self.player = Agent(
-                self.SHAPE // 2,
-                self.AGENT_SPEED, AGENT_INIT_POS,
+                self.OBJECT_SIZE // 2,
+                AGENT_INIT_POS, self.AGENT_SPEED,
                 self.width, self.height,
             )
         else:
@@ -476,10 +436,10 @@ class ARENA(PyGameWrapper):
         else:
             self.enemies.empty()
 
-        if self.reward_nodes is None:
-            self.reward_nodes = pygame.sprite.Group()
+        if self.reward_objects is None:
+            self.reward_objects = pygame.sprite.Group()
         else:
-            self.reward_nodes.empty()
+            self.reward_objects.empty()
         
         if self.obstacles is None:
             self.obstacles = pygame.sprite.Group()
@@ -501,35 +461,6 @@ class ARENA(PyGameWrapper):
         else:
             self.projectiles.empty()
 
-        # edge_x = (self.width - (self.width // self.SHAPE - 2) * self.SHAPE) // 2
-        # edge_y = (self.height - (self.height // self.SHAPE - 2) * self.SHAPE) // 2
-
-        # for i in range(self.width // self.SHAPE):
-        #     for j in range(self.height // self.SHAPE):
-        #         if i == 0 and j == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == 0 and j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, self.height - edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1 and j == 0:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1 and j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, self.height - edge_y / 2), edge_x, edge_y, color=(0,0,0), FIXED=True))
-        #         elif i == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x / 2, edge_y + (j - 0.5) * self.SHAPE), edge_x, self.SHAPE, color=(0,0,0), FIXED=True))
-        #         elif i == self.width // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((self.width - edge_x / 2, edge_y + (j - 0.5) * self.SHAPE), edge_x, self.SHAPE, color=(0,0,0), FIXED=True))
-        #         elif j == 0:
-        #             self.fix_obstacles.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, edge_y / 2), self.SHAPE, edge_y, color=(0,0,0), FIXED=True))
-        #         elif j == self.height // self.SHAPE - 1:
-        #             self.fix_obstacles.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, self.height - edge_y / 2), self.SHAPE, edge_y, color=(0,0,0), FIXED=True))
-        #         else:
-        #             pass
-        #             # self.background.add(obstacle((edge_x + (i - 0.5) * self.SHAPE, edge_y + (j - 0.5) * self.SHAPE), self.SHAPE, self.SHAPE, color=(0,0,0), FIXED=True, GRASS=True))
-
-        # # self.fix_obstacles.add(obstacle((self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width - self.SHAPE / 2, self.height / 2), self.SHAPE, self.height, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width / 2, self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
-        # # self.fix_obstacles.add(obstacle((self.width / 2, self.height - self.SHAPE / 2), self.width, self.SHAPE, color=(0,0,0), FIXED=True))
         shape = self.OBSTACLE_SIZE
         edge_x = (self.width - (self.width // shape) * shape) / 2
         edge_y = (self.height - (self.height // shape) * shape) / 2
@@ -551,27 +482,26 @@ class ARENA(PyGameWrapper):
         self.bombs.draw(self.screen)
         self.projectiles.draw(self.screen)
         self.blasts.draw(self.screen)
-        self.reward_nodes.draw(self.screen)
+        self.reward_objects.draw(self.screen)
         self.enemies.draw(self.screen)
         self.player.draw(self.screen)
 
-    def step(self, dt):
+    def step(self):
         """
             Perform one step of game emulation.
         """
-        dt = 1
         self.score += -0.001
 
         self._handle_player_events()
-        self.player.update(self.dx, self.dy, dt, self.obstacles)
+        self.player.update(self.dx, self.dy, self.obstacles)
         self.add_projectile()
         self.add_bomb()
-        self.enemies.update(dt, self.obstacles)
-        self.projectiles.update(dt)
-        self.bombs.update(dt)
-        self.blasts.update(dt)
+        self.enemies.update(self.obstacles)
+        self.projectiles.update()
+        self.bombs.update()
+        self.blasts.update()
 
-        hits = pygame.sprite.spritecollide(self.player, self.reward_nodes, True)
+        hits = pygame.sprite.spritecollide(self.player, self.reward_objects, True)
         for node in hits:
             self.score += node.reward
         
@@ -581,12 +511,12 @@ class ARENA(PyGameWrapper):
         hits = pygame.sprite.groupcollide(self.projectiles, self.obstacles, True, True)
         for bullet in hits.keys():
             for obstacles in hits[bullet]:
-                self.blasts.add(Blast((obstacles.pos.x, obstacles.pos.y), self.SHAPE // 2))
+                self.blasts.add(Blast(self.OBJECT_SIZE // 2, (obstacles.pos.x, obstacles.pos.y)))
         hits = pygame.sprite.groupcollide(self.projectiles, self.blasts, True, False)
         hits = pygame.sprite.groupcollide(self.projectiles, self.enemies, True, True)
         for bullet in hits.keys():
             for enemy in hits[bullet]:
-                self.blasts.add(Blast((enemy.pos.x, enemy.pos.y), self.SHAPE // 2))
+                self.blasts.add(Blast(self.OBJECT_SIZE // 2, (enemy.pos.x, enemy.pos.y)))
 
         hits = pygame.sprite.spritecollide(self.player, self.enemies, True)
         if len(hits) > 0:
@@ -602,7 +532,7 @@ class ARENA(PyGameWrapper):
 
         if self.visualize:
             self.draw()
-        self.ticks += dt
+        self.ticks += 1
 
 
 if __name__ == "__main__":

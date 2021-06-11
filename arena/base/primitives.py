@@ -1,6 +1,6 @@
 import pygame
 import math
-from ..utils import vec2d
+from .vec2d import vec2d
 import os
 import random
 
@@ -26,13 +26,13 @@ class Bombv(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos_init
 
-    def update(self, dt):
+    def update(self):
 
-        self.life -= dt
+        self.life -= 1
         if self.life <= -1:
             self.kill()
         self.image = self.animation[int(self.index)]
-        self.index += dt
+        self.index += 1
         if self.index >= len(self.animation):
             self.index = self.index % len(self.animation)
 
@@ -77,21 +77,21 @@ class Projectile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos_init
 
-    def update(self, dt):
+    def update(self):
 
-        dx = self.direction.x * self.speed * dt
-        dy = self.direction.y * self.speed * dt
+        dx = self.direction.x * self.speed
+        dy = self.direction.y * self.speed
 
-        if self.pos.x + dx > self.SCREEN_WIDTH:
+        if self.pos.x + dx > self.SCREEN_WIDTH - self.radius:
             self.kill()
-        elif self.pos.x + dx <= 0:
+        elif self.pos.x + dx <= self.radius:
             self.kill()
         else:
             self.pos.x = self.pos.x + dx
 
-        if self.pos.y + dy > self.SCREEN_HEIGHT:
+        if self.pos.y + dy > self.SCREEN_HEIGHT - self.radius:
             self.kill()
-        elif self.pos.y + dy <= 0:
+        elif self.pos.y + dy <= self.radius:
             self.kill()
         else:
             self.pos.y = self.pos.y + dy
@@ -148,11 +148,11 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos_init
 
-    def update_image(self, dt):
+    def update_image(self):
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         index = directions.index((self.direction.x, self.direction.y))
         self.image = self.animation[index][int(self.index[index])]
-        self.index[index] += dt
+        self.index[index] += 1
         if self.index[index] >= len(self.animation[index]):
             self.index[index] = self.index[index] % len(self.animation[index])
 
@@ -167,17 +167,17 @@ class Enemy(pygame.sprite.Sprite):
             return False
         return True 
 
-    def update(self, dt, walls):
+    def update(self, walls):
         self.speed = self.INIT_SPEED
-        dx = self.direction.x * self.speed * dt
-        dy = self.direction.y * self.speed * dt
+        dx = self.direction.x * self.speed * 1
+        dy = self.direction.y * self.speed * 1
 
         self.rect.center = (self.pos.x + dx, self.pos.y + dy)
         if not (self.valid(walls) and random.random() < 0.99):
             directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
             random.shuffle(directions)
             for direction in directions:
-                self.rect.center = (self.pos.x + direction[0] * self.speed * dt, self.pos.y + direction[1] * self.speed * dt)
+                self.rect.center = (self.pos.x + direction[0] * self.speed, self.pos.y + direction[1] * self.speed)
                 if self.valid(walls):
                     if direction == (0, 0):
                         self.speed = 0
@@ -186,7 +186,7 @@ class Enemy(pygame.sprite.Sprite):
                         self.direction.y = direction[1]
                     break
         self.pos.x, self.pos.y = self.rect.center
-        self.update_image(dt)
+        self.update_image()
 
     def load_animations(self, scale):
         t = 1
@@ -252,7 +252,7 @@ class Enemy(pygame.sprite.Sprite):
 
 class Reward(pygame.sprite.Sprite):
 
-    def __init__(self, pos, radius, reward):
+    def __init__(self, radius, pos, reward):
         pygame.sprite.Sprite.__init__(self)
         self.TYPE = "Reward"
         self.pos = vec2d(pos)
@@ -267,7 +267,7 @@ class Reward(pygame.sprite.Sprite):
 
 class Obstacle(pygame.sprite.Sprite):
 
-    def __init__(self, pos, radius, FIXED=False):
+    def __init__(self, radius, pos, FIXED=False):
         pygame.sprite.Sprite.__init__(self)
         self.TYPE = "Obstacle"
         self.pos = vec2d(pos)
@@ -283,7 +283,7 @@ class Obstacle(pygame.sprite.Sprite):
 
 class Blast(pygame.sprite.Sprite):
 
-    def __init__(self, pos, radius):
+    def __init__(self, radius, pos):
         pygame.sprite.Sprite.__init__(self)
         self.TYPE = "Blast"
         self.pos = vec2d(pos)
@@ -298,10 +298,10 @@ class Blast(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
-    def update(self, dt):
+    def update(self):
         self.image = self.animation[int(self.index)]
-        self.index += dt
-        self.life -= dt
+        self.index += 1
+        self.life -= 1
         if self.index >= len(self.animation):
             self.kill()
 
@@ -326,8 +326,8 @@ class Agent(pygame.sprite.Sprite):
 
     def __init__(self,
                  radius,
-                 speed,
                  pos_init,
+                 speed,
                  SCREEN_WIDTH,
                  SCREEN_HEIGHT):
 
@@ -338,7 +338,6 @@ class Agent(pygame.sprite.Sprite):
 
         self.pos = vec2d(pos_init)
         self.direction = vec2d((0, 1))
-        self.vel = vec2d((0, speed))
         self.animation = []
         self.load_animations(radius * 2)
         self.direction.normalize()
@@ -351,11 +350,11 @@ class Agent(pygame.sprite.Sprite):
         self.radius = radius
 
 
-    def update_image(self, dt):
+    def update_image(self):
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         index = directions.index((self.direction.x, self.direction.y))
         self.image = self.animation[index][int(self.index[index])]
-        self.index[index] += dt
+        self.index[index] += 1
         if self.index[index] >= len(self.animation[index]):
             self.index[index] = self.index[index] % len(self.animation[index])
 
@@ -370,27 +369,19 @@ class Agent(pygame.sprite.Sprite):
             return False
         return True 
 
-    def update(self, dx, dy, dt, walls):
+    def update(self, dx, dy, walls):
         if dx == 0 and dy == 0:
             pass
         else:
-            self.rect.center = (self.pos.x + dx * dt, self.pos.y + dy * dt)
+            self.rect.center = (self.pos.x + dx, self.pos.y + dy)
             if self.valid(walls):
-                self.pos.x += dx * dt
-                self.pos.y += dy * dt
+                self.pos.x += dx
+                self.pos.y += dy
                 self.direction.x = dx
                 self.direction.y = dy
                 self.direction.normalize()
-                self.vel.x = dx
-                self.vel.y = dy
-                self.update_image(dt)
+                self.update_image()
             else:
-                self.direction.x = dx
-                self.direction.y = dy
-                self.vel.x = 0
-                self.vel.y = 0
-                self.direction.normalize()
-                self.update_image(dt)
                 self.rect.center = (self.pos.x, self.pos.y)
 
 
