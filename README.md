@@ -56,7 +56,7 @@ It's important to change the map size and the number of objects as a test for sc
 Next we configure and initialize Wrapper:
 
 ```python
-from pgle import Wrapper
+from arena import Wrapper
 
 p = Wrapper(game)
 p.init()
