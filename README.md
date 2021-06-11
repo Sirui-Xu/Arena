@@ -27,8 +27,87 @@ Use `w, s, a, d` to move, `space` to place bombs, and `j` to fire projectiles.
 
 ## Getting started
 
-Instructions will be added very soon.
+Here's an example of importing Arena from the games library within Wrapper:
 
+```python
+from arena import Arena
+
+game = Arena(width=1280,
+             height=720,
+             object_size=32,
+             obstacle_size=40,
+             num_coins=50,
+             num_enemies=50,
+             num_bombs=3,
+             explosion_max_step=100,
+             explosion_radius=128,
+             num_projectiles=3,
+             num_obstacles=200,
+             agent_speed=8,
+             enemy_speed=8,
+             p_change_direction=0.01,
+             projectile_speed=32,
+             visualize=True,
+             reward_decay=0.99)
+```
+
+It's important to change the map size and the number of objects as a test for scalability.
+
+Next we configure and initialize Wrapper:
+
+```python
+from pgle import Wrapper
+
+p = Wrapper(game)
+p.init()
+```
+
+You are free to use any agent with the Wrapper. Below we create a fictional agent and grab the valid actions:
+
+```python
+myAgent = MyAgent(p.getActionSet())
+```
+
+We can now have our agent, with the help of Wrapper, interact with the game over a certain number of frames:
+
+```python
+
+nb_frames = 1000
+reward = 0.0
+
+for f in range(nb_frames):
+    action = myAgent.pickAction(reward, state)
+    state, reward, game_over, info = p.step(action)
+    if game_over: #check if the game is over
+        state = p.reset()
+
+```
+Just like that we have our agent interacting with our game environment. A specific example can be referred to `example/test.py`
+
+## Test heuristic policy
+
+```bash
+cd example
+python algorithm.py --algorithm ${algorithm_name} --store_data
+```
+${algorithm_name} should be something like `random`.
+
+## Train GNN policy
+
+```
+cd example
+python train.py --dataset ${data_path} --checkpoints_path ${checkpoints_path} --model ${model_name}
+```
+
+## Test GNN policy
+
+```
+cd example
+python test.py --checkpoints_path ${checkpoints_path}
+```
+
+## Acknowledgement
+This environment refers to ntasfi's [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment)
 <!--
 A `PGLE` instance requires a game exposing a set of control methods. To see the required methods look at `pgle/games/base.py`. 
 
