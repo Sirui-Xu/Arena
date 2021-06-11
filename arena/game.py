@@ -24,9 +24,11 @@ class Arena(PyGameWrapper):
                  num_projectiles=3,
                  num_obstacles=200,
                  agent_speed=8,
-                 enemy_speed=0,
+                 enemy_speed=8,
+                 p_change_direction=0.01,
                  projectile_speed=32,
                  visualize=True,
+                 reward_decay=0.99
                  ):
 
         actions = {
@@ -62,6 +64,7 @@ class Arena(PyGameWrapper):
             enemy_speed = 0
             print("enemies' speed is set to zero") 
         self.ENEMY_SPEED = enemy_speed
+        self.P_CHANGE_DIRECTION = p_change_direction
         self.AGENT_SPEED = agent_speed
         self.PROJECTILE_SPEED = projectile_speed
         if (explosion_radius // object_size) * object_size != explosion_radius:
@@ -81,8 +84,7 @@ class Arena(PyGameWrapper):
         self.blasts = None
 
         self.visualize = visualize
-        self.fps = 20
-
+        self.reward_decay = reward_decay
 
     def _handle_player_events(self):
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
@@ -245,6 +247,7 @@ class Arena(PyGameWrapper):
                             self.ENEMY_SPEED,
                             self.width,
                             self.height,
+                            self.P_CHANGE_DIRECTION,
                         )
                         self.enemies.add(enemy)
                         break
@@ -473,6 +476,7 @@ class Arena(PyGameWrapper):
         
         self.score = 0
         self.ticks = 0
+        self.coeff = 1
         if self.visualize:
             self.draw()
     
@@ -490,8 +494,6 @@ class Arena(PyGameWrapper):
         """
             Perform one step of game emulation.
         """
-        self.score += -0.001
-
         self._handle_player_events()
         self.player.update(self.dx, self.dy, self.obstacles)
         self.add_projectile()
@@ -503,7 +505,7 @@ class Arena(PyGameWrapper):
 
         hits = pygame.sprite.spritecollide(self.player, self.reward_objects, True)
         for node in hits:
-            self.score += node.reward
+            self.score += node.reward * self.coeff
         
         self.blast()
         hits = pygame.sprite.groupcollide(self.enemies, self.blasts, True, False)
@@ -525,6 +527,7 @@ class Arena(PyGameWrapper):
             self.draw()
 
         self.ticks += 1
+        self.coeff *= self.reward_decay
         if len(hits_enemies) != 0 or len(hits_blasts) != 0 or len(hits_projectiles) != 0:
             self.player.kill()
             self.player = None

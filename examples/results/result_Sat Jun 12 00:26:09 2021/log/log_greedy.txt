@@ -1,0 +1,5 @@
+==> Using greedy
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 0

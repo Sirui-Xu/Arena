@@ -1,0 +1,677 @@
+==> Using greedy
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.8179069375972307.
+==> The average performance in this setting is 0.8179069375972307
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.6964132180495735.
+==> The average performance in this setting is 0.6964132180495735
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.6556592205741436.
+==> The average performance in this setting is 0.6556592205741436
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.6556592205741436.
+==> The average performance in this setting is 0.6556592205741436
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.45660974774391455.
+==> The average performance in this setting is 0.45660974774391455
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.5203405226503064.
+==> The average performance in this setting is 0.5203405226503064
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.9135172474836407.
+==> The average performance in this setting is 0.9135172474836407
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.7547192872036325.
+==> The average performance in this setting is 0.7547192872036325
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.7177305325982748.
+==> The average performance in this setting is 0.7177305325982748
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.7177305325982748.
+==> The average performance in this setting is 0.7177305325982748
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.7177305325982748.
+==> The average performance in this setting is 0.7177305325982748
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 1
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.6298236312032323.
+==> The average performance in this setting is 0.6298236312032323
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.8179069375972307.
+==> The average performance in this setting is 0.8179069375972307
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.8863848717161291.
+==> The average performance in this setting is 0.8863848717161291
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.8775210229989678.
+==> The average performance in this setting is 0.8775210229989678
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.8863848717161291.
+==> The average performance in this setting is 0.8863848717161291
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.7778213593991465.
+==> The average performance in this setting is 0.7778213593991465
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 2
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.6111172395328651.
+==> The average performance in this setting is 0.6111172395328651
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.6111172395328651.
+==> The average performance in this setting is 0.6111172395328651
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.7778213593991465.
+==> The average performance in this setting is 0.7778213593991465
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.7778213593991465.
+==> The average performance in this setting is 0.7778213593991465
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.7778213593991465.
+==> The average performance in this setting is 0.7778213593991465
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.5151371174238033.
+==> The average performance in this setting is 0.5151371174238033
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 3
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.8429431933839266.
+==> The average performance in this setting is 0.8429431933839266
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.8863848717161291.
+==> The average performance in this setting is 0.8863848717161291
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.40068465295154065.
+==> The average performance in this setting is 0.40068465295154065
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.4047319726783239.
+==> The average performance in this setting is 0.4047319726783239
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.40882017442254937.
+==> The average performance in this setting is 0.40882017442254937
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.5639051904523876.
+==> The average performance in this setting is 0.5639051904523876
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 4
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.5203405226503064.
+==> The average performance in this setting is 0.5203405226503064
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.44304798162617254.
+==> The average performance in this setting is 0.44304798162617254
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.8429431933839266.
+==> The average performance in this setting is 0.8429431933839266
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.8429431933839266.
+==> The average performance in this setting is 0.8429431933839266
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.8429431933839266.
+==> The average performance in this setting is 0.8429431933839266
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.5989560064661611.
+==> The average performance in this setting is 0.5989560064661611
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 5
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.6298236312032323.
+==> The average performance in this setting is 0.6298236312032323
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.3800125735822584.
+==> The average performance in this setting is 1.3800125735822584
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.3662124478464357.
+==> The average performance in this setting is 1.3662124478464357
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.2278392722774114.
+==> The average performance in this setting is 1.2278392722774114
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.2356542217417317.
+==> The average performance in this setting is 1.2356542217417317
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.9317615503395869.
+==> The average performance in this setting is 0.9317615503395869
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 0
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.9411732831712999.
+==> The average performance in this setting is 0.9411732831712999
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.2884935791828807.
+==> The average performance in this setting is 1.2884935791828807
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.3391073708722954.
+==> The average performance in this setting is 1.3391073708722954
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.2232976795243142.
+==> The average performance in this setting is 1.2232976795243142
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.2232976795243142.
+==> The average performance in this setting is 1.2232976795243142
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.9779167456956743.
+==> The average performance in this setting is 0.9779167456956743
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 1
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.5162085029193615.
+==> The average performance in this setting is 1.5162085029193615
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.3135298349695765.
+==> The average performance in this setting is 1.3135298349695765
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.3665263282875504.
+==> The average performance in this setting is 1.3665263282875504
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.4985694439722104.
+==> The average performance in this setting is 1.4985694439722104
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.9803660029836201.
+==> The average performance in this setting is 0.9803660029836201
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.2995529411278413.
+==> The average performance in this setting is 1.2995529411278413
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 2
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.8860959632523451.
+==> The average performance in this setting is 0.8860959632523451
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.2776583892983455.
+==> The average performance in this setting is 1.2776583892983455
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.214386364613579.
+==> The average performance in this setting is 1.214386364613579
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.239043326817242.
+==> The average performance in this setting is 1.239043326817242
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.239043326817242.
+==> The average performance in this setting is 1.239043326817242
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 4
+==> In case 0, the algorithm got 0.
+==> The average performance in this setting is 0.0
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 3
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.27041400976066.
+==> The average performance in this setting is 1.27041400976066
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.9135172474836407.
+==> The average performance in this setting is 0.9135172474836407
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.3206161985079408.
+==> The average performance in this setting is 1.3206161985079408
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 2
+==> In case 0, the algorithm got 0.
+==> The average performance in this setting is 0.0
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.9303284602038859.
+==> The average performance in this setting is 0.9303284602038859
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.0349987571357178.
+==> The average performance in this setting is 1.0349987571357178
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 4
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.
+==> The average performance in this setting is 0.0
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.2356542217417317.
+==> The average performance in this setting is 1.2356542217417317
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.8179069375972307.
+==> The average performance in this setting is 0.8179069375972307
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.3014676194382446.
+==> The average performance in this setting is 1.3014676194382446
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.314613757008328.
+==> The average performance in this setting is 1.314613757008328
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.113198243670368.
+==> The average performance in this setting is 1.113198243670368
+============== test case ==============
+==> num_coins: 2
+==> num_enemies: 5
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.339399650237157.
+==> The average performance in this setting is 1.339399650237157
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 0
+==> In case 0, the algorithm got 2.2058517924568384.
+==> The average performance in this setting is 2.2058517924568384
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.6877541776192104.
+==> The average performance in this setting is 1.6877541776192104
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.6205110295323806.
+==> The average performance in this setting is 1.6205110295323806
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.6283652500995367.
+==> The average performance in this setting is 1.6283652500995367
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.7996043672039583.
+==> The average performance in this setting is 1.7996043672039583
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 0
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.896249559381018.
+==> The average performance in this setting is 1.896249559381018
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.650544300009693.
+==> The average performance in this setting is 1.650544300009693
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 1
+==> In case 0, the algorithm got 2.047022869786051.
+==> The average performance in this setting is 2.047022869786051
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 2
+==> In case 0, the algorithm got 2.0034761767802585.
+==> The average performance in this setting is 2.0034761767802585
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 3
+==> In case 0, the algorithm got 2.0034761767802585.
+==> The average performance in this setting is 2.0034761767802585
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.5570902609753845.
+==> The average performance in this setting is 1.5570902609753845
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 1
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.8505853598092745.
+==> The average performance in this setting is 1.8505853598092745
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.816373966503304.
+==> The average performance in this setting is 1.816373966503304
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 1
+==> In case 0, the algorithm got 2.051054534133794.
+==> The average performance in this setting is 2.051054534133794
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.6716068410142502.
+==> The average performance in this setting is 1.6716068410142502
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.6807135450062611.
+==> The average performance in this setting is 1.6807135450062611
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.4887170585629155.
+==> The average performance in this setting is 1.4887170585629155
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 2
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.6575367432984385.
+==> The average performance in this setting is 1.6575367432984385
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.5570323906363854.
+==> The average performance in this setting is 1.5570323906363854
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.4119070441820663.
+==> The average performance in this setting is 1.4119070441820663
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.8265849803184353.
+==> The average performance in this setting is 1.8265849803184353
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 3
+==> In case 0, the algorithm got 0.
+==> The average performance in this setting is 0.0
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.6040122192628683.
+==> The average performance in this setting is 1.6040122192628683
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 3
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.5690496105104952.
+==> The average performance in this setting is 1.5690496105104952
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 0
+==> In case 0, the algorithm got 1.9504398297111731.
+==> The average performance in this setting is 1.9504398297111731
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.7177305325982748.
+==> The average performance in this setting is 0.7177305325982748
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.6191899427593286.
+==> The average performance in this setting is 1.6191899427593286
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.5784214159659775.
+==> The average performance in this setting is 1.5784214159659775
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.6604185582281827.
+==> The average performance in this setting is 1.6604185582281827
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 4
+==> num_obstacles: 5
+==> In case 0, the algorithm got 1.9347551206480778.
+==> The average performance in this setting is 1.9347551206480778
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.
+==> The average performance in this setting is 0.0
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 1
+==> In case 0, the algorithm got 1.9260519216234995.
+==> The average performance in this setting is 1.9260519216234995
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 2
+==> In case 0, the algorithm got 1.9455069915388883.
+==> The average performance in this setting is 1.9455069915388883
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 3
+==> In case 0, the algorithm got 1.8993943986733814.
+==> The average performance in this setting is 1.8993943986733814
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 4
+==> In case 0, the algorithm got 1.7109017326282703.
+==> The average performance in this setting is 1.7109017326282703
+============== test case ==============
+==> num_coins: 3
+==> num_enemies: 5
+==> num_obstacles: 5
+==> In case 0, the algorithm got 0.7515821614183678.
+==> The average performance in this setting is 0.7515821614183678
+============== test case ==============
+==> num_coins: 4
+==> num_enemies: 0
+==> num_obstacles: 0
+==> In case 0, the algorithm got 2.1933115475603424.
+==> The average performance in this setting is 2.1933115475603424
+============== test case ==============
+==> num_coins: 4
+==> num_enemies: 0
+==> num_obstacles: 1
+==> In case 0, the algorithm got 2.5147501218156663.
+==> The average performance in this setting is 2.5147501218156663
+============== test case ==============
+==> num_coins: 4
+==> num_enemies: 0
+==> num_obstacles: 2
+==> In case 0, the algorithm got 2.4808274103675196.
+==> The average performance in this setting is 2.4808274103675196
+============== test case ==============
+==> num_coins: 4
+==> num_enemies: 0
+==> num_obstacles: 3
+==> In case 0, the algorithm got 2.0997473107282416.
+==> The average performance in this setting is 2.0997473107282416
+============== test case ==============
+==> num_coins: 4
+==> num_enemies: 0
+==> num_obstacles: 4

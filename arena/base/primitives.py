@@ -128,7 +128,8 @@ class Enemy(pygame.sprite.Sprite):
                  dir_init,
                  speed,
                  SCREEN_WIDTH,
-                 SCREEN_HEIGHT):
+                 SCREEN_HEIGHT,
+                 P_CHANGE_DIRECTION):
 
         pygame.sprite.Sprite.__init__(self)
         self.TYPE = "Enemy"
@@ -147,6 +148,8 @@ class Enemy(pygame.sprite.Sprite):
         self.index = [0, 0, 0, 0]
         self.rect = self.image.get_rect()
         self.rect.center = pos_init
+
+        self.P_CHANGE_DIRECTION = P_CHANGE_DIRECTION
 
     def update_image(self):
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -173,7 +176,7 @@ class Enemy(pygame.sprite.Sprite):
         dy = self.direction.y * self.speed * 1
 
         self.rect.center = (self.pos.x + dx, self.pos.y + dy)
-        if not (self.valid(walls) and random.random() < 0.99):
+        if not (self.valid(walls) and random.random() > self.P_CHANGE_DIRECTION):
             directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
             random.shuffle(directions)
             for direction in directions:

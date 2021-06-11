@@ -1,0 +1,17 @@
+==> Using greedy
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 0
+==> In case 0, the algorithm got 0.8179069375972307.
+==> The average performance in this setting is 0.8179069375972307
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 1
+==> In case 0, the algorithm got 0.6964132180495735.
+==> The average performance in this setting is 0.6964132180495735
+============== test case ==============
+==> num_coins: 1
+==> num_enemies: 0
+==> num_obstacles: 2

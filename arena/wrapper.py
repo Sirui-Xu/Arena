@@ -189,14 +189,6 @@ class Wrapper(object):
                  }
         return state
 
-    def loadEnvState(self, state):
-        self.rng = state["rng"]
-        self.last_action = state["last_action"]
-        self.action = state["action"]
-        self.previous_score = state["previous_score"]
-        self.frame_count = state["frame_count"]
-        self.game.loadGameState(state["state"])
-
     def act(self, action):
         """
         Performs an action on the game. Checks if the game is over or if the provided action is valid based on the allowed action set.
@@ -208,13 +200,11 @@ class Wrapper(object):
             action = self.NOOP
 
         self._setAction(action)
-        if self.name[-4:] == "Maze":
-            for i in range(self.game.fps):
-                self.game.step()
-        else:
-            self.game.step(1000 / self.game.fps)
+
+        self.game.step()
         
-        self._draw_frame()
+        if self.game.visualize:
+            self._draw_frame()
 
         self.frame_count += 1
 
