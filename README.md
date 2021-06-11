@@ -106,8 +106,9 @@ cd example
 python test.py --checkpoints_path ${checkpoints_path}
 ```
 
-## Acknowledgement
-This environment refers to ntasfi's [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment)
+## Acknowledgements
+We referred to the [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment) for some of the implementations.
+
 <!--
 A `PGLE` instance requires a game exposing a set of control methods. To see the required methods look at `pgle/games/base.py`. 
 
