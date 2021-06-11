@@ -374,23 +374,23 @@ class Agent(pygame.sprite.Sprite):
         if dx == 0 and dy == 0:
             pass
         else:
-            self.rect.center = (self.pos.x + dx * dt, self.pos.y + dy * dt)
+            self.rect.center = (self.pos.x + dx, self.pos.y + dy)
             if self.valid(walls):
-                self.pos.x += dx * dt
-                self.pos.y += dy * dt
+                self.pos.x += dx
+                self.pos.y += dy
                 self.direction.x = dx
                 self.direction.y = dy
                 self.direction.normalize()
                 self.vel.x = dx
                 self.vel.y = dy
-                self.update_image(dt)
+                self.update_image()
             else:
                 self.direction.x = dx
                 self.direction.y = dy
                 self.vel.x = 0
                 self.vel.y = 0
                 self.direction.normalize()
-                self.update_image(dt)
+                self.update_image()
                 self.rect.center = (self.pos.x, self.pos.y)
 
 

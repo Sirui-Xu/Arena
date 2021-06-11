@@ -24,7 +24,7 @@ class Arena(PyGameWrapper):
                  num_projectiles=3,
                  num_obstacles=200,
                  agent_speed=8,
-                 enemy_speed=8,
+                 enemy_speed=0,
                  projectile_speed=32,
                  visualize=True,
                  ):
@@ -139,66 +139,66 @@ class Arena(PyGameWrapper):
         # Z[0, :] = Z[-1, :] = 1
         # Z[:, 0] = Z[:, -1] = 1
         # Make aisles
-        #while True:
-        #    y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
-        #    if Z[y, x] == 1:
-        #        continue
-        #    Z[y, x] = 1
-        #    t += 1
-        #    if t == num:
-        #        break
-        #    while True:
-        #        neighbours = []
-        #        if x > 1:             neighbours.append((y, x - 2))
-        #        if x < shape[1] - 2:  neighbours.append((y, x + 2))
-        #        if y > 1:             neighbours.append((y - 2, x))
-        #        if y < shape[0] - 2:  neighbours.append((y + 2, x))
-        #        flag = False
-        #        if len(neighbours):
-        #            y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
-        #            if Z[y_, x_] == 0:
-        #                Z[y_, x_] = 1
-        #                t += 1
-        #                flag = True
-        #                if t == num:
-        #                    break
-        #                if Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] == 0:
-        #                    Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
-        #                    t += 1
-        #                    flag = True
-        #                    if t == num:
-        #                        break
-        #            y, x = y_, x_
-        #            if not flag:
-        #                break
-        #    if t == num:
-        #        break
         while True:
-            y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
-            if Z[y, x] == 1:
-                continue
-            Z[y, x] = 1
-            t += 1
-            if t == num:
-                break
-            while True:
-                neighbours = []
-                if x > 0 and Z[y, x - 1] == 0:             neighbours.append((y, x - 1))
-                if x < shape[1] - 1 and Z[y, x + 1] == 0:  neighbours.append((y, x + 1))
-                if y > 0 and Z[y - 1, x] == 0:             neighbours.append((y - 1, x))
-                if y < shape[0] - 1 and Z[y + 1, x] == 0:  neighbours.append((y + 1, x))
-                if len(neighbours):
-                    y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
-                    if Z[y_, x_] == 0:
-                        Z[y_, x_] = 1
-                        t += 1
-                        if t == num:
-                            break
-                    y, x = y_, x_
-                else:
-                    break
-            if t == num:
-                break
+           y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
+           if Z[y, x] == 1:
+               continue
+           Z[y, x] = 1
+           t += 1
+           if t == num:
+               break
+           while True:
+               neighbours = []
+               if x > 1:             neighbours.append((y, x - 2))
+               if x < shape[1] - 2:  neighbours.append((y, x + 2))
+               if y > 1:             neighbours.append((y - 2, x))
+               if y < shape[0] - 2:  neighbours.append((y + 2, x))
+               flag = False
+               if len(neighbours):
+                   y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
+                   if Z[y_, x_] == 0:
+                       Z[y_, x_] = 1
+                       t += 1
+                       flag = True
+                       if t == num:
+                           break
+                       if Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] == 0:
+                           Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
+                           t += 1
+                           flag = True
+                           if t == num:
+                               break
+                   y, x = y_, x_
+                   if not flag:
+                       break
+           if t == num:
+               break
+        # while True:
+        #     y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
+        #     if Z[y, x] == 1:
+        #         continue
+        #     Z[y, x] = 1
+        #     t += 1
+        #     if t == num:
+        #         break
+        #     while True:
+        #         neighbours = []
+        #         if x > 0 and Z[y, x - 1] == 0:             neighbours.append((y, x - 1))
+        #         if x < shape[1] - 1 and Z[y, x + 1] == 0:  neighbours.append((y, x + 1))
+        #         if y > 0 and Z[y - 1, x] == 0:             neighbours.append((y - 1, x))
+        #         if y < shape[0] - 1 and Z[y + 1, x] == 0:  neighbours.append((y + 1, x))
+        #         if len(neighbours):
+        #             y_,x_ = neighbours[self.rng.randint(0, len(neighbours))]
+        #             if Z[y_, x_] == 0:
+        #                 Z[y_, x_] = 1
+        #                 t += 1
+        #                 if t == num:
+        #                     break
+        #             y, x = y_, x_
+        #         else:
+        #             break
+        #     if t == num:
+        #         break
         return Z.astype(int)
 
     def _add_obstacles(self, shape, edge_x, edge_y):
@@ -517,22 +517,17 @@ class Arena(PyGameWrapper):
         for bullet in hits.keys():
             for enemy in hits[bullet]:
                 self.blasts.add(Blast(self.OBJECT_SIZE // 2, (enemy.pos.x, enemy.pos.y)))
-
-        hits = pygame.sprite.spritecollide(self.player, self.enemies, True)
-        if len(hits) > 0:
-            self.player.kill()
-            self.player = None
-            return
-
-        hits = pygame.sprite.spritecollide(self.player, self.blasts, False)
-        if len(hits) != 0:
-            self.player.kill()
-            self.player = None
-            return
+        hits_enemies = pygame.sprite.spritecollide(self.player, self.enemies, False)
+        hits_blasts = pygame.sprite.spritecollide(self.player, self.blasts, False)
+        hits_projectiles = pygame.sprite.spritecollide(self.player, self.projectiles, False)
 
         if self.visualize:
             self.draw()
+
         self.ticks += 1
+        if len(hits_enemies) != 0 or len(hits_blasts) != 0 or len(hits_projectiles) != 0:
+            self.player.kill()
+            self.player = None
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import sys
 import time
 from .game import Arena
 import os
+from pygame.constants import K_TAB
 
 def play():
     os.environ.pop("SDL_VIDEODRIVER")
@@ -15,6 +16,17 @@ def play():
     seed = int(round(time.time() * 1000)) % (2 ** 32)
     game.rng = np.random.RandomState(seed)
     game.init()
+    pygame.display.update()
+    frozen = True
+    while frozen:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                key = event.key
+                if key == K_TAB:
+                    frozen = False
     while True:
         dt = game.clock.tick_busy_loop(20)
         game.step()
