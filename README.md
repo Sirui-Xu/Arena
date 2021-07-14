@@ -106,6 +106,21 @@ cd example
 python test.py --checkpoints_path ${checkpoints_path}
 ```
 
+## Train DQN agent (AX0)
+
+```
+cd examples/rl_dqgnn
+python train_dqgnn.py --train --model_path ${path to save model} --num_episode 5000 --num_rewards 5
+```
+
+## Visualizing DQN policy
+
+```
+cd examples/rl_dqgnn
+python eval_dqgnn.py --train --model_path ${path to load model}
+```
+
+
 ## Acknowledgements
 We referred to the [PyGame Learning Environment](https://github.com/ntasfi/PyGame-Learning-Environment) for some of the implementations.
 
