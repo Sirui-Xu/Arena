@@ -28,7 +28,8 @@ class Arena(PyGameWrapper):
                  p_change_direction=0.01,
                  projectile_speed=32,
                  visualize=True,
-                 reward_decay=0.99
+                 reward_decay=0.99,
+                 max_step=1000
                  ):
 
         actions = {
@@ -85,6 +86,7 @@ class Arena(PyGameWrapper):
 
         self.visualize = visualize
         self.reward_decay = reward_decay
+        self.max_step=max_step
 
     def _handle_player_events(self):
         self.dx, self.dy, self.shoot, self.fire = 0, 0, 0, 0
@@ -413,7 +415,7 @@ class Arena(PyGameWrapper):
         """
             Return bool if the game has 'finished'
         """
-        return len(self.reward_objects) == 0 or self.player == None# or self.ticks >= self.duration# or self.ticks > self.N_ENEMIES * (self.width + self.height)
+        return len(self.reward_objects) == 0 or self.player == None or self.ticks >= self.max_step# or self.ticks > self.N_ENEMIES * (self.width + self.height)
 
     def init(self):
         """
