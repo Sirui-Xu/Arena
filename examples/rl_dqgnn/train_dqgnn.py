@@ -8,26 +8,27 @@ from torch import nn
 from functools import partial
 import copy
 import os, sys
+
 dqgnn_path=os.path.dirname(os.path.abspath(__file__))
 root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-
-from torch_geometric.data import Data, DataLoader
-from torch.utils.data import Dataset
-import torch.nn.functional as F
+from examples.rl_dqgnn.nn_utils import MyPointConv, PointConv, process_state
+from dqgnn_agent import DQGNN_agent
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', type=bool, default=True)
 parser.add_argument('--model_path', type=str, help='Q network path to save/load, for train/eval mode')
-parser.add_argument('--num_episode', type=int, default=2000)
+parser.add_argument('--num_episodes', type=int, default=2000)
 parser.add_argument('--num_rewards', type=int, default=1)
+parser.add_argument('--num_enemies', type=int, default=0)
+parser.add_argument('--num_bombs', type=int, default=0)
 parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
 args= parser.parse_args()
 
-num_episodes=args.num_episode
+num_episodes=args.num_episodes
 is_train=args.train
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -62,123 +63,9 @@ def change_num_rewards(env):
         n_rewards = random.choice(np.arange(1,6))
         env.game.N_REWARDS = n_rewards
 
-
-import torch_geometric.nn as gnn
-from torch_scatter import scatter
-from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool
-
-class MyPointConv(gnn.PointConv):
-    def __init__(self, aggr, local_nn=None, global_nn=None, **kwargs):
-        super(gnn.PointConv, self).__init__(aggr=aggr, **kwargs)
-        self.local_nn = local_nn
-        self.global_nn = global_nn
-        self.reset_parameters()
-        self.add_self_loops = True
-
-class PointConv(nn.Module):
-
-    def __init__(self, aggr='max', input_dim=4, pos_dim=4, edge_dim=None, output_dim=6): # edge_dim is not used!
-        super().__init__()
-
-        self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 32), nn.GroupNorm(4, 32), nn.ReLU(),
-            nn.Linear(32, 32), nn.GroupNorm(4, 32), nn.ReLU(),
-            nn.Linear(32, 32),
-        )
-        self.encoder_pos = nn.Sequential(
-            nn.Linear(pos_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
-            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
-            nn.Linear(64, 64),
-        )
-        local_nn = nn.Sequential(
-            nn.Linear(32 + 64 + pos_dim, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
-            nn.Linear(512, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
-            nn.Linear(512, 512),
-        )
-        global_nn = nn.Sequential(
-            nn.Linear(512, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, 256),
-        )
-        gate_nn = nn.Sequential(
-            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, 1),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
-            nn.Linear(256, output_dim),
-        )
-        self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
-        self.aggr = aggr
-        self.attention = gnn.GlobalAttention(gate_nn)
-
-        self.reset_parameters()
-
-    def forward(self, data, batch_size=None, **kwargs):
-        assert batch_size is not None
-        x = data.x
-        batch = data.batch
-        edge_index = data.edge_index
-        pos = data.pos
-
-        x = self.encoder(x)
-        pos_feature = self.encoder_pos(pos)
-        task_feature = x
-        feature = torch.cat([task_feature, pos_feature], dim=1)
-        x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
-        x = self.attention(x, batch, size=batch_size)
-        x = F.dropout(x, p=0.1, training=self.training)
-        q = self.decoder(x)
-        return q
-
-    def reset_parameters(self):
-        for name, module in self.named_modules():
-            if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d, nn.ConvTranspose2d)):
-                if module.bias is not None:
-                    nn.init.zeros_(module.bias)
-
-
-def process_state(state):
-    local_state = state['local']
-    num_objs = len(local_state)
-    edges = []
-    for i in range(num_objs):
-        for j in range(num_objs):
-            if i != j:
-                edges.append((i,j))
-    edges = (np.array(edges).T).astype(np.int64)
-    edge_index = torch.from_numpy(edges)
-
-    x, pos = [], []
-    #'''
-    for node in local_state:
-        if node['type'] == 'agent':
-            p = node['position']
-    for node in local_state:
-        rel_pos = np.array(node['position']) - np.array(p) / 32.0 # Hard code the size of an object.
-        x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
-        pos.append(node['position'] + rel_pos.tolist())
-
-    x = torch.tensor(x)
-    #'''
-
-    '''
-    for node in local_state:
-        #x.append(node['type_index'] + node['velocity'] + node['position'])
-        #pos.append(node['position'])
-        x.append(node['type_index'])
-        pos.append(node['position'] + node['velocity'])
-    x = torch.tensor(x, dtype=torch.float32)
-    '''
-    pos = torch.tensor(pos)
-    return Data(x=x, edge_index=edge_index, pos=pos)
-
 #input_dim, pos_dim = 8,4
 input_dim, pos_dim = 8,4
 
-from dqgnn_agent import DQGNN_agent
 
 qnet_local = PointConv(input_dim=input_dim, pos_dim=pos_dim)
 qnet_target = PointConv(input_dim=input_dim, pos_dim=pos_dim)
@@ -189,7 +76,7 @@ agent = DQGNN_agent(qnet_local, qnet_target, device=device, seed=0)
 
 
 
-def dqn(n_episodes=4000, max_t=500, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
+def dqn(n_episodes=4000, max_t=500, save_freq=10, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.
 
     Params
@@ -221,7 +108,7 @@ def dqn(n_episodes=4000, max_t=500, eps_start=0.9, eps_end=0.05, eps_decay=0.995
         scores.append(score)  # save most recent score
         eps = max(eps_end, eps_decay * eps)  # decrease epsilon
         print('Episode {}\t Score: {:.2f}'.format(i_episode, score))
-        if i_episode % 100 == 0:
+        if i_episode % save_freq == 0:
             np.save(args.model_path+f'/score.npy', np.array(scores))
             torch.save(agent.qnetwork_local.state_dict(), args.model_path+f'/ep{i_episode}.pth')
 
