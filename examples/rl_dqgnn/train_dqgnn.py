@@ -15,17 +15,16 @@ sys.path.append(root_path)
 
 from arena import Arena, Wrapper
 from examples.rl_dqgnn.nn_utils import MyPointConv, PointConv, process_state
+from examples.env_setting_kwargs import get_env_kwargs_dict
 from dqgnn_agent import DQGNN_agent
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', type=bool, default=True)
 parser.add_argument('--model_path', type=str, help='Q network path to save/load, for train/eval mode')
 parser.add_argument('--num_episodes', type=int, default=2000)
-parser.add_argument('--num_rewards', type=int, default=1)
-parser.add_argument('--num_enemies', type=int, default=0)
-parser.add_argument('--num_bombs', type=int, default=0)
 parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
+parser.add_argument('--env_setting', type=str, default='AX0')
 args= parser.parse_args()
 
 num_episodes=args.num_episodes
@@ -34,38 +33,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # The configuration AX0
 # changed to 64x64 for faster training
-h,w=256,256
-game = Arena(
-    width=w,
-    height=h,
-    object_size=32,
-    num_coins=1,
-    num_enemies=0,
-    num_bombs=0,
-    num_projectiles=0,
-    num_obstacles=0,
-    agent_speed=8,
-    enemy_speed=8, # Since there is no enemy, the speed does not matter.
-    projectile_speed=8,
-    explosion_max_step=100,
-    explosion_radius=128,
-    reward_decay=1.0,
-    max_step=200
-)
-env=Wrapper(game)
-env.init()
-state=env.reset()
+kwargs_dict = get_env_kwargs_dict(args.env_setting)
+env=Wrapper(Arena(**kwargs_dict))
+env.reset()
 
-def change_num_rewards(env):
-    if args.fix_num_rewards:
-        env.game.N_REWARDS = args.num_rewards
-    else:
-        n_rewards = random.choice(np.arange(1,6))
-        env.game.N_REWARDS = n_rewards
-
-#input_dim, pos_dim = 8,4
 input_dim, pos_dim = 8,4
-
 
 qnet_local = PointConv(input_dim=input_dim, pos_dim=pos_dim)
 qnet_target = PointConv(input_dim=input_dim, pos_dim=pos_dim)
@@ -73,8 +45,6 @@ qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 agent = DQGNN_agent(qnet_local, qnet_target, device=device, seed=0)
-
-
 
 def dqn(n_episodes=4000, max_t=500, save_freq=10, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.
@@ -91,7 +61,6 @@ def dqn(n_episodes=4000, max_t=500, save_freq=10, eps_start=0.9, eps_end=0.05, e
     scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
-        change_num_rewards(env)
         state = env.reset()
         state = process_state(state)
         score = 0
@@ -128,7 +97,8 @@ if __name__=='__main__':
         plt.plot(np.arange(len(scores)), scores)
         plt.ylabel('Score')
         plt.xlabel('Episode #')
-        plt.show()
+        plt.savefig(args.model_path+"/score_plot.png")
+        #plt.show()
 
     else:
         agent.qnetwork_local.load_state_dict(torch.load(model_path))

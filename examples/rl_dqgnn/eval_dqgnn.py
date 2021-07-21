@@ -1,22 +1,20 @@
-import pygame
-import numpy as np
-import sys
-from functools import partial
 import os, sys
+import copy
+import argparse
+import cv2
+import numpy as np
+import torch
+import pygame
+from tqdm import tqdm
+from functools import partial
 
 dqgnn_path=os.path.dirname(os.path.abspath(__file__))
 root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-import os
-import cv2
-from tqdm import tqdm
 from examples.rl_dqgnn.nn_utils import PointConv, process_state
-import torch
-import copy
-import argparse
-from functools import partial
+from examples.env_setting_kwargs import get_env_kwargs_dict
 
 class GNNQEvaluator():
     def __init__(self, env_fn, env_kwargs_dict, qnet, device):
@@ -76,6 +74,7 @@ if __name__ == "__main__":
     parser.add_argument('--store_video', action="store_true", default=False)
     parser.add_argument('--num_rewards', type=int, default=5)
     parser.add_argument('--num_trajs', type=int, default=20)
+    parser.add_argument('--env_setting', type=str, default='AX0')
     args = parser.parse_args()
 
     model_dir = os.path.dirname(args.model_path)
@@ -98,22 +97,8 @@ if __name__ == "__main__":
     #os.environ.pop("SDL_VIDEODRIVER")
 
     env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
-    env_kwargs_dict = {
-        'width':256,
-        'height':256,
-        'object_size':32,
-        'num_coins':args.num_rewards,
-        'num_enemies':0,
-        'num_bombs':0,
-        'num_projectiles':0,
-        'num_obstacles':0,
-        'agent_speed':8,
-        'enemy_speed':8,  # Since there is no enemy, the speed does not matter.
-        'projectile_speed':8,
-        'explosion_max_step':100,
-        'explosion_radius':128,
-        'reward_decay':1.0,
-        'max_step':200}
+    env_kwargs_dict = get_env_kwargs_dict(args.env_setting)
+    env_kwargs_dict['num_coins'] = args.num_rewards
 
     evaluator = GNNQEvaluator(env_fn, env_kwargs_dict, qnet, device)
     evaluator.play(args.num_trajs)
