@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=0 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX0 --num_rewards 5 --num_episodes 5000
+CUDA_VISIBLE_DEVICES=0 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX0_legacy --num_rewards 5 --num_episodes 10000
