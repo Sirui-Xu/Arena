@@ -81,7 +81,7 @@ class PointConv(nn.Module):
                     nn.init.zeros_(module.bias)
 
 
-def process_state(state):
+def process_state(state, obj_size=32.0):
     local_state = state['local']
     num_objs = len(local_state)
     edges = []
@@ -94,24 +94,21 @@ def process_state(state):
 
     x, pos = [], []
     #'''
+    p=None
     for node in local_state:
         if node['type'] == 'agent':
             p = node['position']
-    for node in local_state:
-        rel_pos = np.array(node['position']) - np.array(p) / 32.0 # Hard code the size of an object.
-        x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
-        pos.append(node['position'] + rel_pos.tolist())
+    if p is None:
+        for node in local_state:
+            rel_pos = np.array(node['position']) / obj_size # Hard code the size of an object.
+            x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
+            pos.append(node['position'] + rel_pos.tolist())
+    else:
+        for node in local_state:
+            rel_pos = np.array(node['position']) - np.array(p) / obj_size # Hard code the size of an object.
+            x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
+            pos.append(node['position'] + rel_pos.tolist())
 
     x = torch.tensor(x)
-    #'''
-
-    '''
-    for node in local_state:
-        #x.append(node['type_index'] + node['velocity'] + node['position'])
-        #pos.append(node['position'])
-        x.append(node['type_index'])
-        pos.append(node['position'] + node['velocity'])
-    x = torch.tensor(x, dtype=torch.float32)
-    '''
     pos = torch.tensor(pos)
     return Data(x=x, edge_index=edge_index, pos=pos)
