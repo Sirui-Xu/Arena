@@ -43,14 +43,16 @@ class Arena(PyGameWrapper):
 
         PyGameWrapper.__init__(self, width, height, actions=actions)
         self.BG_COLOR = (0, 0, 0)
-        if not (num_enemies >= 0 and num_coins > 0 and num_bombs >= 0 and 
-                num_projectiles >= 0 and num_obstacles >= 0):
+        toMin = lambda x: min(x) if isinstance(x, list) else x
+        if not (toMin(num_enemies) >= 0 and toMin(num_coins) > 0 and toMin(num_bombs) >= 0 and
+                toMin(num_projectiles) >= 0 and toMin(num_obstacles) >= 0):
             raise Exception('Need a positive number of objects or stuff.')
-        self.N_ENEMIES = num_enemies
-        self.N_REWARDS = num_coins
-        self.N_BOMBS = num_bombs
-        self.N_PROJECTILES = num_projectiles
-        self.N_OBSTACLES = num_obstacles
+        toRange = lambda x: x if isinstance(x, list) else [x,x]
+        self.N_ENEMIES_RANGE = toRange(num_enemies)
+        self.N_REWARDS_RANGE = toRange(num_coins)
+        self.N_BOMBS_RANGE = toRange(num_bombs)
+        self.N_PROJECTILES_RANGE = toRange(num_projectiles)
+        self.N_OBSTACLES_RANGE = toRange(num_obstacles)
         if not (object_size >= 2):
             raise Exception('The objects must have at least two pixel width and height.')
         if not (obstacle_size >= 4 + object_size):
@@ -435,6 +437,12 @@ class Arena(PyGameWrapper):
         else:
             self.player.pos = vec2d(AGENT_INIT_POS)
             self.player.rect.center = AGENT_INIT_POS
+
+        self.N_ENEMIES = random.randint(*self.N_ENEMIES_RANGE)
+        self.N_REWARDS = random.randint(*self.N_REWARDS_RANGE)
+        self.N_BOMBS = random.randint(*self.N_BOMBS_RANGE)
+        self.N_PROJECTILES = random.randint(*self.N_PROJECTILES_RANGE)
+        self.N_OBSTACLES = random.randint(*self.N_OBSTACLES_RANGE)
 
         if self.enemies is None:
             self.enemies = pygame.sprite.Group()
