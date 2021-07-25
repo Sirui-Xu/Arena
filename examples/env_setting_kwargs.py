@@ -1,4 +1,25 @@
 def get_env_kwargs_dict(setting):
+    if(setting=='legacy'):
+        ret_kwargs_dict={
+            'width':64,
+            'height':64,
+            'object_size':8,
+            'obstacle_size':12,
+            'num_coins':[1,5],
+            'num_enemies':0,
+            'num_bombs':0,
+            'num_projectiles':3,
+            'num_obstacles':0,
+            'agent_speed':2,
+            'enemy_speed':2,
+            'projectile_speed':2,
+            'explosion_max_step':100,
+            'explosion_radius':4,
+            'max_step':200}
+        return ret_kwargs_dict
+
+
+
     ret_kwargs_dict={
         'width': 128,
         'height': 128,
