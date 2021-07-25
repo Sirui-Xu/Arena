@@ -18,7 +18,7 @@ class MyPointConv(gnn.PointConv):
 
 class PointConv(nn.Module):
 
-    def __init__(self, aggr='max', input_dim=4, pos_dim=4, edge_dim=None, output_dim=6): # edge_dim is not used!
+    def __init__(self, aggr='add', input_dim=4, pos_dim=4, edge_dim=None, output_dim=6): # edge_dim is not used!
         super().__init__()
 
         self.encoder = nn.Sequential(
@@ -51,7 +51,7 @@ class PointConv(nn.Module):
             nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
             nn.Linear(256, output_dim),
         )
-        self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
+        self.gnn = MyPointConv(aggr=aggr, local_nn=local_nn, global_nn=global_nn)
         self.aggr = aggr
         self.attention = gnn.GlobalAttention(gate_nn)
 
@@ -80,35 +80,39 @@ class PointConv(nn.Module):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
 
+class EnvStateProcessor:
+    def __init__(self, env_kwargs):
+        self.env_kwargs=env_kwargs
 
-def process_state(state, obj_size=32.0):
-    local_state = state['local']
-    num_objs = len(local_state)
-    edges = []
-    for i in range(num_objs):
-        for j in range(num_objs):
-            if i != j:
-                edges.append((i,j))
-    edges = (np.array(edges).T).astype(np.int64)
-    edge_index = torch.from_numpy(edges)
+    def process_state(self, state):
+        obj_size = self.env_kwargs['object_size']
+        local_state = state['local']
+        num_objs = len(local_state)
+        edges = []
+        for i in range(num_objs):
+            for j in range(num_objs):
+                if i != j:
+                    edges.append((i,j))
+        edges = (np.array(edges).T).astype(np.int64)
+        edge_index = torch.from_numpy(edges)
 
-    x, pos = [], []
-    #'''
-    p=None
-    for node in local_state:
-        if node['type'] == 'agent':
-            p = node['position']
-    if p is None:
+        x, pos = [], []
+        #'''
+        p=None
         for node in local_state:
-            rel_pos = np.array(node['position']) / obj_size # Hard code the size of an object.
-            x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
-            pos.append(node['position'] + rel_pos.tolist())
-    else:
-        for node in local_state:
-            rel_pos = np.array(node['position']) - np.array(p) / obj_size # Hard code the size of an object.
-            x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
-            pos.append(node['position'] + rel_pos.tolist())
+            if node['type'] == 'agent':
+                p = node['position']
+        if p is None:
+            for node in local_state:
+                rel_pos = np.array(node['position']) / obj_size # Hard code the size of an object.
+                x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
+                pos.append(node['position'] + rel_pos.tolist())
+        else:
+            for node in local_state:
+                rel_pos = np.array(node['position']) - np.array(p) / obj_size # Hard code the size of an object.
+                x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
+                pos.append(node['position'] + rel_pos.tolist())
 
-    x = torch.tensor(x)
-    pos = torch.tensor(pos)
-    return Data(x=x, edge_index=edge_index, pos=pos)
+        x = torch.tensor(x)
+        pos = torch.tensor(pos)
+        return Data(x=x, edge_index=edge_index, pos=pos)
