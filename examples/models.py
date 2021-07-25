@@ -153,7 +153,7 @@ class MyPointConv(gnn.PointConv):
 
 class PointConv(nn.Module):
     
-    def __init__(self, aggr='max', input_dim=1, pos_dim=4, edge_dim=4, output_dim=5):
+    def __init__(self, aggr='add', input_dim=1, pos_dim=4, edge_dim=4, output_dim=5):
         super().__init__()
 
         self.encoder = nn.Sequential(
@@ -186,8 +186,7 @@ class PointConv(nn.Module):
             nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
             nn.Linear(256, output_dim),
         )
-        self.gnn = MyPointConv(aggr='add', local_nn=local_nn, global_nn=global_nn)
-        self.aggr = aggr
+        self.gnn = MyPointConv(aggr=aggr, local_nn=local_nn, global_nn=global_nn)
         self.attention = gnn.GlobalAttention(gate_nn)
 
         self.reset_parameters()
