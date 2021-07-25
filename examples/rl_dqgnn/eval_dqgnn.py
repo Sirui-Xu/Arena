@@ -1,6 +1,7 @@
 import os, sys
 import copy
 import argparse
+import random
 import cv2
 import numpy as np
 import torch
@@ -13,8 +14,12 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import PointConv, process_state
+from examples.rl_dqgnn.nn_utils import PointConv, EnvStateProcessor
 from examples.env_setting_kwargs import get_env_kwargs_dict
+
+random.seed(2333)
+np.random.seed(2333)
+torch.manual_seed(2333)
 
 class GNNQEvaluator():
     def __init__(self, env_fn, env_kwargs_dict, qnet, device):
@@ -22,6 +27,8 @@ class GNNQEvaluator():
         self.env_kwargs_dict = env_kwargs_dict
         self.qnet = qnet
         self.device=device
+
+        self.state_processor = EnvStateProcessor(env_kwargs_dict)
 
     def act_best(self, state):
         state = copy.deepcopy(state)
@@ -31,7 +38,17 @@ class GNNQEvaluator():
             best_action = self.qnet(state, 1).argmax()
         return best_action.cpu().item()
 
-    def play(self, num_trajs, fps=50, store_video=False, video_path=None):
+    def act_eps_best(self, state, eps=0.0):
+        if random.random() < eps:
+            return random.choice(np.arange(6))
+        state = copy.deepcopy(state)
+        state.batch = torch.zeros(len(state.x)).long()
+        state = state.to(self.device)
+        with torch.no_grad():
+            best_action = self.qnet(state, 1).argmax()
+        return best_action.cpu().item()
+
+    def evaluate(self, num_trajs, fps=50, store_video=False, video_path=None):
         # The configuration AX0
         env = self.env_fn(self.env_kwargs_dict)
         env.init()
@@ -39,20 +56,21 @@ class GNNQEvaluator():
         scores = []
         for traj_id in tqdm(range(num_trajs)):
             state = env.reset()
-            state=process_state(state)
+            state = self.state_processor.process_state(state)
             if store_video:
                 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
                 output_fname=os.path.join(video_path,f'{traj_id}.mp4')
                 output_movie = cv2.VideoWriter(output_fname,
                                                fourcc, 6, (env.render().shape[0], env.render().shape[1]))
-                #print('\nsaving to: ', output_fname)
+                print('\nsaving to: ', output_fname)
 
             for j in range(self.env_kwargs_dict['max_step']):
                 if store_video:
                     output_movie.write(env.render())
-                action = self.act_best(state)
+                action = self.act_eps_best(state)
                 next_state, reward, done, _ = env.step(action)
-                next_state = process_state(next_state)
+                #next_state = process_state(next_state, obj_size=self.env_kwargs_dict['object_size'])
+                next_state = self.state_processor.process_state(next_state)
                 state = next_state
                 if done:
                     if store_video:
@@ -63,6 +81,9 @@ class GNNQEvaluator():
                 output_movie.release()
             output_movie.release()
             scores.append(env.score())
+
+            print('reward:', env.score())
+
         print('num_coins:', self.env_kwargs_dict['num_coins'],
               'score:', np.mean(scores), 'std:', np.std(scores))
 
@@ -74,7 +95,7 @@ if __name__ == "__main__":
     parser.add_argument('--store_video', action="store_true", default=False)
     parser.add_argument('--num_rewards', type=int, default=5)
     parser.add_argument('--num_trajs', type=int, default=20)
-    parser.add_argument('--env_setting', type=str, default='AX0')
+    parser.add_argument('--env_setting', type=str, default='legacy')
     args = parser.parse_args()
 
     model_dir = os.path.dirname(args.model_path)
@@ -89,6 +110,7 @@ if __name__ == "__main__":
 
     # qnet = PointConv(input_dim=4, pos_dim=4)
     qnet = PointConv(input_dim=8, pos_dim=4)
+    raise NotImplementedError("something that accounts for avg aggr for pointconv")
     qnet.eval()
     state_dict = torch.load(args.model_path)
     qnet.load_state_dict(state_dict)
@@ -98,7 +120,15 @@ if __name__ == "__main__":
 
     env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
     env_kwargs_dict = get_env_kwargs_dict(args.env_setting)
+
     env_kwargs_dict['num_coins'] = args.num_rewards
 
+    #env_kwargs_dict['width'] = 256
+    #env_kwargs_dict['height'] = 256
+    #env_kwargs_dict['object_size'] = 32
+    #env_kwargs_dict['obstacle_size'] = 40
+    #env_kwargs_dict['agent_speed']=8
+
+
     evaluator = GNNQEvaluator(env_fn, env_kwargs_dict, qnet, device)
-    evaluator.play(args.num_trajs)
+    evaluator.evaluate(args.num_trajs, store_video=True, video_path = video_path)
