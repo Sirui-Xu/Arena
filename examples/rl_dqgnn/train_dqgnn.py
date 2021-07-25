@@ -8,13 +8,14 @@ from torch import nn
 from functools import partial
 import copy
 import os, sys
+import pickle
 
 dqgnn_path=os.path.dirname(os.path.abspath(__file__))
 root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import MyPointConv, PointConv, process_state
+from examples.rl_dqgnn.nn_utils import PointConv, EnvStateProcessor
 from examples.env_setting_kwargs import get_env_kwargs_dict
 from dqgnn_agent import DQGNN_agent
 
@@ -25,6 +26,7 @@ parser.add_argument('--num_episodes', type=int, default=2000)
 parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
 parser.add_argument('--env_setting', type=str, default='AX0')
+parser.add_argument('--gnn_aggr', type=str, default='max')
 args= parser.parse_args()
 
 num_episodes=args.num_episodes
@@ -38,15 +40,20 @@ env=Wrapper(Arena(**kwargs_dict))
 env.reset()
 
 input_dim, pos_dim = 8,4
+network_kwargs_dict = {
+    'aggr': args.gnn_aggr,
+    'input_dim':input_dim,
+    'pos_dim':pos_dim
+}
 
-qnet_local = PointConv(input_dim=input_dim, pos_dim=pos_dim)
-qnet_target = PointConv(input_dim=input_dim, pos_dim=pos_dim)
+qnet_local = PointConv(**network_kwargs_dict)
+qnet_target = PointConv(**network_kwargs_dict)
 qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 agent = DQGNN_agent(qnet_local, qnet_target, device=device, seed=0)
 
-def dqn(n_episodes=4000, max_t=500, save_freq=10, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
+def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.
 
     Params
@@ -57,17 +64,23 @@ def dqn(n_episodes=4000, max_t=500, save_freq=10, eps_start=0.9, eps_end=0.05, e
         eps_end (float): minimum value of epsilon
         eps_decay (float): multiplicative factor (per episode) for decreasing epsilon
     """
+    with open(args.model_path + '/env_kwargs.pkl', 'wb') as f:
+        pickle.dump(kwargs_dict, f, pickle.HIGHEST_PROTOCOL)
+    with open(args.model_path + '/network_kwargs.pkl', 'wb') as f:
+        pickle.dump(network_kwargs_dict, f, pickle.HIGHEST_PROTOCOL)
+    os.system('cp /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/*.py '+args.model_path)
     scores = []  # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
+    state_processor = EnvStateProcessor(kwargs_dict)
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
         state = env.reset()
-        state = process_state(state)
+        state = state_processor.process_state(state)
         score = 0
         for t in range(max_t):
             action, action_type = agent.act(state, eps)
             next_state, reward, done, _ = env.step(action)
-            next_state = process_state(next_state)
+            next_state = state_processor.process_state(next_state)
             agent.step(state, action, reward, next_state, done)
             state = next_state
             score += reward
