@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=1 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX2 --num_rewards 5 --num_episodes 10000 --env_setting AX2
+CUDA_VISIBLE_DEVICES=1 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX2-v2 --num_episodes 10000 --env_setting AX2

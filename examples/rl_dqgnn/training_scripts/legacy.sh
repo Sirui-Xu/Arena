@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/legacy --num_episodes 5000 --env_setting legacy
