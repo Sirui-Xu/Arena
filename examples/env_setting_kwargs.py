@@ -75,4 +75,8 @@ def get_env_kwargs_dict(setting):
         # multiple coins
         ret_kwargs_dict['num_coins'] = [1, 5]
 
+    if 'Y' in setting:
+        # multiple coins
+        ret_kwargs_dict['num_coins'] = [1, 10]
+
     return ret_kwargs_dict

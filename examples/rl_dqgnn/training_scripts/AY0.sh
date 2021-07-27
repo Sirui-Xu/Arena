@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AY0-mean --num_episodes 10000 --env_setting AY0 --gnn_aggr mean
