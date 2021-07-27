@@ -3,6 +3,7 @@ import copy
 import argparse
 import random
 import cv2
+import pickle
 import numpy as np
 import torch
 import pygame
@@ -38,7 +39,7 @@ class GNNQEvaluator():
             best_action = self.qnet(state, 1).argmax()
         return best_action.cpu().item()
 
-    def act_eps_best(self, state, eps=0.0):
+    def act_eps_best(self, state, eps=0.3):
         if random.random() < eps:
             return random.choice(np.arange(6))
         state = copy.deepcopy(state)
@@ -108,9 +109,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # qnet = PointConv(input_dim=4, pos_dim=4)
-    qnet = PointConv(input_dim=8, pos_dim=4)
-    raise NotImplementedError("something that accounts for avg aggr for pointconv")
+    with open(model_dir + '/network_kwargs.pkl', 'rb') as f:
+        network_kwargs=pickle.load(f)
+
+    qnet = PointConv(**network_kwargs)
     qnet.eval()
     state_dict = torch.load(args.model_path)
     qnet.load_state_dict(state_dict)
@@ -128,7 +130,6 @@ if __name__ == "__main__":
     #env_kwargs_dict['object_size'] = 32
     #env_kwargs_dict['obstacle_size'] = 40
     #env_kwargs_dict['agent_speed']=8
-
 
     evaluator = GNNQEvaluator(env_fn, env_kwargs_dict, qnet, device)
     evaluator.evaluate(args.num_trajs, store_video=True, video_path = video_path)
