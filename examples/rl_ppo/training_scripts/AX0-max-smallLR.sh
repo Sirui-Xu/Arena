@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python /home/yiran/pc_mapping/arena-v2/examples/rl_ppo/train.py --gnn_aggr max --lr 0.0003 --exp_name AX0_max_smallLR --env_setting AX0

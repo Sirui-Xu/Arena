@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 python /home/yiran/pc_mapping/arena-v2/examples/rl_ppo/train.py --gnn_aggr mean --exp_name AX0_mean --env_setting AX0
