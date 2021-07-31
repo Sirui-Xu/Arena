@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/train_dqcnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/saved_models/AX0_cnn --num_episodes 5000 --env_setting AX0 --cnn_type PlainCNN
