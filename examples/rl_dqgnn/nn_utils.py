@@ -6,7 +6,15 @@ import numpy as np
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, DataLoader
 from torch_scatter import scatter
-from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool
+from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool, EdgeConv
+
+def get_nn_func(nn_name):
+    if nn_name=='PointConv':
+        return PointConv
+    elif nn_name=='EdgeConvNet':
+        return EdgeConvNet
+    else:
+        raise NotImplementedError("Unrecognized nn name")
 
 class MyPointConv(gnn.PointConv):
     def __init__(self, aggr, local_nn=None, global_nn=None, **kwargs):
@@ -79,6 +87,84 @@ class PointConv(nn.Module):
             if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d, nn.ConvTranspose2d)):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
+
+class BaseGNN(nn.Module):
+    def reset_parameters(self):
+        for name, module in self.named_modules():
+            if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d)):
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
+    def compute_losses(self, pd_dict: dict, data_batch: dict, **kwargs):
+        loss_dict = dict()
+        ce_loss = F.cross_entropy(pd_dict['logits'], data_batch['action'])
+        loss_dict['ce_loss'] = ce_loss
+        return loss_dict
+
+class EdgeConvNet(BaseGNN):
+    def __init__(self, aggr='max', input_dim=4, pos_dim=4, edge_dim=None, output_dim=6):
+        super(BaseGNN, self).__init__()
+
+        self.output_dim = output_dim
+
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64),
+        )
+        self.encoder_pos = nn.Sequential(
+            nn.Linear(pos_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64),
+        )
+
+        local_nn = nn.Sequential(
+            nn.Linear((64+64) * 2, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
+            nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
+            nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
+        )
+        self.gnn = EdgeConv(local_nn, aggr='max')
+
+        self.encoder2 = nn.Sequential(
+            nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
+            nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
+        )
+
+        self.global_aggr = aggr
+
+        self.fc = nn.Sequential(
+            nn.Linear(128, 128, bias=True), nn.ReLU(),
+            nn.Linear(128, 128, bias=True), nn.ReLU(),
+            nn.Linear(128, output_dim),
+        )
+
+        self.reset_parameters()
+
+    def forward(self, data, batch_size=None, **kwargs):
+        assert batch_size is not None
+
+        x = data.x
+        batch = data.batch
+        edge_index = data.edge_index
+        pos = data.pos
+
+        x_feat = self.encoder(x)
+        pos_feat = self.encoder_pos(pos)
+        x = torch.cat([x_feat, pos_feat], dim=1)
+
+        x = self.gnn(x=x, edge_index=edge_index)
+        x = self.encoder2(x)
+
+        if self.global_aggr == 'max':
+            global_feature = gnn.global_max_pool(x, batch, size=batch_size)
+        elif self.global_aggr == 'sum':
+            global_feature = gnn.global_add_pool(x, batch, size=batch_size)
+        else:
+            raise NotImplementedError()
+
+        logits = self.fc(global_feature)
+
+        return logits
 
 class EnvStateProcessor:
     def __init__(self, env_kwargs):
