@@ -15,7 +15,7 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import PointConv, EnvStateProcessor
+from examples.rl_dqgnn.nn_utils import PointConv, EdgeConvNet, EnvStateProcessor, get_nn_func
 from examples.env_setting_kwargs import get_env_kwargs_dict
 from dqgnn_agent import DQGNN_agent
 
@@ -27,7 +27,9 @@ parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
 parser.add_argument('--env_setting', type=str, default='AX0')
 parser.add_argument('--gnn_aggr', type=str, default='max')
+parser.add_argument('--nn_name', type=str, default='PointConv')
 args= parser.parse_args()
+#os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 num_episodes=args.num_episodes
 is_train=args.train
@@ -39,6 +41,7 @@ kwargs_dict = get_env_kwargs_dict(args.env_setting)
 env=Wrapper(Arena(**kwargs_dict))
 env.reset()
 
+nn_func = get_nn_func(args.nn_name)
 input_dim, pos_dim = 8,4
 network_kwargs_dict = {
     'aggr': args.gnn_aggr,
@@ -46,8 +49,8 @@ network_kwargs_dict = {
     'pos_dim':pos_dim
 }
 
-qnet_local = PointConv(**network_kwargs_dict)
-qnet_target = PointConv(**network_kwargs_dict)
+qnet_local = nn_func(**network_kwargs_dict)
+qnet_target = nn_func(**network_kwargs_dict)
 qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
