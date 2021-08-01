@@ -23,12 +23,11 @@ np.random.seed(2333)
 torch.manual_seed(2333)
 
 class GNNQEvaluator():
-    def __init__(self, env_fn, env_kwargs_dict, qnet, device, eps=0.0):
+    def __init__(self, env_fn, env_kwargs_dict, qnet, device):
         self.env_fn = env_fn
         self.env_kwargs_dict = env_kwargs_dict
         self.qnet = qnet
         self.device=device
-        self.eps = eps
 
         self.state_processor = EnvStateProcessor(env_kwargs_dict)
 
@@ -40,8 +39,8 @@ class GNNQEvaluator():
             best_action = self.qnet(state, 1).argmax()
         return best_action.cpu().item()
 
-    def act_eps_best(self, state):
-        if random.random() < self.eps:
+    def act_eps_best(self, state, eps=0.3):
+        if random.random() < eps:
             return random.choice(np.arange(6))
         state = copy.deepcopy(state)
         state.batch = torch.zeros(len(state.x)).long()
@@ -125,5 +124,12 @@ if __name__ == "__main__":
     env_kwargs_dict = get_env_kwargs_dict(args.env_setting)
 
     env_kwargs_dict['num_coins'] = args.num_rewards
+
+    #env_kwargs_dict['width'] = 256
+    #env_kwargs_dict['height'] = 256
+    #env_kwargs_dict['object_size'] = 32
+    #env_kwargs_dict['obstacle_size'] = 40
+    #env_kwargs_dict['agent_speed']=8
+
     evaluator = GNNQEvaluator(env_fn, env_kwargs_dict, qnet, device)
     evaluator.evaluate(args.num_trajs, store_video=True, video_path = video_path)
