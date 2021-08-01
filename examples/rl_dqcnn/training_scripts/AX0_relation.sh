@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=3 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/train_dqcnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/saved_models/AX0_relation --num_episodes 5000 --env_setting AX0 --cnn_type RelationNet
+CUDA_VISIBLE_DEVICES=3 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/train_dqcnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqcnn/saved_models/AX0_relation_1e-4lr --num_episodes 10000 --env_setting AX0 --cnn_type RelationNet --lr 1e-4

@@ -21,20 +21,21 @@ BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 128  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
-LR = 1e-4  # learning rate
+#LR = 1e-4  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
 
 
 class DQGNN_agent():
 
-    def __init__(self, qnet_local, qnet_target, device, seed):
+    def __init__(self, qnet_local, qnet_target, lr, device, seed):
+        self.LR=lr
         self.device=device
         self.seed = random.seed(seed)
         torch.manual_seed(seed)
 
         self.qnetwork_local = qnet_local.to(device)
         self.qnetwork_target = qnet_target.to(device)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=self.LR)
 
         self.memory = ReplayBuffer(BUFFER_SIZE, BATCH_SIZE, device, seed)
         # Initialize time step (for updating every UPDATE_EVERY steps)

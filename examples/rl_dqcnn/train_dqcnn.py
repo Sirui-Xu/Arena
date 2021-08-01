@@ -9,9 +9,10 @@ from functools import partial
 import copy
 import os, sys
 import pickle
+import time
 
-dqgnn_path=os.path.dirname(os.path.abspath(__file__))
-root_path=os.path.dirname(os.path.dirname(dqgnn_path))
+dqn_path=os.path.dirname(os.path.abspath(__file__))
+root_path=os.path.dirname(os.path.dirname(dqn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
@@ -27,6 +28,7 @@ parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
 parser.add_argument('--env_setting', type=str, default='AX0')
 parser.add_argument('--cnn_type', type=str, default='PlainCNN')
+parser.add_argument('--lr', type=float, default=1e-4)
 args= parser.parse_args()
 
 num_episodes=args.num_episodes
@@ -54,13 +56,21 @@ qnet_target = nn_func(**network_kwargs_dict)
 qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-agent = DQCNN_agent(qnet_local, qnet_target, device=device, seed=0)
+agent = DQCNN_agent(qnet_local, qnet_target, lr=args.lr, device=device, seed=0)
 
-def process_image(image):
-    image = image.astype(np.float32) / 255
-    image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
-    image = torch.from_numpy(image)
-    return image
+class ImageProcessor:
+    def __init__(self):
+        self.counter=-1
+        self.MAX_COUNTER= 11000
+
+    def process_image(self, image):
+        image = image.astype(np.float32) / 255
+        image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
+        image = torch.from_numpy(image)
+
+        self.counter+=1
+        image_id = self.counter % self.MAX_COUNTER
+        return image, image_id
 
 def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.
@@ -81,18 +91,21 @@ def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, 
     scores = []  # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start  # initialize epsilon
+    image_processor = ImageProcessor()
     for i_episode in range(1, n_episodes + 1):
+        #ep_begin = time.time()
         state = env.reset()
         #state = state_processor.process_state(state)
-        state=process_image(env.render())
+        state, state_id=image_processor.process_image(env.render())
         score = 0
         for t in range(max_t):
             action, action_type = agent.act(state, eps)
             next_state, reward, done, _ = env.step(action)
-            next_state=process_image(env.render())
+            next_state, next_state_id=image_processor.process_image(env.render())
             #next_state = state_processor.process_state(next_state)
-            agent.step(state, action, reward, next_state, done)
+            agent.step((state, state_id), action, reward, (next_state, next_state_id), done)
             state = next_state
+            state_id = next_state_id
             score += reward
             if done:
                 break
@@ -103,6 +116,7 @@ def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, 
         if i_episode % save_freq == 0:
             np.save(args.model_path+f'/score.npy', np.array(scores))
             torch.save(agent.qnetwork_local.state_dict(), args.model_path+f'/ep{i_episode}.pth')
+        #print(f'ep time: {time.time()-ep_begin}')
 
     return scores
 

@@ -21,13 +21,14 @@ from dqgnn_agent import DQGNN_agent
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', type=bool, default=True)
-parser.add_argument('--model_path', type=str, help='Q network path to save/load, for train/eval mode')
+parser.add_argument('--model_path', type=str, help='Q network path to save')
 parser.add_argument('--num_episodes', type=int, default=2000)
 parser.add_argument('--fix_num_rewards', type=bool, default=False)
 parser.add_argument('--model_id', type=str, default="")
 parser.add_argument('--env_setting', type=str, default='AX0')
 parser.add_argument('--gnn_aggr', type=str, default='max')
 parser.add_argument('--nn_name', type=str, default='PointConv')
+parser.add_argument('--lr', type=float, default=1e-4)
 args= parser.parse_args()
 #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -54,7 +55,7 @@ qnet_target = nn_func(**network_kwargs_dict)
 qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-agent = DQGNN_agent(qnet_local, qnet_target, device=device, seed=0)
+agent = DQGNN_agent(qnet_local, qnet_target, lr=args.lr, device=device, seed=0)
 
 def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
     """Deep Q-Learning.

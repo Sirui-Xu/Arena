@@ -21,20 +21,21 @@ BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 128  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
-LR = 1e-4  # learning rate
+#LR = 1e-4  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
 
 
 class DQCNN_agent():
 
-    def __init__(self, qnet_local, qnet_target, device, seed):
+    def __init__(self, qnet_local, qnet_target, lr, device, seed):
+        self.LR=lr
         self.device=device
         self.seed = random.seed(seed)
         torch.manual_seed(seed)
 
         self.qnetwork_local = qnet_local.to(device)
         self.qnetwork_target = qnet_target.to(device)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=self.LR)
 
         self.memory = ReplayBuffer(BUFFER_SIZE, BATCH_SIZE, device, seed)
         # Initialize time step (for updating every UPDATE_EVERY steps)
@@ -111,14 +112,16 @@ class DQCNN_agent():
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
 class ImageDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, fname_list):
+        self.fname_list = fname_list
 
     def __len__(self):
-        return len(self.data)
+        return len(self.fname_list)
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        img = np.load(self.fname_list[idx])
+        img = torch.from_numpy(img)
+        return img
 
 
 class ReplayBuffer:
@@ -134,23 +137,32 @@ class ReplayBuffer:
             seed (int): random seed
         """
         self.memory = deque(maxlen=buffer_size)
+        self.images = np.zeros([buffer_size+1000, 3, 128, 128], dtype=np.float32)
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
         self.device=device
         self.seed = random.seed(seed)
 
-    def add(self, state, action, reward, next_state, done):
+    def add(self, state_info, action, reward, next_state_info, done):
         """Add a new experience to memory."""
-        e = self.experience(state, action, reward, next_state, done)
+        #state_fname = self.data_path + f'/state_{state_id}.npy'
+        #next_state_fname = self.data_path + f'/state_{next_state_id}.npy'
+        state, state_id=state_info[0], state_info[1]
+        next_state, next_state_id=next_state_info[0], next_state_info[1]
+        self.images[state_id] = state
+        self.images[next_state_id] = next_state
+        e = self.experience(state_id, action, reward, next_state_id, done)
         self.memory.append(e)
 
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         experiences = random.sample(self.memory, k=self.batch_size)
-        states = next(iter(DataLoader(
-            ImageDataset([e.state.squeeze() for e in experiences]), batch_size=self.batch_size, shuffle=False)))
-        next_states = next(iter(DataLoader(
-            ImageDataset([e.next_state.squeeze() for e in experiences]), batch_size=self.batch_size, shuffle=False)))
+        #states = next(iter(DataLoader(
+        #    ImageDataset([e.state for e in experiences]), batch_size=self.batch_size, shuffle=False))).to(self.device)
+        #next_states = next(iter(DataLoader(
+        #    ImageDataset([e.next_state for e in experiences]), batch_size=self.batch_size, shuffle=False))).to(self.device)
+        states = torch.from_numpy(self.images[np.array([e.state for e in experiences])]).to(self.device)
+        next_states = torch.from_numpy(self.images[np.array([e.next_state for e in experiences])]).to(self.device)
         actions = torch.tensor([e.action for e in experiences]).to(self.device)
         rewards = torch.tensor([e.reward for e in experiences]).to(self.device)
         dones = torch.tensor([e.done for e in experiences]).float().to(self.device)
