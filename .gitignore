@@ -1,3 +1,9 @@
+# Saved models/videos/etc
+examples/rl_dqgnn/videos/
+examples/rl_dqgnn/saved_models/
+examples/videos
+.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
