@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from models import *
 
-models_name = ['EdgeConv', 'PointConv', 'DeeperGCN']
+models_name = ['EdgeConv', 'PointConv', 'DeeperGCN', 'EdgeConvTongzhou']
 
 def load_model_info(dataset):
     info = {"node_dim": dataset[0].x[0].shape[0],
