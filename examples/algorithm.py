@@ -65,7 +65,8 @@ parser.add_argument('--p_change_direction', type=float, default=0.01,
 parser.add_argument('--projectile_speed', type=float, default=8.0, 
                     help='travel speed of the projectile')
 parser.add_argument('--reward_decay', type=float, default=0.99, 
-                    help='rate at which the value of each coin decays')                                        
+                    help='rate at which the value of each coin decays')
+parser.add_argument('--max_step', type=int, default=200)
 parser.add_argument('--visualize', action='store_true', 
                     help='display visualization')
 parser.add_argument('--store_video', action='store_true', 
@@ -98,6 +99,7 @@ if args.data is not None:
         p_change_direction = info["p_change_direction"]
         projectile_speed = info["projectile_speed"]
         reward_decay = info["reward_decay"]
+        max_step = info["max_step"]
 else:
     alg_name = args.algorithm
     rand_seed = args.rand_seed
@@ -160,7 +162,8 @@ for num_coins in num_coins_list:
                          p_change_direction=p_change_direction,
                          projectile_speed=projectile_speed,
                          visualize=visualize,
-                         reward_decay=reward_decay)
+                         reward_decay=reward_decay,
+                         max_step=200)
 
             env = Wrapper(game, rng=rand_seed)
             algorithm = load_algorithm(env, alg_name)

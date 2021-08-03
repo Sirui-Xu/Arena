@@ -172,8 +172,8 @@ class GamePatchMaze(Dataset):
             for x in maze:
                 for y in maze:
                     if maze[x, y] != 0:
-                        box = [(x+0.5), (y+0.5)] + 
-                              [x, y, (x+1), (y+1)] +
+                        box = [(x+0.5), (y+0.5)] + \
+                              [x, y, (x+1), (y+1)] + \
                               [0, 0, 0, 0]
                         box[::2] /= maze.shape[0]
                         box[1::2] /= maze.shape[1]
@@ -252,8 +252,8 @@ class GamePatchLandmark(Dataset):
             for x in maze:
                 for y in maze:
                     if maze[x, y] != 0:
-                        box = [(x+0.5), (y+0.5)] + 
-                              [x, y, (x+1), (y+1)] +
+                        box = [(x+0.5), (y+0.5)] + \
+                              [x, y, (x+1), (y+1)] + \
                               [0, 0, 0, 0]
                         box[::2] /= maze.shape[0]
                         box[1::2] /= maze.shape[1]

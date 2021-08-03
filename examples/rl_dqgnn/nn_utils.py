@@ -202,3 +202,22 @@ class EnvStateProcessor:
         x = torch.tensor(x)
         pos = torch.tensor(pos)
         return Data(x=x, edge_index=edge_index, pos=pos)
+
+import pickle, os
+class ExperienceSaver:
+    def __init__(self, save_path):
+        self.save_path = save_path
+        if(not os.path.exists(save_path)):
+            os.mkdir(save_path)
+        self.traj_cnt=0
+        self.current_traj = []
+
+    def store(self, s, a, r):
+        self.current_traj.append({'s': s, 'a': a, 'r': r})
+
+    def close_traj(self):
+        fname = self.save_path + f'/traj_{self.traj_cnt}.pkl'
+        with open(fname, 'wb') as f:
+            pickle.dump(self.current_traj, f, pickle.HIGHEST_PROTOCOL)
+        self.current_traj = []
+        self.traj_cnt+=1

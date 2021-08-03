@@ -15,7 +15,7 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import PointConv, EdgeConvNet, EnvStateProcessor, get_nn_func
+from examples.rl_dqgnn.nn_utils import PointConv, EdgeConvNet, EnvStateProcessor, get_nn_func, ExperienceSaver
 from examples.env_setting_kwargs import get_env_kwargs_dict
 from dqgnn_agent import DQGNN_agent
 
@@ -29,6 +29,7 @@ parser.add_argument('--env_setting', type=str, default='AX0')
 parser.add_argument('--gnn_aggr', type=str, default='max')
 parser.add_argument('--nn_name', type=str, default='PointConv')
 parser.add_argument('--lr', type=float, default=1e-4)
+parser.add_argument('--save_experience', action='store_true')
 args= parser.parse_args()
 #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -76,20 +77,24 @@ def dqn(n_episodes=4000, max_t=500, save_freq=100, eps_start=0.9, eps_end=0.05, 
     scores = []  # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
     state_processor = EnvStateProcessor(kwargs_dict)
+    experience_saver = ExperienceSaver(args.model_path+'/experiences')
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
-        state = env.reset()
-        state = state_processor.process_state(state)
+        state_raw = env.reset()
+        state = state_processor.process_state(state_raw)
         score = 0
         for t in range(max_t):
             action, action_type = agent.act(state, eps)
-            next_state, reward, done, _ = env.step(action)
-            next_state = state_processor.process_state(next_state)
+            next_state_raw, reward, done, _ = env.step(action)
+            next_state = state_processor.process_state(next_state_raw)
             agent.step(state, action, reward, next_state, done)
+            experience_saver.store(state_raw, action, reward)
+            state_raw = next_state_raw
             state = next_state
             score += reward
             if done:
                 break
+        experience_saver.close_traj()
         scores_window.append(score)  # save most recent score
         scores.append(score)  # save most recent score
         eps = max(eps_end, eps_decay * eps)  # decrease epsilon

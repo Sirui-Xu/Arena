@@ -3,6 +3,12 @@ import numpy as np
 import random
 import os
 import sys
+import time
+
+example_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(example_path)
+sys.path.append(project_root)
+
 from arena.algorithm.utils import load_algorithm
 from utils import Logger, load_model
 from dataset import GamePatch
@@ -31,10 +37,13 @@ parser.add_argument('--num_enemies_list', nargs='+', type=int, default=[1, 3, 5,
                     help='maximum number of enemies\' list')
 parser.add_argument('--num_obstacles_list', nargs='+', type=int, default=[2, 6, 10, 14, 18], 
                     help='maximum number of obstacles\' list')
+parser.add_argument('--num_bombs', type=int, default=3,
+                    help='maximum number of bombs that can exist in the map')
 parser.add_argument('--num_episodes', type=int, default=100, 
                     help='num of episodes')
 parser.add_argument('--rand_seed', type=int, default=24, 
                     help='random seed')
+parser.add_argument('--algorithm', type=str, default='Greedy')
 args = parser.parse_args()
 
 with open(os.path.join(args.checkpoints_path, 'info.json'), 'r') as f:
@@ -53,7 +62,7 @@ num_bombs = info["num_bombs"]
 explosion_max_step = info["explosion_max_step"]
 explosion_radius = info["explosion_radius"]
 num_projectiles = info["num_projectiles"]
-num_obstacles_list = sorted(num_obstacles_list)
+num_obstacles_list = sorted(args.num_obstacles_list)
 agent_speed = info["agent_speed"]
 enemy_speed = info["enemy_speed"]
 p_change_direction = info["p_change_direction"]
@@ -80,12 +89,14 @@ policy_net = load_model(model, model_info).to(device)
 resume_epoch = args.resume_epoch
 if resume_epoch > 0:
     save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format(resume_epoch))
+    print(f"using model: {save_path}")
 else:
     save_path = os.path.join(args.checkpoints_path, 'best_model')
 save_state = torch.load(save_path)
 policy_net.load_state_dict(save_state['policy_net'])
 policy_net.eval()
-print("==> Test setting:{}".format(info))
+info_wo_data = {k:v for (k,v) in info.items() if k!='data'}
+print("==> Test setting:{}".format(info_wo_data))
 for num_coins in num_coins_list:
     for num_enemies in num_enemies_list:
         for num_obstacles in num_obstacles_list:
@@ -110,7 +121,8 @@ for num_coins in num_coins_list:
                          p_change_direction=p_change_direction,
                          projectile_speed=projectile_speed,
                          visualize=visualize,
-                         reward_decay=reward_decay)
+                         reward_decay=reward_decay,
+                         max_step=200)
 
             env = Wrapper(game, rng=rand_seed)
             algorithm = load_algorithm(env, alg_name)
@@ -123,7 +135,7 @@ for num_coins in num_coins_list:
                     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
                     output_movie = cv2.VideoWriter(os.path.join(args.checkpoints_path, './results/result_{}/video'.format(asctime), '{}_{}_{}_{}.mp4'.format(num_coins, num_enemies, num_obstacles, i)), fourcc, 6, (env.render().shape[0], env.render().shape[1]))
                 losses = 0
-                for j in range(test_time)):
+                for j in range(test_time):
                     if args.store_video:
                         output_movie.write(env.render())
                     if args.visualize:
@@ -165,5 +177,5 @@ for num_coins in num_coins_list:
                 # print("==> In case {}, the model got {}.".format(i, env.score()))
                 # print("==> The disparity (loss) between teacher policy and student model: {}.".format(losses / j))
                 sum_losses += losses / j
-            print("==> The average disparity (loss) between teacher policy and student model: {}.".format(sum_losses / test_time))
-            print("==> The average performance in this setting is {}".format(sum_reward / test_time))
+            print("==> The average disparity (loss) between teacher policy and student model: {}.".format(sum_losses / num_episodes))
+            print("==> The average performance in this setting is {}".format(sum_reward / num_episodes))

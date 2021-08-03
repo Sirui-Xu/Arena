@@ -36,7 +36,7 @@ def get_env_kwargs_dict(setting):
         'explosion_max_step': 100,
         'explosion_radius': 32,
         'reward_decay': 1.0,
-        'max_step': 500}
+        'max_step': 200}
 
     if '0' in setting:
         # no enemy, no obstacle
@@ -74,9 +74,11 @@ def get_env_kwargs_dict(setting):
     if 'X' in setting:
         # multiple coins
         ret_kwargs_dict['num_coins'] = [1, 5]
+        ret_kwargs_dict['max_step'] = 200
 
     if 'Y' in setting:
         # multiple coins
         ret_kwargs_dict['num_coins'] = [1, 10]
+        ret_kwargs_dict['max_step'] = 350
 
     return ret_kwargs_dict
