@@ -27,8 +27,9 @@ UPDATE_EVERY = 4  # how often to update the network
 
 class DQGNN_agent():
 
-    def __init__(self, qnet_local, qnet_target, lr, device, seed):
+    def __init__(self, qnet_local, qnet_target, lr, double_q, device, seed):
         self.LR=lr
+        self.double_q = double_q
         self.device=device
         self.seed = random.seed(seed)
         torch.manual_seed(seed)
@@ -81,7 +82,12 @@ class DQGNN_agent():
 
         # Get max predicted Q values (for next states) from target model
         Q_targets_next = self.qnetwork_target(
-            next_graphs.to(self.device), BATCH_SIZE).max(1)[0].detach()
+                next_graphs.to(self.device), BATCH_SIZE).detach()
+        if not self.double_q:
+            Q_targets_next = Q_targets_next.max(1)[0]
+        else:
+            best_actions = torch.argmax(self.qnetwork_local(next_graphs.to(self.device), BATCH_SIZE), dim=-1)
+            Q_targets_next = Q_targets_next.gather(1, best_actions.unsqueeze(-1)).squeeze(1)
 
         # Compute Q targets for current states
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
