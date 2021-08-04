@@ -30,6 +30,7 @@ parser.add_argument('--env_setting', type=str, default='AX0')
 parser.add_argument('--gnn_aggr', type=str, default='max')
 parser.add_argument('--nn_name', type=str, default='PointConv')
 parser.add_argument('--lr', type=float, default=1e-4)
+parser.add_argument('--save_experience', action='store_true')
 args= parser.parse_args()
 #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -77,6 +78,7 @@ def dqn(n_episodes=4000, max_t=500, save_freq=200, eps_start=0.9, eps_end=0.05, 
     scores = []  # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
     state_processor = EnvStateProcessor(kwargs_dict)
+    experience_saver = ExperienceSaver(args.model_path + '/experiences')
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
         state_raw = env.reset()
@@ -87,11 +89,15 @@ def dqn(n_episodes=4000, max_t=500, save_freq=200, eps_start=0.9, eps_end=0.05, 
             next_state_raw, reward, done, _ = env.step(action)
             next_state = state_processor.process_state(next_state_raw)
             agent.step(state, action, reward, next_state, done)
+            if args.save_experience:
+                experience_saver.store(state_raw, action, reward)
             state_raw = next_state_raw
             state = next_state
             score += reward
             if done:
                 break
+        if args.save_experience:
+            experience_saver.close_traj()
         scores_window.append(score)  # save most recent score
         scores.append(mean(scores_window))  # save most recent score
         eps = max(eps_end, eps_decay * eps)  # decrease epsilon

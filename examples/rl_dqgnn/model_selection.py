@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_rewards', type=int, default=5)
     args = parser.parse_args()
 
+    exit()
 
     files = os.listdir(args.model_dir)
     best_model_fname = None
@@ -27,6 +28,10 @@ if __name__ == "__main__":
     results = {}
     for file in files:
         if file.endswith(".pth"):
+            ckpt_name = parse("ep{}.pth", file)
+            if ckpt_name is None:
+                continue
+            ep_id = int(ckpt_name[0])
             evaluator = GNNQEvaluator(model_path=args.model_dir+file, nn_name=args.nn_name,
                                       env_setting=args.env_setting, num_trajs=args.num_trajs,
                                       eps=args.eps)
@@ -36,15 +41,12 @@ if __name__ == "__main__":
                 best_model_perf = eval_result['score']
                 best_model_fname = file
 
-            ep_id = int(parse("ep{}.pth", file)[0])
             results[ep_id] = eval_result['score']
     print('best model:', best_model_fname)
     print('best score:', best_model_perf)
 
     x=[k for(k,v) in results.items()]
     y=[v for(k,v) in results.items()]
-    #x=[1,2,3]
-    #y=[3,2,1]
 
     plt.plot(x,y)
     plt.savefig(args.model_dir+f'eval_plot_{args.eps}.png')
