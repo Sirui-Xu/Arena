@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=1 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX0-max-exp --num_episodes 10000 --env_setting AX0 --gnn_aggr max --save_experience
+CUDA_VISIBLE_DEVICES=3 python /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/train_dqgnn.py --model_path /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/saved_models/AX0_Aug3/run0 --num_episodes 10000 --env_setting AX0 --gnn_aggr max --nn_name EdgeConvNet

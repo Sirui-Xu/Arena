@@ -15,22 +15,53 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import PointConv, EnvStateProcessor
+from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func
 from examples.env_setting_kwargs import get_env_kwargs_dict
 
-random.seed(2333)
-np.random.seed(2333)
-torch.manual_seed(2333)
 
 class GNNQEvaluator():
-    def __init__(self, env_fn, env_kwargs_dict, qnet, device, eps=0.0):
+    def __init__(self, model_path, nn_name, env_setting, num_trajs=100,
+                 store_video=False, fps=50, eps=0.0):
+
+        model_dir = os.path.dirname(model_path)
+        video_dir = os.path.join(dqgnn_path, "videos")
+        if not os.path.exists(video_dir):
+            os.mkdir(video_dir)
+        video_path = os.path.join(dqgnn_path, f"videos/{os.path.basename(model_dir)}")
+        if not os.path.exists(video_path):
+            os.mkdir(video_path)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        with open(model_dir + '/network_kwargs.pkl', 'rb') as f:
+            network_kwargs = pickle.load(f)
+
+        nn_func = get_nn_func(nn_name)
+        qnet = nn_func(**network_kwargs)
+        qnet.eval()
+        state_dict = torch.load(model_path)
+        qnet.load_state_dict(state_dict)
+        qnet = qnet.to(device)
+
+        # os.environ.pop("SDL_VIDEODRIVER")
+
+        env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
+        env_kwargs_dict = get_env_kwargs_dict(env_setting)
+
         self.env_fn = env_fn
         self.env_kwargs_dict = env_kwargs_dict
         self.qnet = qnet
         self.device=device
         self.eps = eps
+        self.video_path=video_path
+        self.num_trajs = num_trajs
+        self.store_video = store_video
+        self.fps = fps
 
         self.state_processor = EnvStateProcessor(env_kwargs_dict)
+
+    def update_num_coins(self, num_coins):
+        self.env_kwargs_dict['num_coins'] = num_coins
 
     def act_best(self, state):
         state = copy.deepcopy(state)
@@ -50,24 +81,24 @@ class GNNQEvaluator():
             best_action = self.qnet(state, 1).argmax()
         return best_action.cpu().item()
 
-    def evaluate(self, num_trajs, fps=50, store_video=False, video_path=None):
+    def evaluate(self):
         # The configuration AX0
         env = self.env_fn(self.env_kwargs_dict)
         env.init()
 
         scores = []
-        for traj_id in tqdm(range(num_trajs)):
+        for traj_id in tqdm(range(self.num_trajs)):
             state = env.reset()
             state = self.state_processor.process_state(state)
-            if store_video:
+            if self.store_video:
                 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-                output_fname=os.path.join(video_path,f'{traj_id}.mp4')
+                output_fname=os.path.join(self.video_path,f'{traj_id}.mp4')
                 output_movie = cv2.VideoWriter(output_fname,
                                                fourcc, 6, (env.render().shape[0], env.render().shape[1]))
-                print('\nsaving to: ', output_fname)
+                #print('\nsaving to: ', output_fname)
 
             for j in range(self.env_kwargs_dict['max_step']):
-                if store_video:
+                if self.store_video:
                     output_movie.write(env.render())
                 action = self.act_eps_best(state)
                 next_state, reward, done, _ = env.step(action)
@@ -75,19 +106,19 @@ class GNNQEvaluator():
                 next_state = self.state_processor.process_state(next_state)
                 state = next_state
                 if done:
-                    if store_video:
+                    if self.store_video:
                         output_movie.write(env.render())
                     break
-            if store_video:
-                #print('video stored')
+            if self.store_video:
                 output_movie.release()
-            output_movie.release()
             scores.append(env.score())
 
             print('reward:', env.score())
 
         print('num_coins:', self.env_kwargs_dict['num_coins'],
               'score:', np.mean(scores), 'std:', np.std(scores))
+
+        return {'score': np.mean(scores), 'std:': np.std(scores)}
 
 
 if __name__ == "__main__":
@@ -96,34 +127,18 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--store_video', action="store_true", default=False)
     parser.add_argument('--num_rewards', type=int, default=5)
-    parser.add_argument('--num_trajs', type=int, default=20)
+    parser.add_argument('--num_trajs', type=int, default=100)
     parser.add_argument('--env_setting', type=str, default='legacy')
+    parser.add_argument('--eps', type=float, default=0.0)
+    parser.add_argument('--nn_name', type=str, default="PointConv")
     args = parser.parse_args()
 
-    model_dir = os.path.dirname(args.model_path)
-    video_dir = os.path.join(dqgnn_path, "videos")
-    if not os.path.exists(video_dir):
-        os.mkdir(video_dir)
-    video_path = os.path.join(dqgnn_path, f"videos/{os.path.basename(model_dir)}")
-    if not os.path.exists(video_path):
-        os.mkdir(video_path)
+    random.seed(2333)
+    np.random.seed(2333)
+    torch.manual_seed(2333)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    with open(model_dir + '/network_kwargs.pkl', 'rb') as f:
-        network_kwargs=pickle.load(f)
-
-    qnet = PointConv(**network_kwargs)
-    qnet.eval()
-    state_dict = torch.load(args.model_path)
-    qnet.load_state_dict(state_dict)
-    qnet = qnet.to(device)
-
-    #os.environ.pop("SDL_VIDEODRIVER")
-
-    env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
-    env_kwargs_dict = get_env_kwargs_dict(args.env_setting)
-
-    env_kwargs_dict['num_coins'] = args.num_rewards
-    evaluator = GNNQEvaluator(env_fn, env_kwargs_dict, qnet, device)
-    evaluator.evaluate(args.num_trajs, store_video=True, video_path = video_path)
+    evaluator = GNNQEvaluator(model_path=args.model_path, nn_name=args.nn_name,
+                              env_setting=args.env_setting, num_trajs = args.num_trajs,
+                              store_video=args.store_video, eps=args.eps)
+    evaluator.update_num_coins(args.num_rewards)
+    evaluator.evaluate()

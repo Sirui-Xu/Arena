@@ -123,7 +123,7 @@ class EdgeConvNet(BaseGNN):
             nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
             nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
         )
-        self.gnn = EdgeConv(local_nn, aggr='max')
+        self.gnn = EdgeConv(local_nn, aggr='add')
 
         self.encoder2 = nn.Sequential(
             nn.Linear(128, 128, bias=False), nn.GroupNorm(8, 128), nn.ReLU(),
