@@ -20,8 +20,6 @@ if __name__ == "__main__":
     parser.add_argument('--num_rewards', type=int, default=5)
     args = parser.parse_args()
 
-    exit()
-
     files = os.listdir(args.model_dir)
     best_model_fname = None
     best_model_perf = -1

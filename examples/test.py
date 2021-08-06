@@ -44,6 +44,8 @@ parser.add_argument('--num_episodes', type=int, default=100,
 parser.add_argument('--rand_seed', type=int, default=24, 
                     help='random seed')
 parser.add_argument('--algorithm', type=str, default='Greedy')
+parser.add_argument('--aggr', type=str, default='add',
+                    help='aggregation function')
 args = parser.parse_args()
 
 with open(os.path.join(args.checkpoints_path, 'info.json'), 'r') as f:
@@ -52,6 +54,9 @@ with open(os.path.join(args.checkpoints_path, 'info.json'), 'r') as f:
 alg_name = args.algorithm
 rand_seed = args.rand_seed
 test_time = info["test_time"]
+# some hacky code, shouldn't need this if data format is correct
+if isinstance(test_time, str):
+    test_time=200
 width = info["width"]
 height = info["height"]
 object_size = info["object_size"]
@@ -59,6 +64,9 @@ obstacle_size = info["obstacle_size"]
 num_coins_list = sorted(args.num_coins_list)
 num_enemies_list = sorted(args.num_enemies_list)
 num_bombs = info["num_bombs"]
+# some hacky code, shouldn't need this if data format is correct
+if isinstance(num_bombs, list) and len(num_bombs)==1:
+    num_bombs = num_bombs[0]
 explosion_max_step = info["explosion_max_step"]
 explosion_radius = info["explosion_radius"]
 num_projectiles = info["num_projectiles"]
@@ -70,6 +78,9 @@ projectile_speed = info["projectile_speed"]
 reward_decay = info["reward_decay"]
 model = info["model"]
 model_info = info["model_info"]
+# some hacky code, shouldn't need this if data format is correct
+if model=='edgeconv':
+    model_info['aggr'] = 'max'
 CROSS_ENTROPY = True
 
 visualize = args.visualize

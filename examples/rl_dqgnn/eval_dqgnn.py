@@ -9,6 +9,7 @@ import torch
 import pygame
 from tqdm import tqdm
 from functools import partial
+import json
 
 dqgnn_path=os.path.dirname(os.path.abspath(__file__))
 root_path=os.path.dirname(os.path.dirname(dqgnn_path))
@@ -19,9 +20,22 @@ from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func
 from examples.env_setting_kwargs import get_env_kwargs_dict
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, tuple):
+            return list(obj)
+        else:
+            return super(NpEncoder, self).default(obj)
+
 class GNNQEvaluator():
     def __init__(self, model_path, nn_name, env_setting, num_trajs=100,
-                 store_video=False, fps=50, eps=0.0):
+                 store_video=False, store_traj=False, fps=50, eps=0.0):
 
         model_dir = os.path.dirname(model_path)
         video_dir = os.path.join(dqgnn_path, "videos")
@@ -30,6 +44,7 @@ class GNNQEvaluator():
         video_path = os.path.join(dqgnn_path, f"videos/{os.path.basename(model_dir)}")
         if not os.path.exists(video_path):
             os.mkdir(video_path)
+        self.traj_path = os.path.join(model_dir, "traj.json")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -56,6 +71,7 @@ class GNNQEvaluator():
         self.video_path=video_path
         self.num_trajs = num_trajs
         self.store_video = store_video
+        self.store_traj = store_traj
         self.fps = fps
 
         self.state_processor = EnvStateProcessor(env_kwargs_dict)
@@ -81,42 +97,76 @@ class GNNQEvaluator():
             best_action = self.qnet(state, 1).argmax()
         return best_action.cpu().item()
 
-    def evaluate(self):
-        # The configuration AX0
-        env = self.env_fn(self.env_kwargs_dict)
-        env.init()
+    def evaluate(self, num_coins_min=None, num_coins_max=None):
+        if num_coins_min is None:
+            num_coins_min, num_coins_max = self.env_kwargs_dict['num_coins']
 
-        scores = []
-        for traj_id in tqdm(range(self.num_trajs)):
-            state = env.reset()
-            state = self.state_processor.process_state(state)
-            if self.store_video:
-                fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-                output_fname=os.path.join(self.video_path,f'{traj_id}.mp4')
-                output_movie = cv2.VideoWriter(output_fname,
-                                               fourcc, 6, (env.render().shape[0], env.render().shape[1]))
-                #print('\nsaving to: ', output_fname)
-
-            for j in range(self.env_kwargs_dict['max_step']):
+        trajs = []
+        for num_coins in range(num_coins_min, num_coins_max+1):
+            self.update_num_coins(num_coins)
+            env = self.env_fn(self.env_kwargs_dict)
+            env.init()
+            scores = []
+            for traj_id in tqdm(range(self.num_trajs)):
+                state_raw = env.reset()
+                state = self.state_processor.process_state(state_raw)
                 if self.store_video:
-                    output_movie.write(env.render())
-                action = self.act_eps_best(state)
-                next_state, reward, done, _ = env.step(action)
-                #next_state = process_state(next_state, obj_size=self.env_kwargs_dict['object_size'])
-                next_state = self.state_processor.process_state(next_state)
-                state = next_state
-                if done:
+                    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+                    output_fname=os.path.join(self.video_path,f'{traj_id}.mp4')
+                    output_movie = cv2.VideoWriter(output_fname,
+                                                   fourcc, 6, (env.render().shape[0], env.render().shape[1]))
+                    #print('\nsaving to: ', output_fname)
+
+                for j in range(self.env_kwargs_dict['max_step']):
                     if self.store_video:
                         output_movie.write(env.render())
-                    break
-            if self.store_video:
-                output_movie.release()
-            scores.append(env.score())
+                    action = self.act_eps_best(state)
+                    if self.store_traj:
+                        action_list = [0 for _ in env.actions]
+                        action_list[action] = 1
+                        trajs.append({'state': state_raw, 'action': action_list})
+                    next_state_raw, reward, done, _ = env.step(action)
+                    next_state = self.state_processor.process_state(next_state_raw)
+                    state_raw = next_state_raw
+                    state = next_state
+                    if done:
+                        if self.store_video:
+                            output_movie.write(env.render())
+                        break
+                if self.store_video:
+                    output_movie.release()
+                scores.append(env.score())
 
-            print('reward:', env.score())
+                print('reward:', env.score())
 
-        print('num_coins:', self.env_kwargs_dict['num_coins'],
-              'score:', np.mean(scores), 'std:', np.std(scores))
+            print('num_coins:', self.env_kwargs_dict['num_coins'],
+                  'score:', np.mean(scores), 'std:', np.std(scores))
+
+        if self.store_traj:
+            print(f'saving (s,a) dataset of size {len(trajs)}')
+            with open(self.traj_path, 'w') as f:
+                info = {"algorithm": "DoubleDQN",
+                        "rand_seed": 0,
+                        "test_time": "Aug6",
+                        "width": self.env_kwargs_dict['width'],
+                        "height": self.env_kwargs_dict['height'],
+                        "object_size": self.env_kwargs_dict['object_size'],
+                        "obstacle_size": self.env_kwargs_dict['obstacle_size'],
+                        "num_coins_list": [num_coins_min,num_coins_max],
+                        "num_enemies_list": [0],
+                        "num_bombs": [0],
+                        "explosion_max_step": self.env_kwargs_dict['explosion_max_step'],
+                        "explosion_radius": self.env_kwargs_dict['explosion_radius'],
+                        "num_projectiles": self.env_kwargs_dict['num_projectiles'],
+                        "num_obstacles_list": [0],
+                        "agent_speed": self.env_kwargs_dict['agent_speed'],
+                        "enemy_speed": self.env_kwargs_dict['enemy_speed'],
+                        "p_change_direction": self.env_kwargs_dict['p_change_direction'],
+                        "projectile_speed": self.env_kwargs_dict['projectile_speed'],
+                        "reward_decay": self.env_kwargs_dict['reward_decay']}
+                info["data"] = trajs
+                json.dump(info, f, cls=NpEncoder)
+
 
         return {'score': np.mean(scores), 'std:': np.std(scores)}
 
@@ -126,6 +176,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--store_video', action="store_true", default=False)
+    parser.add_argument('--store_traj', action="store_true", default=False)
     parser.add_argument('--num_rewards', type=int, default=5)
     parser.add_argument('--num_trajs', type=int, default=100)
     parser.add_argument('--env_setting', type=str, default='legacy')
@@ -139,6 +190,7 @@ if __name__ == "__main__":
 
     evaluator = GNNQEvaluator(model_path=args.model_path, nn_name=args.nn_name,
                               env_setting=args.env_setting, num_trajs = args.num_trajs,
-                              store_video=args.store_video, eps=args.eps)
+                              store_video=args.store_video, store_traj=args.store_traj,
+                              eps=args.eps)
     evaluator.update_num_coins(args.num_rewards)
-    evaluator.evaluate()
+    eval_result = evaluator.evaluate(1,5)

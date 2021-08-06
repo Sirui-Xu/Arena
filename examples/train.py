@@ -21,29 +21,31 @@ from dataset import GamePatch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, required=True,
+parser.add_argument('--data_path', type=str, required=True,
                     help='input the dataset name')
 parser.add_argument('--num_epochs', type=int, default=200,
                     help='the number of epochs for training')
 parser.add_argument('--checkpoints_path', type=str,
-                    help='model to continue to train')
+                    help='path to save models')
 parser.add_argument('--resume_epoch', type=int, default=0,
                     help='resume epoch for the saved model')
 parser.add_argument('--model', type=str, default="pointconv",
                     help='model name')
+parser.add_argument('--aggr', type=str, default='add',
+                    help='aggregation function')
 args = parser.parse_args()
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 SAVE_EPOCH = 5
 PRINT_EPOCH = 200
 CROSS_ENTROPY = True
 LOSS_BALANCE = True
 
-data_path = args.dataset
+data_path = args.data_path
 with open(data_path, 'r') as f:
     data = json.load(f)
 
 dataset = GamePatch(data["data"])
-model_info = load_model_info(dataset)
+model_info = load_model_info(dataset, aggr=args.aggr)
 policy_net = load_model(model=args.model, info=model_info).to(device)
 
 optimizer = optim.Adam([{'params': policy_net.parameters(), 'initial_lr': 1e-3}], 1e-3)

@@ -12,11 +12,12 @@ from models import *
 
 models_name = ['EdgeConv', 'PointConv', 'DeeperGCN', 'EdgeConvTongzhou']
 
-def load_model_info(dataset):
+def load_model_info(dataset, aggr):
     info = {"node_dim": dataset[0].x[0].shape[0],
             "pos_dim": dataset[0].pos[0].shape[0],
             "edge_dim": dataset[0].edge_attr[0].shape[0],
-            "output_dim": dataset[0].y.shape[1]}
+            "output_dim": dataset[0].y.shape[1],
+            "aggr": aggr}
     return info
 
 def load_model(model, info):
@@ -25,7 +26,9 @@ def load_model(model, info):
     edge_dim=info["edge_dim"]
     output_dim = info["output_dim"]
     lower2upper = {name.lower():name for name in models_name}
-    return globals()[lower2upper[model.lower()]](input_dim=node_dim, pos_dim=pos_dim, edge_dim=edge_dim, output_dim=output_dim)
+    return globals()[lower2upper[model.lower()]](input_dim=node_dim, pos_dim=pos_dim,
+                                                 edge_dim=edge_dim, output_dim=output_dim,
+                                                 aggr=info['aggr'])
  
 class Logger(object):
     def __init__(self, filename="log.txt", mode='a'):

@@ -35,6 +35,7 @@ def get_env_kwargs_dict(setting):
         'projectile_speed': 8,
         'explosion_max_step': 100,
         'explosion_radius': 32,
+        'p_change_direction': 0.01,
         'reward_decay': 1.0,
         'max_step': 200}
 
