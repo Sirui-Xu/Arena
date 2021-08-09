@@ -35,7 +35,7 @@ class NpEncoder(json.JSONEncoder):
 
 class GNNQEvaluator():
     def __init__(self, model_path, nn_name, env_setting, num_trajs=100,
-                 store_video=False, store_traj=False, fps=50, eps=0.0):
+                 store_video=False, store_traj=False, only_success_traj=False, fps=50, eps=0.0):
 
         model_dir = os.path.dirname(model_path)
         video_dir = os.path.join(dqgnn_path, "videos")
@@ -44,7 +44,9 @@ class GNNQEvaluator():
         video_path = os.path.join(dqgnn_path, f"videos/{os.path.basename(model_dir)}")
         if not os.path.exists(video_path):
             os.mkdir(video_path)
-        self.traj_path = os.path.join(model_dir, "traj.json")
+        if store_traj:
+            traj_path_suffix='_success' if only_success_traj else ''
+            self.traj_path = os.path.join(model_dir, f"traj{traj_path_suffix}.json")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -72,6 +74,7 @@ class GNNQEvaluator():
         self.num_trajs = num_trajs
         self.store_video = store_video
         self.store_traj = store_traj
+        self.only_success_traj=only_success_traj
         self.fps = fps
 
         self.state_processor = EnvStateProcessor(env_kwargs_dict)
@@ -116,7 +119,7 @@ class GNNQEvaluator():
                     output_movie = cv2.VideoWriter(output_fname,
                                                    fourcc, 6, (env.render().shape[0], env.render().shape[1]))
                     #print('\nsaving to: ', output_fname)
-
+                current_traj = []
                 for j in range(self.env_kwargs_dict['max_step']):
                     if self.store_video:
                         output_movie.write(env.render())
@@ -124,7 +127,7 @@ class GNNQEvaluator():
                     if self.store_traj:
                         action_list = [0 for _ in env.actions]
                         action_list[action] = 1
-                        trajs.append({'state': state_raw, 'action': action_list})
+                        current_traj.append({'state': state_raw, 'action': action_list})
                     next_state_raw, reward, done, _ = env.step(action)
                     next_state = self.state_processor.process_state(next_state_raw)
                     state_raw = next_state_raw
@@ -135,6 +138,11 @@ class GNNQEvaluator():
                         break
                 if self.store_video:
                     output_movie.release()
+                if self.store_traj:
+                    if not self.only_success_traj or int(env.score())==num_coins:
+                        #print(f'traj saved, reward {env.score()}')
+                        trajs.extend(current_traj)
+
                 scores.append(env.score())
 
                 print('reward:', env.score())
@@ -147,14 +155,14 @@ class GNNQEvaluator():
             with open(self.traj_path, 'w') as f:
                 info = {"algorithm": "DoubleDQN",
                         "rand_seed": 0,
-                        "test_time": "Aug6",
+                        "test_time": 200,
                         "width": self.env_kwargs_dict['width'],
                         "height": self.env_kwargs_dict['height'],
                         "object_size": self.env_kwargs_dict['object_size'],
                         "obstacle_size": self.env_kwargs_dict['obstacle_size'],
                         "num_coins_list": [num_coins_min,num_coins_max],
                         "num_enemies_list": [0],
-                        "num_bombs": [0],
+                        "num_bombs": 0,
                         "explosion_max_step": self.env_kwargs_dict['explosion_max_step'],
                         "explosion_radius": self.env_kwargs_dict['explosion_radius'],
                         "num_projectiles": self.env_kwargs_dict['num_projectiles'],
@@ -177,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--store_video', action="store_true", default=False)
     parser.add_argument('--store_traj', action="store_true", default=False)
+    parser.add_argument('--only_success_traj', action="store_true", default=False)
     parser.add_argument('--num_rewards', type=int, default=5)
     parser.add_argument('--num_trajs', type=int, default=100)
     parser.add_argument('--env_setting', type=str, default='legacy')
@@ -191,6 +200,7 @@ if __name__ == "__main__":
     evaluator = GNNQEvaluator(model_path=args.model_path, nn_name=args.nn_name,
                               env_setting=args.env_setting, num_trajs = args.num_trajs,
                               store_video=args.store_video, store_traj=args.store_traj,
-                              eps=args.eps)
+                              only_success_traj=args.only_success_traj, eps=args.eps)
     evaluator.update_num_coins(args.num_rewards)
-    eval_result = evaluator.evaluate(1,5)
+    eval_result = evaluator.evaluate(args.num_rewards, args.num_rewards)
+    #eval_result = evaluator.evaluate(1,5)

@@ -130,6 +130,8 @@ class EdgeConv(nn.Module):
             q = gnn.global_max_pool(x, batch, size=batch_size)
         elif self.aggr == 'sum':
             q = gnn.global_add_pool(x, batch, size=batch_size)
+        elif self.aggr == 'mean':
+            q=gnn.global_mean_pool(x, batch, size=batch_size)
         else:
             raise NotImplementedError()
 
