@@ -23,12 +23,14 @@ GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
 #LR = 1e-4  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
+#TARGET_UPDATE_FREQ = 500
 
 
 class DQGNN_agent():
 
-    def __init__(self, qnet_local, qnet_target, lr, double_q, device, seed):
+    def __init__(self, qnet_local, qnet_target, lr, target_update_freq, double_q, device, seed):
         self.LR=lr
+        self.target_update_freq = target_update_freq
         self.double_q = double_q
         self.device=device
         self.seed = random.seed(seed)
@@ -47,12 +49,16 @@ class DQGNN_agent():
         self.memory.add(state, action, reward, next_state, done)
 
         # Learn every UPDATE_EVERY time steps.
-        self.t_step = (self.t_step + 1) % UPDATE_EVERY
-        if self.t_step == 0:
+        self.t_step += 1
+        if self.t_step % UPDATE_EVERY == 0:
             # If enough samples are available in memory, get random subset and learn
             if len(self.memory) > BATCH_SIZE:
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
+        if self.t_step % self.target_update_freq ==0:
+            self.qnetwork_target.load_state_dict(self.qnetwork_local.state_dict())
+
+
 
     def act(self, state, eps=0.):
         """Returns actions for given state as per current policy.
@@ -104,7 +110,7 @@ class DQGNN_agent():
         self.optimizer.step()
 
         # ------------------- update target network ------------------- #
-        self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
+        #self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
