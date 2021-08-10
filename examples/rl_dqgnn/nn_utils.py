@@ -7,6 +7,7 @@ import torch_geometric.nn as gnn
 from torch_geometric.data import Data, DataLoader
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool, EdgeConv
+from arena import Wrapper
 
 def get_nn_func(nn_name):
     if nn_name=='PointConv':
@@ -202,6 +203,27 @@ class EnvStateProcessor:
         x = torch.tensor(x)
         pos = torch.tensor(pos)
         return Data(x=x, edge_index=edge_index, pos=pos)
+
+class GraphObservationEnvWrapper(Wrapper):
+    def __init__(self, env_func, env_kwargs):
+        super().__init__(env_func(**env_kwargs))
+        self.state_processor = EnvStateProcessor(env_kwargs)
+        self._state_raw = None
+
+    def reset(self):
+        self._state_raw = super().reset()
+        state = self.state_processor.process_state(self._state_raw)
+        return state
+
+    def step(self, action):
+        state_raw, reward, done, info = super().step(action)
+        if(done):
+            state = self.reset()
+        else:
+            self._state_raw = state_raw
+            state=self.state_processor.process_state(self._state_raw)
+        return state, reward, done, info
+
 
 import pickle, os
 class ExperienceSaver:

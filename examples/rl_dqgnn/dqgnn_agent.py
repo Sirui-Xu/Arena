@@ -7,7 +7,7 @@ import copy
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch_geometric.data import Data, DataLoader
+from torch_geometric.data import Data, DataLoader, Batch
 from torch.utils.data import Dataset
 
 
@@ -70,9 +70,11 @@ class DQGNN_agent():
         """
         self.qnetwork_local.eval()
         # Batch the inputs.
-        state = copy.deepcopy(state)
-        state.batch = torch.zeros(len(state.x)).long()
-        state = state.to(self.device)
+
+        #state = copy.deepcopy(state)
+        #state.batch = torch.zeros(len(state.x)).long()
+        #state = state.to(self.device)
+        state=Batch.from_data_list([state]).to(self.device)
         with torch.no_grad():
             best_action = self.qnetwork_local(state, 1).argmax() # Batch size is always one.
         self.qnetwork_local.train()

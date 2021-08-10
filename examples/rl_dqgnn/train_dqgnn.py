@@ -16,7 +16,8 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import PointConv, EdgeConvNet, EnvStateProcessor, get_nn_func, ExperienceSaver
+from examples.rl_dqgnn.nn_utils import PointConv, EdgeConvNet, EnvStateProcessor, \
+    get_nn_func, ExperienceSaver, GraphObservationEnvWrapper
 from examples.env_setting_kwargs import get_env_kwargs_dict
 from dqgnn_agent import DQGNN_agent
 
@@ -40,10 +41,9 @@ num_episodes=args.num_episodes
 is_train=args.train
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# The configuration AX0
-# changed to 64x64 for faster training
-kwargs_dict = get_env_kwargs_dict(args.env_setting)
-env=Wrapper(Arena(**kwargs_dict))
+env_kwargs = get_env_kwargs_dict(args.env_setting)
+#env=Wrapper(Arena(**kwargs_dict))
+env = GraphObservationEnvWrapper(Arena, env_kwargs)
 env.reset()
 
 nn_func = get_nn_func(args.nn_name)
@@ -74,23 +74,23 @@ def dqn(n_episodes=4000, max_t=500, save_freq=200, eps_start=0.9, eps_end=0.05, 
         eps_decay (float): multiplicative factor (per episode) for decreasing epsilon
     """
     with open(args.model_path + '/env_kwargs.pkl', 'wb') as f:
-        pickle.dump(kwargs_dict, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(env_kwargs, f, pickle.HIGHEST_PROTOCOL)
     with open(args.model_path + '/network_kwargs.pkl', 'wb') as f:
         pickle.dump(network_kwargs_dict, f, pickle.HIGHEST_PROTOCOL)
     os.system('cp /home/yiran/pc_mapping/arena-v2/examples/rl_dqgnn/*.py '+args.model_path)
     scores = []  # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
-    state_processor = EnvStateProcessor(kwargs_dict)
+    #state_processor = EnvStateProcessor(env_kwargs)
     experience_saver = ExperienceSaver(args.model_path + '/experiences')
     eps = eps_start  # initialize epsilon
     for i_episode in range(1, n_episodes + 1):
-        state_raw = env.reset()
-        state = state_processor.process_state(state_raw)
+        state = env.reset()
+        state_raw = env._state_raw
         score = 0
         for t in range(max_t):
             action, action_type = agent.act(state, eps)
-            next_state_raw, reward, done, _ = env.step(action)
-            next_state = state_processor.process_state(next_state_raw)
+            next_state, reward, done, _ = env.step(action)
+            next_state_raw = env._state_raw
             agent.step(state, action, reward, next_state, done)
             if args.save_experience:
                 experience_saver.store(state_raw, action, reward)

@@ -16,7 +16,7 @@ root_path=os.path.dirname(os.path.dirname(dqgnn_path))
 sys.path.append(root_path)
 
 from arena import Arena, Wrapper
-from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func
+from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func, GraphObservationEnvWrapper
 from examples.env_setting_kwargs import get_env_kwargs_dict
 
 
@@ -77,8 +77,6 @@ class GNNQEvaluator():
         self.only_success_traj=only_success_traj
         self.fps = fps
 
-        self.state_processor = EnvStateProcessor(env_kwargs_dict)
-
     def update_num_coins(self, num_coins):
         self.env_kwargs_dict['num_coins'] = num_coins
 
@@ -107,12 +105,12 @@ class GNNQEvaluator():
         trajs = []
         for num_coins in range(num_coins_min, num_coins_max+1):
             self.update_num_coins(num_coins)
-            env = self.env_fn(self.env_kwargs_dict)
+            env = GraphObservationEnvWrapper(self.env_fn, self.env_kwargs_dict)
             env.init()
             scores = []
             for traj_id in tqdm(range(self.num_trajs)):
-                state_raw = env.reset()
-                state = self.state_processor.process_state(state_raw)
+                state = env.reset()
+                state_raw = env._state_raw
                 if self.store_video:
                     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
                     output_fname=os.path.join(self.video_path,f'{traj_id}.mp4')
@@ -128,8 +126,8 @@ class GNNQEvaluator():
                         action_list = [0 for _ in env.actions]
                         action_list[action] = 1
                         current_traj.append({'state': state_raw, 'action': action_list})
-                    next_state_raw, reward, done, _ = env.step(action)
-                    next_state = self.state_processor.process_state(next_state_raw)
+                    next_state, reward, done, _ = env.step(action)
+                    next_state_raw = env._state_raw
                     state_raw = next_state_raw
                     state = next_state
                     if done:
