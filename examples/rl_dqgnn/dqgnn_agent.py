@@ -76,7 +76,7 @@ class DQGNN_agent():
         #state = state.to(self.device)
         state=Batch.from_data_list([state]).to(self.device)
         with torch.no_grad():
-            best_action = self.qnetwork_local(state, 1).argmax() # Batch size is always one.
+            best_action = self.qnetwork_local(state).argmax() # Batch size is always one.
         self.qnetwork_local.train()
 
         # Epsilon-greedy action selection
@@ -90,18 +90,18 @@ class DQGNN_agent():
 
         # Get max predicted Q values (for next states) from target model
         Q_targets_next = self.qnetwork_target(
-                next_graphs.to(self.device), BATCH_SIZE).detach()
+                next_graphs.to(self.device)).detach()
         if not self.double_q:
             Q_targets_next = Q_targets_next.max(1)[0]
         else:
-            best_actions = torch.argmax(self.qnetwork_local(next_graphs.to(self.device), BATCH_SIZE), dim=-1)
+            best_actions = torch.argmax(self.qnetwork_local(next_graphs.to(self.device)), dim=-1)
             Q_targets_next = Q_targets_next.gather(1, best_actions.unsqueeze(-1)).squeeze(1)
 
         # Compute Q targets for current states
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
 
         # Get expected Q values from local model
-        Q_expected = self.qnetwork_local(graphs.to(self.device), BATCH_SIZE)
+        Q_expected = self.qnetwork_local(graphs.to(self.device))
         Q_expected = Q_expected.gather(1, actions.unsqueeze(1)).squeeze(1)
 
         # Compute loss
@@ -163,10 +163,8 @@ class ReplayBuffer:
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         experiences = random.sample(self.memory, k=self.batch_size)
-        states = next(iter(DataLoader(
-            GraphDataset([e.state for e in experiences]), batch_size=self.batch_size, shuffle=False)))
-        next_states = next(iter(DataLoader(
-            GraphDataset([e.next_state for e in experiences]), batch_size=self.batch_size, shuffle=False)))
+        states = Batch.from_data_list([e.state for e in experiences])
+        next_states = Batch.from_data_list([e.next_state for e in experiences])
         actions = torch.tensor([e.action for e in experiences]).to(self.device)
         rewards = torch.tensor([e.reward for e in experiences]).to(self.device)
         dones = torch.tensor([e.done for e in experiences]).float().to(self.device)

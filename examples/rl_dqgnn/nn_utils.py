@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 import torch_geometric.nn as gnn
-from torch_geometric.data import Data, DataLoader
+from torch_geometric.data import Data, DataLoader, Batch
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool, EdgeConv
 from arena import Wrapper
@@ -66,8 +66,8 @@ class PointConv(nn.Module):
 
         self.reset_parameters()
 
-    def forward(self, data, batch_size=None, **kwargs):
-        assert batch_size is not None
+    def forward(self, data, **kwargs):
+        batch_size = data.num_graphs
         x = data.x
         batch = data.batch
         edge_index = data.edge_index

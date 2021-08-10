@@ -18,6 +18,7 @@ sys.path.append(root_path)
 from arena import Arena, Wrapper
 from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func, GraphObservationEnvWrapper
 from examples.env_setting_kwargs import get_env_kwargs_dict
+from torch_geometric.data import Batch
 
 
 class NpEncoder(json.JSONEncoder):
@@ -85,17 +86,18 @@ class GNNQEvaluator():
         state.batch = torch.zeros(len(state.x)).long()
         state = state.to(self.device)
         with torch.no_grad():
-            best_action = self.qnet(state, 1).argmax()
+            best_action = self.qnet(state).argmax()
         return best_action.cpu().item()
 
     def act_eps_best(self, state):
         if random.random() < self.eps:
             return random.choice(np.arange(6))
-        state = copy.deepcopy(state)
-        state.batch = torch.zeros(len(state.x)).long()
-        state = state.to(self.device)
+        #state = copy.deepcopy(state)
+        #state.batch = torch.zeros(len(state.x)).long()
+        #state = state.to(self.device)
+        state=Batch.from_data_list([state]).to(self.device)
         with torch.no_grad():
-            best_action = self.qnet(state, 1).argmax()
+            best_action = self.qnet(state).argmax()
         return best_action.cpu().item()
 
     def evaluate(self, num_coins_min=None, num_coins_max=None):
