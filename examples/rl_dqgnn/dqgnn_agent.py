@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch_geometric.data import Data, DataLoader, Batch
 from torch.utils.data import Dataset
+from examples.rl_dqgnn.replay_buffer import *
 
 
 dqn_root = os.path.dirname(__file__)
@@ -28,9 +29,11 @@ UPDATE_EVERY = 4  # how often to update the network
 
 class DQGNN_agent():
 
-    def __init__(self, qnet_local, qnet_target, lr, target_update_freq, double_q, PER,
+    def __init__(self, qnet_local, qnet_target, lr,
+                 hard_update, target_update_freq, double_q, PER,
                  replay_eps, replay_alpha, replay_beta, device, seed):
         self.LR=lr
+        self.hard_update=hard_update
         self.target_update_freq = target_update_freq
         self.double_q = double_q
         self.PER = PER
@@ -63,10 +66,9 @@ class DQGNN_agent():
             if len(self.memory) > BATCH_SIZE:
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
-        if self.t_step % self.target_update_freq ==0:
-            self.qnetwork_target.load_state_dict(self.qnetwork_local.state_dict())
-
-
+        if self.hard_update:
+            if self.t_step % self.target_update_freq ==0:
+                self.qnetwork_target.load_state_dict(self.qnetwork_local.state_dict())
 
     def act(self, state, eps=0.):
         """Returns actions for given state as per current policy.
@@ -131,7 +133,8 @@ class DQGNN_agent():
         self.optimizer.step()
 
         # ------------------- update target network ------------------- #
-        #self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
+        if not self.hard_update:
+            self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
@@ -145,153 +148,3 @@ class DQGNN_agent():
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
-class ReplayBuffer:
-    """Fixed-size buffer to store experience tuples."""
-
-    def __init__(self, buffer_size, batch_size, device, seed):
-        """Initialize a ReplayBuffer object.
-        Params
-        ======
-            action_size (int): dimension of each action
-            buffer_size (int): maximum size of buffer
-            batch_size (int): size of each training batch
-            seed (int): random seed
-        """
-        self.memory = deque(maxlen=buffer_size)
-        self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
-        self.device=device
-        self.seed = random.seed(seed)
-
-    def add(self, state, action, reward, next_state, done):
-        """Add a new experience to memory."""
-        e = self.experience(state, action, reward, next_state, done)
-        self.memory.append(e)
-
-    def sample(self):
-        """Randomly sample a batch of experiences from memory."""
-        experiences = random.sample(self.memory, k=self.batch_size)
-        states = Batch.from_data_list([e.state for e in experiences])
-        next_states = Batch.from_data_list([e.next_state for e in experiences])
-        actions = torch.tensor([e.action for e in experiences]).to(self.device)
-        rewards = torch.tensor([e.reward for e in experiences]).to(self.device)
-        dones = torch.tensor([e.done for e in experiences]).float().to(self.device)
-        return states, actions, rewards, next_states, dones
-
-    def __len__(self):
-        """Return the current size of internal memory."""
-        return len(self.memory)
-
-
-class SumTree:
-    write = 0
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.tree = np.zeros(2 * capacity - 1)
-        self.data = np.zeros(capacity, dtype=object)
-        self.n_entries = 0
-        self.pending_idx = set()
-
-    # update to the root node
-    def _propagate(self, idx, change):
-        parent = (idx - 1) // 2
-        self.tree[parent] += change
-        if parent != 0:
-            self._propagate(parent, change)
-
-    # find sample on leaf node
-    def _retrieve(self, idx, s):
-        left = 2 * idx + 1
-        right = left + 1
-
-        if left >= len(self.tree):
-            return idx
-
-        if s <= self.tree[left]:
-            return self._retrieve(left, s)
-        else:
-            return self._retrieve(right, s - self.tree[left])
-
-    def total(self):
-        return self.tree[0]
-
-    # store priority and sample
-    def add(self, p, data):
-        idx = self.write + self.capacity - 1
-        self.pending_idx.add(idx)
-
-        self.data[self.write] = data
-        self.update(idx, p)
-
-        self.write += 1
-        if self.write >= self.capacity:
-            self.write = 0
-
-        if self.n_entries < self.capacity:
-            self.n_entries += 1
-
-    # update priority
-    def update(self, idx, p):
-        if idx not in self.pending_idx:
-            return
-        self.pending_idx.remove(idx)
-        change = p - self.tree[idx]
-        self.tree[idx] = p
-        self._propagate(idx, change)
-
-    # get priority and sample
-    def get(self, s):
-        idx = self._retrieve(0, s)
-        dataIdx = idx - self.capacity + 1
-        self.pending_idx.add(idx)
-        return (idx, self.tree[idx], dataIdx)
-
-class PrioritizedReplayBuffer:
-
-    def __init__(self, buffer_size, batch_size, device, seed):
-        self.tree = SumTree(buffer_size)
-        self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
-        self.prio_exp = namedtuple("PrioExp", field_names=["exp", "sampling_prob", "idx"])
-        self.device=device
-        self.seed = random.seed(seed)
-        self.max_priority = 1
-        self.cnt=0
-
-    def add(self, state, action, reward, next_state, done):
-        self.cnt+=1
-        self.tree.add(self.max_priority, self.experience(state, action, reward, next_state, done))
-
-    def sample(self):
-        batch_size=self.batch_size
-
-        segment = self.tree.total() / batch_size
-
-        prio_exps = []
-        for i in range(batch_size):
-            a = segment * i
-            b = segment * (i + 1)
-            s = random.uniform(a, b)
-            (idx, p, data_index) = self.tree.get(s)
-            prio_exp = self.prio_exp(self.tree.data[data_index], p / self.tree.total(), idx)
-            prio_exps.append(prio_exp)
-        while len(prio_exps) < batch_size:
-            # This should rarely happen
-            prio_exps.append(random.choice(prio_exps))
-
-        states = Batch.from_data_list([e.exp.state for e in prio_exps])
-        next_states = Batch.from_data_list([e.exp.next_state for e in prio_exps])
-        actions = torch.tensor([e.exp.action for e in prio_exps]).to(self.device)
-        rewards = torch.tensor([e.exp.reward for e in prio_exps]).to(self.device)
-        dones = torch.tensor([e.exp.done for e in prio_exps]).float().to(self.device)
-        sampling_probs = torch.tensor([e.sampling_prob for e in prio_exps]).float().to(self.device)
-        idxs = np.array([e.idx for e in prio_exps])
-        return states, actions, rewards, next_states, dones, sampling_probs, idxs
-
-    def update_priorities(self, info):
-        for idx, priority in info:
-            self.max_priority = max(self.max_priority, priority)
-            self.tree.update(idx, priority)
-
-    def __len__(self):
-        return self.cnt
