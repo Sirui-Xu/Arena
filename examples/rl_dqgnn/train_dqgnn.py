@@ -33,6 +33,7 @@ parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--double_q', action='store_true')
 parser.add_argument('--PER', action='store_true')
 parser.add_argument('--save_experience', action='store_true')
+parser.add_argument('--hard_update', action='store_true')
 parser.add_argument('--target_update_freq', type=int, default=500)
 args= parser.parse_args()
 #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
@@ -60,9 +61,10 @@ qnet_target.load_state_dict(qnet_local.state_dict())
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 agent = DQGNN_agent(qnet_local, qnet_target, lr=args.lr,
+                    hard_update = args.hard_update,
                     target_update_freq=args.target_update_freq, double_q=args.double_q,
                     PER = args.PER, replay_eps = 0.01, replay_alpha = 0.5,
-                    replay_beta = LinearSchedule(0.4, 1.0, args.num_episodes * 150),
+                    replay_beta = LinearSchedule(0.4, 1.0, args.num_episodes * 100),
                     device=device, seed=0)
 
 def dqn(n_episodes=4000, max_t=500, save_freq=200, eps_start=0.9, eps_end=0.05, eps_decay=0.995):
