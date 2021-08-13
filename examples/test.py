@@ -4,6 +4,7 @@ import random
 import os
 import sys
 import time
+import pickle
 
 example_path = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(example_path)
@@ -107,6 +108,8 @@ save_state = torch.load(save_path)
 policy_net.load_state_dict(save_state['policy_net'])
 policy_net.eval()
 info_wo_data = {k:v for (k,v) in info.items() if k!='data'}
+
+results = {}
 print("==> Test setting:{}".format(info_wo_data))
 for num_coins in num_coins_list:
     for num_enemies in num_enemies_list:
@@ -190,3 +193,6 @@ for num_coins in num_coins_list:
                 sum_losses += losses / j
             print("==> The average disparity (loss) between teacher policy and student model: {}.".format(sum_losses / num_episodes))
             print("==> The average performance in this setting is {}".format(sum_reward / num_episodes))
+            results[num_coins] = sum_reward / num_episodes
+with open(args.checkpoints_path + '/test_result.npy', 'wb') as f:
+    pickle.dump(results, f)

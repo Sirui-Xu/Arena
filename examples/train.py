@@ -29,6 +29,7 @@ parser.add_argument('--checkpoints_path', type=str,
                     help='path to save models')
 parser.add_argument('--resume_epoch', type=int, default=0,
                     help='resume epoch for the saved model')
+parser.add_argument('--no_save_intermediate', action='store_true')
 parser.add_argument('--model', type=str, default="pointconv",
                     help='model name')
 parser.add_argument('--aggr', type=str, default='add',
@@ -74,6 +75,7 @@ writer = SummaryWriter(os.path.join(args.checkpoints_path, 'runs', time.strftime
 with open(os.path.join(args.checkpoints_path, 'info.json'), 'w') as outfile:
     dataset_info = data_path.split('/')[-1].split('.')[0].split('_')
     info = copy.deepcopy(data)
+    info['data'] = None
     info["model"] = args.model
     info["model_info"] = model_info
     json.dump(info, outfile)
@@ -178,7 +180,8 @@ for i_epochs in range(resume_epoch, num_epochs):
 
         save_state = {'policy_net': policy_net.state_dict(), 'optim': optimizer.state_dict()}
         save_path = os.path.join(args.checkpoints_path, 'epoch_{}'.format((i_epochs+1)))
-        torch.save(save_state, save_path)
+        if not args.no_save_intermediate:
+            torch.save(save_state, save_path)
         if losses / len(val_dataloader) < min_val_loss:
             min_val_loss = losses / len(val_dataloader)
             save_state = {'policy_net': policy_net.state_dict(), 'optim': optimizer.state_dict()}
