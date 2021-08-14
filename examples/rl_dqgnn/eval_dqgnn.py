@@ -63,7 +63,8 @@ class GNNQEvaluator():
 
         # os.environ.pop("SDL_VIDEODRIVER")
 
-        env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
+        #env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
+        env_fn = lambda env_kwargs: GraphObservationEnvWrapper(Arena, env_kwargs)
         env_kwargs_dict = get_env_kwargs_dict(env_setting)
 
         self.env_fn = env_fn
@@ -107,7 +108,7 @@ class GNNQEvaluator():
         trajs = []
         for num_coins in range(num_coins_min, num_coins_max+1):
             self.update_num_coins(num_coins)
-            env = GraphObservationEnvWrapper(self.env_fn, self.env_kwargs_dict)
+            env = GraphObservationEnvWrapper(Arena, self.env_kwargs_dict)
             env.init()
             scores = []
             for traj_id in tqdm(range(self.num_trajs)):
@@ -129,6 +130,7 @@ class GNNQEvaluator():
                         action_list[action] = 1
                         current_traj.append({'state': state_raw, 'action': action_list})
                     next_state, reward, done, _ = env.step(action)
+
                     next_state_raw = env._state_raw
                     state_raw = next_state_raw
                     state = next_state

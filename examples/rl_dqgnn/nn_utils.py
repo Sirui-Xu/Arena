@@ -209,6 +209,7 @@ class GraphObservationEnvWrapper(Wrapper):
         super().__init__(env_func(**env_kwargs))
         self.state_processor = EnvStateProcessor(env_kwargs)
         self._state_raw = None
+        self._last_score = None
 
     def reset(self):
         self._state_raw = super().reset()
@@ -217,6 +218,7 @@ class GraphObservationEnvWrapper(Wrapper):
 
     def step(self, action):
         state_raw, reward, done, info = super().step(action)
+        self._last_score = super().score()
         if(done):
             state = self.reset()
         else:
@@ -224,6 +226,8 @@ class GraphObservationEnvWrapper(Wrapper):
             state=self.state_processor.process_state(self._state_raw)
         return state, reward, done, info
 
+    def score(self):
+        return self._last_score
 
 import pickle, os
 class ExperienceSaver:
