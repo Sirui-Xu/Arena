@@ -27,8 +27,11 @@ class MyPointConv(gnn.PointConv):
 
 class PointConv(nn.Module):
 
-    def __init__(self, aggr='add', input_dim=4, pos_dim=4, edge_dim=None, output_dim=6): # edge_dim is not used!
+    def __init__(self, aggr='add', input_dim=4, pos_dim=4,
+                 edge_dim=None, output_dim=6, dropout=True): # edge_dim is not used!
         super().__init__()
+
+        self.dropout = dropout
 
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, 32), nn.GroupNorm(4, 32), nn.ReLU(),
@@ -79,7 +82,8 @@ class PointConv(nn.Module):
         feature = torch.cat([task_feature, pos_feature], dim=1)
         x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
         x = self.attention(x, batch, size=batch_size)
-        x = F.dropout(x, p=0.1, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.1, training=self.training)
         q = self.decoder(x)
         return q
 
@@ -196,12 +200,13 @@ class EnvStateProcessor:
                 pos.append(node['position'] + rel_pos.tolist())
         else:
             for node in local_state:
-                rel_pos = np.array(node['position']) - np.array(p) / obj_size # Hard code the size of an object.
+                rel_pos = (np.array(node['position']) - np.array(p)) / obj_size # Hard code the size of an object.
                 x.append(node['type_index'] + node['velocity'] + rel_pos.tolist())
                 pos.append(node['position'] + rel_pos.tolist())
 
         x = torch.tensor(x)
         pos = torch.tensor(pos)
+
         return Data(x=x, edge_index=edge_index, pos=pos)
 
 class GraphObservationEnvWrapper(Wrapper):
