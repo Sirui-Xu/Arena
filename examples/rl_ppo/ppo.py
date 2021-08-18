@@ -8,7 +8,7 @@ import examples.rl_ppo.ppo_core as core
 from examples.rl_ppo.utils.logx import EpochLogger
 #from examples.rl_ppo.utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg_grads
 #from examples.rl_ppo.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
-from torch_geometric.data import InMemoryDataset
+from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import Dataset
 
 class GraphDataset(InMemoryDataset):
@@ -65,8 +65,8 @@ class PPOGraphBuffer:
         Append one timestep of agent-environment interaction to the buffer.
         """
         assert self.ptr < self.max_size  # buffer has to have room so you can store
-        if hasattr(obs, 'batch'):
-            delattr(obs, 'batch')
+        #if hasattr(obs, 'batch'):
+        #    delattr(obs, 'batch')
         self.obs_buf.append(obs)
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
@@ -111,9 +111,7 @@ class PPOGraphBuffer:
         """
         assert self.ptr == self.max_size  # buffer has to be full before you can get
         self.ptr, self.path_start_idx = 0, 0
-        obs_buf = self.obs_buf
-        for obs in obs_buf:
-            obs = obs.to(self.device)
+        obs_buf = [obs.to(self.device) for obs in self.obs_buf]
         self.obs_buf = []
 
         act_torch = torch.as_tensor(self.act_buf, dtype=torch.float32).to(self.device)
@@ -127,10 +125,6 @@ class PPOGraphBuffer:
         #            adv=self.adv_buf, logp=self.logp_buf)
         #return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in data.items()}
 
-
-        dataset_path = osp.join(osp.dirname(osp.abspath(__file__)), "data_files")
-        #graph_dataset = GraphDataset(root=dataset_path, data_list=self.obs_buf)
-
         data = {#'obs': GraphDataset(dataset_path, obs_buf),
                 'obs': GraphNaiveDataset(obs_buf),
                 #'obs': obs_buf,
@@ -140,7 +134,7 @@ class PPOGraphBuffer:
                 'logp': logp_torch}
         return data
 
-def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
+def ppo(env_fn, gnn_func, pi_kwargs, v_kwargs, device_name,
         actor_critic=core.GNNActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
@@ -261,7 +255,7 @@ def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
     env = env_fn()
 
     # Create actor-critic module
-    ac = actor_critic(gnn_func, gnn_kwargs, device).to(device)
+    ac = actor_critic(gnn_func, pi_kwargs, v_kwargs, device)
 
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
@@ -340,15 +334,23 @@ def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(), 0, 0
-    o = state_processor.process_state(o)
 
     # Main loop: collect experience in env and update/log each epoch
     for epoch in range(epochs):
         for t in range(local_steps_per_epoch):
+            assert(len(env.game.reward_objects)>0)
+            #a, v, logp = ac.step(o, verbose=ep_len==0)
             a, v, logp = ac.step(o)
+            #print('action:', a)
 
             next_o, r, d, _ = env.step(a.item())
-            next_o = state_processor.process_state(next_o)
+
+            #print(f'a: {a}, s: ', next_o.x[:,-2:])
+            #if(len(env.game.reward_objects)==0):
+            #    print('warning: empty graph')
+            if(r>0):
+                pass
+                #print(f'reward! action: {a}')
             ep_ret += r
             ep_len += 1
 
@@ -363,6 +365,9 @@ def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
             terminal = d or timeout
             epoch_ended = t == local_steps_per_epoch - 1
 
+            if r>0 and d:
+                a=1
+
             if terminal or epoch_ended:
                 if epoch_ended and not (terminal):
                     print('Warning: trajectory cut off by epoch at %d steps.' % ep_len, flush=True)
@@ -376,7 +381,8 @@ def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(), 0, 0
-                o = state_processor.process_state(o)
+                if(len(env.game.reward_objects)==0):
+                    print('warning pos2: empty graph')
 
         # Save model
         if (epoch % save_freq == 0) or (epoch == epochs - 1):
@@ -401,6 +407,8 @@ def ppo(env_fn, gnn_func, gnn_kwargs, state_processor, device_name,
         logger.log_tabular('StopIter', average_only=True)
         logger.log_tabular('Time', time.time() - start_time)
         logger.dump_tabular()
+
+        ac.tick()
 
 
 if __name__ == '__main__':

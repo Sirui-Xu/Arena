@@ -8,10 +8,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
-from torch_geometric.data.data import Data
+from torch_geometric.data import Data, Batch
 from torch_geometric.data import DataLoader
-
-
 
 def combined_shape(length, shape=None):
     if shape is None:
@@ -46,6 +44,28 @@ def discount_cumsum(x, discount):
     """
     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
+class LinearSchedule:
+    def __init__(self, start, end=None, steps=None):
+        if end is None:
+            end = start
+            steps = 1
+        self.inc = (end - start) / float(steps)
+        self.current = start
+        self.end = end
+        if end > start:
+            self.bound = min
+        else:
+            self.bound = max
+        self.current_step = 0
+
+    def __call__(self):
+        val = self.current
+        self.current = self.bound(self.current + self.inc * self.current_step, self.end)
+        return val
+
+    def tick(self):
+        self.current_step+=1
+
 class Actor(nn.Module):
 
     def _distribution(self, obs):
@@ -64,7 +84,6 @@ class Actor(nn.Module):
             logp_a = self._log_prob_from_distribution(pi, act)
         return pi, logp_a
 
-
 class MLPCategoricalActor(Actor):
 
     def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
@@ -82,28 +101,53 @@ class GNNCategoricalActor(Actor):
 
     def __init__(self, gnn_func, gnn_kwargs, device):
         super().__init__()
-        self.logits_net = gnn_func(**gnn_kwargs)
+        self.logits_net = gnn_func(**gnn_kwargs).to(device)
         self.device = device
 
     def _distribution(self, obs):
         if isinstance(obs, Data):
-            obs.batch = torch.zeros(len(obs.x)).long()
-            obs = obs.to(self.device)
-            logits = self.logits_net(obs, 1)
+            batch_obs = Batch.from_data_list([obs]).to(self.device)
+            logits = self.logits_net(batch_obs)
+            #print('probs:', torch.exp(logits) / torch.exp(logits).sum())
         else:
-            #assert(isinstance(obs, GraphDataset))
-            BATCH_SIZE=len(obs)
-            loader=DataLoader(obs, batch_size=BATCH_SIZE, shuffle=False)
-            #outputs=[]
+            #BATCH_SIZE=len(obs)
+            #loader=DataLoader(obs, batch_size=BATCH_SIZE, shuffle=False)
             #for batch in loader:
-            #    outputs.append(self.logits_net(batch, BATCH_SIZE))
-            #logits = torch.cat(outputs, dim=0)
-            for batch in loader:
-                logits = self.logits_net(batch, BATCH_SIZE)
+            #    logits = self.logits_net(batch, BATCH_SIZE)
+            batch_obs = Batch.from_data_list(obs).to(self.device)
+            logits = self.logits_net(batch_obs)
         return Categorical(logits=logits)
 
     def _log_prob_from_distribution(self, pi, act):
         return pi.log_prob(act)
+
+class GNNCategoricalEpsActor(Actor):
+
+    def __init__(self, gnn_func, gnn_kwargs, device):
+        super().__init__()
+        self.logits_net = gnn_func(**gnn_kwargs).to(device)
+        self.device = device
+        self.eps = LinearSchedule(0.9,0.00,20)
+        print('caution: hard-coding max step in epsilon schedule')
+
+    def _distribution(self, obs):
+        if isinstance(obs, Data):
+            batch_obs = Batch.from_data_list([obs]).to(self.device)
+            logits = self.logits_net(batch_obs)
+        else:
+            batch_obs = Batch.from_data_list(obs).to(self.device)
+            logits = self.logits_net(batch_obs)
+        probs = torch.exp(logits)
+        probs = probs / torch.sum(probs)
+        eps = self.eps()
+        probs_eps = (1-eps) * probs + eps * torch.ones_like(probs, device=self.device) / probs.shape[-1]
+        return Categorical(probs = probs_eps)
+
+    def _log_prob_from_distribution(self, pi, act):
+        return pi.log_prob(act)
+
+    def tick(self):
+        self.eps.tick()
 
 
 class MLPGaussianActor(Actor):
@@ -136,22 +180,21 @@ class GNNCritic(nn.Module):
 
     def __init__(self, gnn_func, gnn_kwargs, device):
         super().__init__()
-        gnn_kwargs['output_dim'] = 1
-        self.v_net = gnn_func(**gnn_kwargs)
+        self.v_net = gnn_func(**gnn_kwargs).to(device)
         self.device = device
 
     def forward(self, obs):
         if isinstance(obs, Data):
-            obs.batch = torch.zeros(len(obs.x)).long()
-            obs = obs.to(self.device)
-            values = torch.squeeze(self.v_net(obs, 1), -1) # Critical to ensure v has right shape.
+            obs_batch = Batch.from_data_list([obs]).to(self.device)
+            values = torch.squeeze(self.v_net(obs_batch), -1) # Critical to ensure v has right shape.
         else:
             #v_begin_time = time.time()
-            #assert(isinstance(obs, GraphDataset))
-            BATCH_SIZE=len(obs)
-            loader=DataLoader(obs, batch_size=BATCH_SIZE, shuffle=False)
-            for batch in loader:
-                values = torch.squeeze(self.v_net(batch, BATCH_SIZE), -1)
+            #BATCH_SIZE=len(obs)
+            #loader=DataLoader(obs, batch_size=BATCH_SIZE, shuffle=False)
+            #for batch in loader:
+            #    values = torch.squeeze(self.v_net(batch, BATCH_SIZE), -1)
+            obs_batch = Batch.from_data_list(obs).to(self.device)
+            values = torch.squeeze(self.v_net(obs_batch), -1)
             #print(f'v iter: {time.time()-v_begin_time}')
         return values
 
@@ -186,16 +229,38 @@ class MLPActorCritic(nn.Module):
 
 class GNNActorCritic(nn.Module):
 
-    def __init__(self, gnn_func, gnn_kwargs, device):
+    def __init__(self, gnn_func, pi_kwargs, v_kwargs, device):
         super().__init__()
 
-        self.pi = GNNCategoricalActor(gnn_func, gnn_kwargs, device)
-        self.v = GNNCritic(gnn_func, gnn_kwargs, device)
+        self.pi = GNNCategoricalActor(gnn_func, pi_kwargs, device)
+        self.v = GNNCritic(gnn_func, v_kwargs, device)
+
+    def step(self, obs, verbose=False):
+        with torch.no_grad():
+            pi = self.pi._distribution(obs)
+            if(verbose):
+                print('probs: ', pi.probs)
+            a = pi.sample()
+            logp_a = self.pi._log_prob_from_distribution(pi, a)
+            v = self.v(obs)
+        return a.cpu().numpy(), v.cpu().numpy(), logp_a.cpu().numpy()
+
+    def act(self, obs):
+        return self.step(obs)[0]
+
+    def tick(self):
+        pass
+
+class GNNEpsActorCritic(nn.Module):
+
+    def __init__(self, gnn_func, pi_kwargs, v_kwargs, device):
+        super().__init__()
+
+        self.pi = GNNCategoricalEpsActor(gnn_func, pi_kwargs, device)
+        self.v = GNNCritic(gnn_func, v_kwargs, device)
 
     def step(self, obs):
         with torch.no_grad():
-            #obs_gpu = obs.to(self.device)
-            #obs_gpu.batch = torch.zeros(len(obs.x)).long()
             pi = self.pi._distribution(obs)
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)
@@ -204,3 +269,6 @@ class GNNActorCritic(nn.Module):
 
     def act(self, obs):
         return self.step(obs)[0]
+
+    def tick(self):
+        self.pi.tick()
