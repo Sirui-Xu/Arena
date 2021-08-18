@@ -226,9 +226,10 @@ class Arena(PyGameWrapper):
 
     def _add_agent(self, shape, edge_x, edge_y):
         pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+        #pos=0,3
         while(self.maze[pos] > 0):
             pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
-        
+        #print('agent pos:', pos)
         AGENT_INIT_POS = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
         self.player.pos = vec2d(AGENT_INIT_POS)
         self.player.rect.center = AGENT_INIT_POS
@@ -261,12 +262,14 @@ class Arena(PyGameWrapper):
     def _add_rewards(self, shape, edge_x, edge_y):
         for i in range(self.N_REWARDS):
             reward = None
-            for t in range(10):
+            for t in range(50):
                 pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
+                #pos=0,3
                 if self.maze[pos] == 0:
                     real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
                     dist = math.sqrt((self.player.pos.x - real_pos[0])**2 + (self.player.pos.y - real_pos[1])**2)
                     if dist > 2 * self.OBJECT_SIZE:
+                        #print('reward pos:', pos)
                         reward = Reward(
                             self.OBJECT_SIZE // 2,
                             real_pos,
@@ -274,7 +277,9 @@ class Arena(PyGameWrapper):
                         )
                         self.reward_objects.add(reward)
                         break
-            if t >= 10:
+            #if(len(self.reward_objects)==0):
+            #    a=1
+            if t >= 49:
                 print("WARNING: Need a bigger map!")
     
     def add_projectile(self):
@@ -489,6 +494,9 @@ class Arena(PyGameWrapper):
         self.coeff = 1
         if self.visualize:
             self.draw()
+
+        if(len(self.reward_objects)==0):
+            a=1
     
     def draw(self):
         self.screen.fill(self.BG_COLOR)
