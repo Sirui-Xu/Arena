@@ -18,6 +18,26 @@ def get_env_kwargs_dict(setting):
             'max_step':200}
         return ret_kwargs_dict
 
+    if(setting=='sanity_check'):
+        ret_kwargs_dict={
+            'width':64,
+            'height':64,
+            'object_size':8,
+            'obstacle_size':16,
+            'num_coins':3,
+            'num_enemies':0,
+            'num_bombs':0,
+            'num_projectiles':0,
+            'num_obstacles':0,
+            'agent_speed':6,
+            'enemy_speed':2,
+            'projectile_speed':8,
+            'explosion_max_step':100,
+            'explosion_radius':32,
+            'p_change_direction': 0.01,
+            'reward_decay': 1.0,
+            'max_step':50}
+        return ret_kwargs_dict
 
 
     ret_kwargs_dict={
@@ -81,5 +101,9 @@ def get_env_kwargs_dict(setting):
         # multiple coins
         ret_kwargs_dict['num_coins'] = [1, 10]
         ret_kwargs_dict['max_step'] = 350
+
+    if 'fast' in setting:
+        ret_kwargs_dict['agent_speed'] = 7
+        ret_kwargs_dict['max_step'] = 60
 
     return ret_kwargs_dict
