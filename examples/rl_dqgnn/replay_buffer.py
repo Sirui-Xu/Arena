@@ -60,9 +60,7 @@ class PrioritizedReplayBuffer:
 
     def sample(self):
         batch_size=self.batch_size
-
         segment = self.tree.total() / batch_size
-
         prio_exps = []
         for i in range(batch_size):
             a = segment * i

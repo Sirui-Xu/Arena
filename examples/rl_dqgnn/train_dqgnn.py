@@ -52,7 +52,8 @@ input_dim, pos_dim = 8,4
 network_kwargs_dict = {
     'aggr': args.gnn_aggr,
     'input_dim':input_dim,
-    'pos_dim':pos_dim
+    'pos_dim':pos_dim,
+    'dropout':False
 }
 
 qnet_local = nn_func(**network_kwargs_dict)
