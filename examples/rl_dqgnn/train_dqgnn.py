@@ -17,7 +17,7 @@ sys.path.append(root_path)
 
 from arena import Arena, Wrapper
 from examples.rl_dqgnn.nn_utils import *
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 from dqgnn_agent import DQGNN_agent
 
 parser = argparse.ArgumentParser()
@@ -42,7 +42,7 @@ num_episodes=args.num_episodes
 is_train=args.train
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-env_kwargs = get_env_kwargs_dict(args.env_setting)
+env_kwargs = get_env_kwargs(args.env_setting)
 #env=Wrapper(Arena(**kwargs_dict))
 env = GraphObservationEnvWrapper(Arena, env_kwargs)
 env.reset()

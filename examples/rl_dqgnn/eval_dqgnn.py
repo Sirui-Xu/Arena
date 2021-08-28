@@ -17,7 +17,7 @@ sys.path.append(root_path)
 
 from arena import Arena, Wrapper
 from examples.rl_dqgnn.nn_utils import EnvStateProcessor, get_nn_func, GraphObservationEnvWrapper
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 from torch_geometric.data import Batch
 
 
@@ -65,7 +65,7 @@ class GNNQEvaluator():
 
         #env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
         env_fn = lambda env_kwargs: GraphObservationEnvWrapper(Arena, env_kwargs)
-        env_kwargs_dict = get_env_kwargs_dict(env_setting)
+        env_kwargs_dict = get_env_kwargs(env_setting)
 
         self.env_fn = env_fn
         self.env_kwargs_dict = env_kwargs_dict

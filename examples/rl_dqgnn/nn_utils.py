@@ -8,12 +8,16 @@ from torch_geometric.data import Data, DataLoader, Batch
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool, EdgeConv
 from arena import Wrapper
+from tianshou.data import Batch as TSBatch
+from ..dqn_tianshou.graph_batch import Batch as TSGBatch
 
 def get_nn_func(nn_name):
     if nn_name=='PointConv':
         return PointConv
     elif nn_name=='EdgeConvNet':
         return EdgeConvNet
+    elif nn_name=='TSPointConv':
+        return TSPointConv
     else:
         raise NotImplementedError("Unrecognized nn name")
 
@@ -86,6 +90,77 @@ class PointConv(nn.Module):
             x = F.dropout(x, p=0.1, training=self.training)
         q = self.decoder(x)
         return q
+
+    def reset_parameters(self):
+        for name, module in self.named_modules():
+            if isinstance(module, (nn.Linear, nn.Conv1d, nn.Conv2d, nn.ConvTranspose2d)):
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
+class TSPointConv(nn.Module):
+
+    def __init__(self, aggr='add', input_dim=4, pos_dim=4,
+                 edge_dim=None, output_dim=6, dropout=True, device=None): # edge_dim is not used!
+        super().__init__()
+
+        self.dropout = dropout
+        self.device=device
+
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32), nn.GroupNorm(4, 32), nn.ReLU(),
+            nn.Linear(32, 32),
+        )
+        self.encoder_pos = nn.Sequential(
+            nn.Linear(pos_dim, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64), nn.GroupNorm(4, 64), nn.ReLU(),
+            nn.Linear(64, 64),
+        )
+        local_nn = nn.Sequential(
+            nn.Linear(32 + 64 + pos_dim, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512, bias=False), nn.GroupNorm(8, 512), nn.ReLU(),
+            nn.Linear(512, 512),
+        )
+        global_nn = nn.Sequential(
+            nn.Linear(512, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256),
+        )
+        gate_nn = nn.Sequential(
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256, bias=False), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 1),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, 256), nn.GroupNorm(8, 256), nn.ReLU(),
+            nn.Linear(256, output_dim),
+        )
+        self.gnn = MyPointConv(aggr=aggr, local_nn=local_nn, global_nn=global_nn)
+        self.aggr = aggr
+        self.attention = gnn.GlobalAttention(gate_nn)
+
+        self.reset_parameters()
+
+    def forward(self, data, state=None, info={}):
+        if isinstance(data, TSGBatch):
+            data = Batch(**data).to(self.device)
+        batch_size = data.num_graphs
+        x = data.x
+        batch = data.batch
+        edge_index = data.edge_index
+        pos = data.pos
+
+        x = self.encoder(x)
+        pos_feature = self.encoder_pos(pos)
+        task_feature = x
+        feature = torch.cat([task_feature, pos_feature], dim=1)
+        x = self.gnn(x=feature, pos=pos, edge_index=edge_index)
+        x = self.attention(x, batch, size=batch_size)
+        if self.dropout:
+            x = F.dropout(x, p=0.1, training=self.training)
+        q = self.decoder(x)
+        return q, state
 
     def reset_parameters(self):
         for name, module in self.named_modules():
@@ -172,8 +247,9 @@ class EdgeConvNet(BaseGNN):
         return logits
 
 class EnvStateProcessor:
-    def __init__(self, env_kwargs):
+    def __init__(self, env_kwargs, use_tianshou=False):
         self.env_kwargs=env_kwargs
+        self.use_tianshou = use_tianshou
 
     def process_state(self, state):
         obj_size = self.env_kwargs['object_size']
@@ -207,11 +283,14 @@ class EnvStateProcessor:
         x = torch.tensor(x)
         pos = torch.tensor(pos)
 
-        return Data(x=x, edge_index=edge_index, pos=pos)
+        if not self.use_tianshou:
+            return Data(x=x, edge_index=edge_index, pos=pos)
+        else:
+            return TSBatch(x=x, edge_index=edge_index, pos=pos)
 
 class GraphObservationEnvWrapper(Wrapper):
-    def __init__(self, env_func, env_kwargs):
-        super().__init__(env_func(**env_kwargs))
+    def __init__(self, env_func, env_kwargs, seed=233):
+        super().__init__(env_func(**env_kwargs), rng=seed)
         self.state_processor = EnvStateProcessor(env_kwargs)
         self._state_raw = None
         self._last_score = None
@@ -224,6 +303,34 @@ class GraphObservationEnvWrapper(Wrapper):
     def step(self, action):
         state_raw, reward, done, info = super().step(action)
         self._last_score = super().score()
+        if(done):
+            state = self.reset()
+        else:
+            self._state_raw = state_raw
+            state=self.state_processor.process_state(self._state_raw)
+        return state, reward, done, info
+
+    def score(self):
+        return self._last_score
+
+import gym
+class GraphObservationEnv(gym.Env):
+    def __init__(self, game_func, env_kwargs):
+        super().__init__()
+        self.game = game_func(env_kwargs)
+        self.action_space = gym.spaces.Discrete(6)
+        self.state_processor = EnvStateProcessor(env_kwargs, use_tianshou=True)
+        self._state_raw = None
+        self._last_score = None
+
+    def reset(self):
+        self._state_raw = self.game.reset()
+        state = self.state_processor.process_state(self._state_raw)
+        return state
+
+    def step(self, action):
+        state_raw, reward, done, info = self.game.step(action)
+        self._last_score = self.game.score()
         if(done):
             state = self.reset()
         else:
