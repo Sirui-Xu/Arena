@@ -11,7 +11,15 @@ from torch_geometric.data import Data as GData
 from torch_geometric.data import Batch as GBatch
 from tianshou.data import Batch
 
-IndexType = Union[slice, int, np.ndarray, GBatch, List[int]]
+IndexType = Union[slice, int, np.ndarray, List[GData], GBatch, List[int]]
+
+def _is_GData_set(data: Any) -> bool:
+    if isinstance(data, np.ndarray):  # most often case
+        return False
+    elif isinstance(data, (list, tuple)):
+        if len(data) > 0 and all(isinstance(e, GData) for e in data):
+            return True
+    return False
 
 def _is_batch_set(data: Any) -> bool:
     # Batch set is a list/tuple of dict/Batch objects,
@@ -74,10 +82,12 @@ def _to_array_with_correct_type(v: Any) -> np.ndarray:
             raise ValueError("Numpy arrays of tensors are not supported yet.")
     return v
 
+def _create_batch_list(size: int, stack: bool = True) -> List[GData]:
+    return [GData()] * size
 
 def _create_value(
     inst: Any, size: int, stack: bool = True
-) -> Union["Batch", np.ndarray, torch.Tensor]:
+) -> Union["TSGBatch", np.ndarray, torch.Tensor]:
     """Create empty place-holders accroding to inst's shape.
 
     :param bool stack: whether to stack or to concatenate. E.g. if inst has shape of
@@ -104,9 +114,12 @@ def _create_value(
     elif isinstance(inst, torch.Tensor):
         return torch.full(shape, fill_value=0, device=inst.device, dtype=inst.dtype)
     elif isinstance(inst, (dict, Batch)):
-        zero_batch = Batch()
+        zero_batch = TSGBatch()
         for key, val in inst.items():
-            zero_batch.__dict__[key] = _create_value(val, size, stack=stack)
+            if 'obs' in key and _is_GData_set(val):
+                zero_batch.__dict__[key] = _create_batch_list(size, stack=stack)
+            else:
+                zero_batch.__dict__[key] = _create_value(val, size, stack=stack)
         return zero_batch
     elif is_scalar:
         return _create_value(np.asarray(inst), size, stack=stack)
@@ -119,7 +132,7 @@ def _assert_type_keys(keys: Iterable[str]) -> None:
         f"keys should all be string, but got {keys}"
 
 
-def _parse_value(v: Any) -> Optional[Union["Batch", np.ndarray, torch.Tensor]]:
+def _parse_value(v: Any) -> Optional[Union["Batch", np.ndarray, torch.Tensor, List[GBatch]]]:
     if isinstance(v, Batch):  # most often case
         return v
     elif (isinstance(v, np.ndarray) and
@@ -140,6 +153,8 @@ def _parse_value(v: Any) -> Optional[Union["Batch", np.ndarray, torch.Tensor]]:
                                 " of torch.Tensor as unique value yet.") from e
         if _is_batch_set(v):
             v = TSGBatch(v)  # list of dict / Batch
+        elif _is_GData_set(v):
+            return v
         else:
             # None, scalar, normal data list (main case)
             # or an actual list of objects
@@ -192,8 +207,8 @@ class TSGBatch(Batch):
                 for k, v in batch_dict.items():
                     self.__dict__[k] = _parse_value(v)
             elif _is_batch_set(batch_dict):
-                if('edge_index' in batch_dict[0].keys()):
-                    self.graph_aggregate(batch_dict)
+                if(isinstance(batch_dict[0], GData)):
+                    raise RuntimeError('Legacy code, should not reach here')
                 else:
                     self.stack_(batch_dict)  # type: ignore
         if len(kwargs) > 0:
@@ -237,7 +252,7 @@ class TSGBatch(Batch):
             return self.__dict__[index]
         batch_items = self.items()
         if len(batch_items) > 0:
-            b = Batch()
+            b = TSGBatch()
             for k, v in batch_items:
                 if isinstance(v, Batch) and v.is_empty():
                     b.__dict__[k] = Batch()
@@ -675,6 +690,8 @@ class TSGBatch(Batch):
         for v in self.__dict__.values():
             if isinstance(v, Batch) and v.is_empty(recurse=True):
                 continue
+            elif _is_GData_set(v):
+                r.append(len(v))
             elif hasattr(v, "__len__") and (isinstance(v, Batch) or v.ndim > 0):
                 r.append(len(v))
             else:

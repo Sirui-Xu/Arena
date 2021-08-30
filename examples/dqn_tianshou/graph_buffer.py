@@ -3,7 +3,7 @@ from numba import njit
 from typing import List, Tuple, Union, Sequence, Optional
 
 from tianshou.data import Batch, ReplayBuffer, PrioritizedReplayBuffer
-from .graph_batch import _create_value, _alloc_by_keys_diff
+from .graph_batch import TSGBatch, _create_value, _alloc_by_keys_diff
 
 
 class ReplayBufferManager(ReplayBuffer):
@@ -101,7 +101,7 @@ class ReplayBufferManager(ReplayBuffer):
         episode_reward is 0.
         """
         # preprocess batch
-        b = Batch()
+        b = TSGBatch()
         for key in set(self._reserved_keys).intersection(batch.keys()):
             b.__dict__[key] = batch[key]
         batch = b
@@ -138,6 +138,8 @@ class ReplayBufferManager(ReplayBuffer):
             else:  # dynamic key pops up in batch
                 _alloc_by_keys_diff(self._meta, batch, self.maxsize, False)
             self._set_batch_for_children()
+            # TODO: need to ensure _meta.obs and _meta.obs_next don't get modified in super().xxx.
+            # Because _set_batch_for_children passes pointer of _meta attributes to super object.
             self._meta[ptrs] = batch
         return ptrs, np.array(ep_rews), np.array(ep_lens), np.array(ep_idxs)
 
