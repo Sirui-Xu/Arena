@@ -11,15 +11,36 @@ from torch_geometric.data import Data as GData
 from torch_geometric.data import Batch as GBatch
 from tianshou.data import Batch
 
-IndexType = Union[slice, int, np.ndarray, List[GData], GBatch, List[int]]
+'''
+class GraphListWrapper:
+    def __init__(self, data_list):
+        self.data_array=np.array(data_list, dtype=np.object)
+        
+    def __getitem__(self, item):
+        return GraphListWrapper(self.data_array[item])
+    
+    def __setitem__(self, key, value):
+        self.data_array[key] = value
+'''
+
+IndexType = Union[slice, int, np.ndarray, GBatch, List[int]]
 
 def _is_GData_set(data: Any) -> bool:
     if isinstance(data, np.ndarray):  # most often case
-        return False
+        if data.dtype==np.object and (data.shape[0]==0 or data.shape[0]>1 and isinstance(data[0], GData)):
+            return True
     elif isinstance(data, (list, tuple)):
-        if len(data) > 0 and all(isinstance(e, GData) for e in data):
+        if len(data) > 0 and isinstance(data[0], GData):
             return True
     return False
+
+def _to_GData_array(data: Any) -> np.ndarray:
+    if isinstance(data, np.ndarray):
+        return data
+    assert isinstance(data, (List, tuple)) and len(data)>0 and isinstance(data[0], GData)
+    data_np = np.zeros([len(data)], dtype=np.object)
+    data_np[:] = data
+    return data_np
 
 def _is_batch_set(data: Any) -> bool:
     # Batch set is a list/tuple of dict/Batch objects,
@@ -82,8 +103,8 @@ def _to_array_with_correct_type(v: Any) -> np.ndarray:
             raise ValueError("Numpy arrays of tensors are not supported yet.")
     return v
 
-def _create_batch_list(size: int, stack: bool = True) -> List[GData]:
-    return [GData()] * size
+def _create_batch_list(size: int, stack: bool = True) -> np.ndarray:
+    return _to_GData_array([GData()] * size)
 
 def _create_value(
     inst: Any, size: int, stack: bool = True
@@ -151,10 +172,10 @@ def _parse_value(v: Any) -> Optional[Union["Batch", np.ndarray, torch.Tensor, Li
             except RuntimeError as e:
                 raise TypeError("Batch does not support non-stackable iterable"
                                 " of torch.Tensor as unique value yet.") from e
-        if _is_batch_set(v):
+        if _is_GData_set(v):
+            return _to_GData_array(v)
+        elif _is_batch_set(v):
             v = TSGBatch(v)  # list of dict / Batch
-        elif _is_GData_set(v):
-            return v
         else:
             # None, scalar, normal data list (main case)
             # or an actual list of objects
@@ -207,10 +228,7 @@ class TSGBatch(Batch):
                 for k, v in batch_dict.items():
                     self.__dict__[k] = _parse_value(v)
             elif _is_batch_set(batch_dict):
-                if(isinstance(batch_dict[0], GData)):
-                    raise RuntimeError('Legacy code, should not reach here')
-                else:
-                    self.stack_(batch_dict)  # type: ignore
+                self.stack_(batch_dict)  # type: ignore
         if len(kwargs) > 0:
             self.__init__(kwargs, copy=copy)  # type: ignore
 
@@ -690,8 +708,6 @@ class TSGBatch(Batch):
         for v in self.__dict__.values():
             if isinstance(v, Batch) and v.is_empty(recurse=True):
                 continue
-            elif _is_GData_set(v):
-                r.append(len(v))
             elif hasattr(v, "__len__") and (isinstance(v, Batch) or v.ndim > 0):
                 r.append(len(v))
             else:

@@ -49,8 +49,8 @@ parser.add_argument('--n_step', type=int, default=1)
 parser.add_argument('--update-per-step', type=float, default=0.1)
 parser.add_argument('--batch-size', type=int, default=32)
 # dummy setting, should change when finish debugging
-parser.add_argument('--training-num', type=int, default=2)
-parser.add_argument('--test-num', type=int, default=2)
+parser.add_argument('--training-num', type=int, default=4)
+parser.add_argument('--test-num', type=int, default=4)
 # parallel sampling env num
 parser.add_argument('--logdir', type=str, default='log')
 parser.add_argument('--device', type=str,default='cuda' if torch.cuda.is_available() else 'cpu')
@@ -70,9 +70,13 @@ env_fn = lambda: GraphObservationEnv(game_fn, env_kwargs)
 #obs = subprocenv.step(np.array([0,0,1,1]),[0,1,2,3])
 #print(type(obs))
 #exit()
+torch.multiprocessing.set_sharing_strategy('file_system')
+import resource
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (32768, rlimit[1]))
 
 def test_dqn(args):
-    train_envs = GraphDummyVectorEnv([env_fn for _ in range(args.training_num)])
+    train_envs = GraphSubprocVectorEnv([env_fn for _ in range(args.training_num)])
     test_envs = GraphSubprocVectorEnv([env_fn for _ in range(args.test_num)])
     # seed
     np.random.seed(args.seed)
@@ -112,7 +116,7 @@ def test_dqn(args):
     #exit()
     train_collector.collect(n_step=args.batch_size * args.training_num)
     # log
-    log_path = os.path.join(args.logdir, args.task, 'dqn')
+    log_path = os.path.join(args.logdir, args.env_setting+'_dqn')
     writer = SummaryWriter(log_path)
     logger = BasicLogger(writer)
 
@@ -120,7 +124,8 @@ def test_dqn(args):
         torch.save(policy.state_dict(), os.path.join(log_path, 'policy.pth'))
 
     def stop_fn(mean_rewards):
-        return mean_rewards >= env.spec.reward_threshold
+        #return mean_rewards >= env.spec.reward_threshold
+        return False
 
     def train_fn(epoch, env_step):
         # eps annnealing, just a demo

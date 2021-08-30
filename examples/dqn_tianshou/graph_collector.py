@@ -18,6 +18,7 @@ from .graph_buffer import ReplayBufferManager
 from .graph_vector_buffer import VectorReplayBuffer
 
 from .graph_batch import TSGBatch as Batch
+from .graph_batch import _parse_value
 
 class GraphCollector(object):
     """Collector enables the policy to interact with different types of envs with \
@@ -227,6 +228,7 @@ class GraphCollector(object):
             # step in env
             obs_next, rew, done, info = self.env.step(
                 action_remap, ready_env_ids)  # type: ignore
+
 
             self.data.update(obs_next=obs_next, rew=rew, done=done, info=info)
             if self.preprocess_fn:
