@@ -42,17 +42,17 @@ parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--target-update-freq', type=int, default=2000)
 # need to check whether dividing grad_step is needed
-parser.add_argument('--epoch', type=int, default=10000)
-parser.add_argument('--step-per-epoch', type=int, default=100000)
+parser.add_argument('--epoch', type=int, default=500)
+parser.add_argument('--step-per-epoch', type=int, default=10000)
 parser.add_argument('--step-per-collect', type=int, default=4)
 parser.add_argument('--n_step', type=int, default=1)
-parser.add_argument('--update-per-step', type=float, default=0.1)
-parser.add_argument('--batch-size', type=int, default=32)
+parser.add_argument('--update-per-step', type=float, default=0.25)
+parser.add_argument('--batch-size', type=int, default=512)
 # dummy setting, should change when finish debugging
 parser.add_argument('--training-num', type=int, default=4)
 parser.add_argument('--test-num', type=int, default=4)
 # parallel sampling env num
-parser.add_argument('--logdir', type=str, default='log')
+parser.add_argument('--logdir', type=str, default='/home/yiran/pc_mapping/arena-v2/examples/dqn_tianshou/')
 parser.add_argument('--device', type=str,default='cuda' if torch.cuda.is_available() else 'cpu')
 parser.add_argument('--resume-path', type=str, default=None)
 parser.add_argument('--watch', default=False, action='store_true',
@@ -64,20 +64,14 @@ args = parser.parse_args()
 env_kwargs = get_env_kwargs(args.env_setting)
 game_fn = lambda kwargs: Wrapper(Arena(**kwargs))
 env_fn = lambda: GraphObservationEnv(game_fn, env_kwargs)
-# for parallel sampling, would require to set seed
-#subprocenv = GraphSubprocVectorEnv([env_fn, env_fn, env_fn, env_fn])
-#env=subprocenv.reset()
-#obs = subprocenv.step(np.array([0,0,1,1]),[0,1,2,3])
-#print(type(obs))
-#exit()
-torch.multiprocessing.set_sharing_strategy('file_system')
-import resource
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (32768, rlimit[1]))
+#torch.multiprocessing.set_sharing_strategy('file_system')
+#import resource
+#rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+#resource.setrlimit(resource.RLIMIT_NOFILE, (32768, rlimit[1]))
 
 def test_dqn(args):
-    train_envs = GraphSubprocVectorEnv([env_fn for _ in range(args.training_num)])
-    test_envs = GraphSubprocVectorEnv([env_fn for _ in range(args.test_num)])
+    train_envs = GraphDummyVectorEnv([env_fn for _ in range(args.training_num)])
+    test_envs = GraphDummyVectorEnv([env_fn for _ in range(args.test_num)])
     # seed
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -100,8 +94,6 @@ def test_dqn(args):
     policy = DQGNNPolicy(
         net, optim, args.gamma, args.n_step,
         target_update_freq=args.target_update_freq)
-    # whether buffer can hold graph data?
-    # buffer
     if args.prioritized_replay:
         buf = PrioritizedVectorReplayBuffer(
             args.buffer_size, buffer_num=len(train_envs),
@@ -111,17 +103,14 @@ def test_dqn(args):
     # collector
     train_collector = Collector(policy, train_envs, buf, exploration_noise=True)
     test_collector = Collector(policy, test_envs, exploration_noise=True)
-    # policy.set_eps(1)
-    #print('collector data:', train_collector.data)
-    #exit()
     train_collector.collect(n_step=args.batch_size * args.training_num)
     # log
     log_path = os.path.join(args.logdir, args.env_setting+'_dqn')
     writer = SummaryWriter(log_path)
     logger = BasicLogger(writer)
 
-    def save_fn(policy):
-        torch.save(policy.state_dict(), os.path.join(log_path, 'policy.pth'))
+    def save_checkpoint_fn(epoch: int, env_step: int, gradient_step: int) -> None:
+        torch.save(policy.state_dict(), os.path.join(log_path, f'ep{epoch}.pth'))
 
     def stop_fn(mean_rewards):
         #return mean_rewards >= env.spec.reward_threshold
@@ -129,14 +118,12 @@ def test_dqn(args):
 
     def train_fn(epoch, env_step):
         # eps annnealing, just a demo
-        if env_step <= 10000:
+        if env_step <= 100000:
             policy.set_eps(args.eps_train)
-        elif env_step <= 50000:
-            eps = args.eps_train - (env_step - 10000) / \
-                40000 * (0.9 * args.eps_train)
-            policy.set_eps(eps)
         else:
-            policy.set_eps(0.1 * args.eps_train)
+            progress_ratio = (env_step - 100000) / (args.step_per_epoch * args.epoch - 100000)
+            eps = args.eps_train - (args.eps_train - args.eps_train_final) * progress_ratio
+            policy.set_eps(eps)
 
     def test_fn(epoch, env_step):
         policy.set_eps(args.eps_test)
@@ -146,27 +133,27 @@ def test_dqn(args):
         policy, train_collector, test_collector, args.epoch,
         args.step_per_epoch, args.step_per_collect, args.test_num,
         args.batch_size, update_per_step=args.update_per_step, train_fn=train_fn,
-        test_fn=test_fn, stop_fn=stop_fn, save_fn=save_fn, logger=logger)
+        test_fn=test_fn, stop_fn=stop_fn, save_checkpoint_fn=save_checkpoint_fn, logger=logger)
     assert stop_fn(result['best_reward'])
 
     if __name__ == '__main__':
         pprint.pprint(result)
         # Let's watch its performance!
-        env = gym.make(args.task)
-        policy.eval()
-        policy.set_eps(args.eps_test)
-        collector = Collector(policy, env)
-        result = collector.collect(n_episode=1, render=args.render)
-        rews, lens = result["rews"], result["lens"]
-        print(f"Final reward: {rews.mean()}, length: {lens.mean()}")
+        #env = gym.make(args.task)
+        #policy.eval()
+        #policy.set_eps(args.eps_test)
+        #collector = Collector(policy, env)
+        #result = collector.collect(n_episode=1, render=args.render)
+        #rews, lens = result["rews"], result["lens"]
+        #print(f"Final reward: {rews.mean()}, length: {lens.mean()}")
 
     # save buffer in pickle format, for imitation learning unittest
-    buf = VectorReplayBuffer(args.buffer_size, buffer_num=len(test_envs))
-    policy.set_eps(0.2)
-    collector = Collector(policy, test_envs, buf, exploration_noise=True)
-    result = collector.collect(n_step=args.buffer_size)
-    pickle.dump(buf, open(args.save_buffer_name, "wb"))
-    print(result["rews"].mean())
+    #buf = VectorReplayBuffer(args.buffer_size, buffer_num=len(test_envs))
+    #policy.set_eps(0.2)
+    #collector = Collector(policy, test_envs, buf, exploration_noise=True)
+    #result = collector.collect(n_step=args.buffer_size)
+    #pickle.dump(buf, open(args.save_buffer_name, "wb"))
+    #print(result["rews"].mean())
 
 
 def test_pdqn(args):

@@ -228,8 +228,8 @@ class GraphBaseVectorEnv(gym.Env):
         #    obs_stack = np.array(obs_list, dtype=object)
         rew_stack, done_stack, info_stack = map(
             np.stack, [rew_list, done_list, info_list])
-        if(np.any(rew_stack>0)):
-            print('pos rew!', rew_stack)
+        #if(np.any(rew_stack>0)):
+        #    print('pos rew!', rew_stack)
         #if self.obs_rms and self.update_obs_rms:
         #    self.obs_rms.update(obs_stack)
         #return self.normalize_obs(obs_stack), rew_stack, done_stack, info_stack
