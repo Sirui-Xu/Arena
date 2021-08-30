@@ -2,9 +2,11 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
+from typing import List
 
 import torch_geometric.nn as gnn
-from torch_geometric.data import Data, DataLoader, Batch
+from torch_geometric.data import Data, DataLoader
+from torch_geometric.data import Batch as GBatch
 from torch_scatter import scatter
 from torch_geometric.nn import GENConv, DeepGCNLayer, global_max_pool, global_add_pool, EdgeConv
 from arena import Wrapper
@@ -143,8 +145,9 @@ class TSPointConv(nn.Module):
         self.reset_parameters()
 
     def forward(self, data, state=None, info={}):
-        if isinstance(data, TSGBatch):
-            data = Batch(**data).to(self.device)
+        #assert isinstance(data, List) and len(data)>0 and isinstance(data[0], Data)
+        assert isinstance(data, np.ndarray) and data.shape[0]>0 and isinstance(data[0], Data)
+        data = GBatch.from_data_list(data).to(self.device)
         batch_size = data.num_graphs
         x = data.x
         batch = data.batch
@@ -319,7 +322,7 @@ class GraphObservationEnv(gym.Env):
         super().__init__()
         self.game = game_func(env_kwargs)
         self.action_space = gym.spaces.Discrete(6)
-        self.state_processor = EnvStateProcessor(env_kwargs, use_tianshou=True)
+        self.state_processor = EnvStateProcessor(env_kwargs, use_tianshou=False)
         self._state_raw = None
         self._last_score = None
 

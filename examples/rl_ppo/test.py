@@ -11,7 +11,7 @@ from examples.rl_ppo.utils.run_utils import setup_logger_kwargs
 from examples.rl_ppo.ppo import ppo
 from examples.rl_ppo.ppo_core import GNNActorCritic
 from examples.rl_dqgnn.nn_utils import *
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 from examples.rl_ppo.ppo_core import GNNActorCritic
 
 parser = argparse.ArgumentParser()
@@ -30,7 +30,7 @@ args = parser.parse_args()
 data_path=osp.dirname(osp.abspath(__file__))
 logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed, data_dir=data_path)
 
-env_kwargs = get_env_kwargs_dict(args.env_setting)
+env_kwargs = get_env_kwargs(args.env_setting)
 env_fn = lambda: GraphObservationEnvWrapper(Arena, env_kwargs)
 print('caution: for debugging, set env setting to extremely simple and fixed initialization')
 input_dim, pos_dim = 8,4

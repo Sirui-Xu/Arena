@@ -11,15 +11,15 @@ from examples.rl_ppo.utils.run_utils import setup_logger_kwargs
 from examples.rl_ppo.ppo import ppo
 from examples.rl_ppo.ppo_core import *
 from examples.rl_dqgnn.nn_utils import *
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--seed', '-s', type=int, default=233)
 parser.add_argument('--steps', type=int, default=600)
-parser.add_argument('--epochs', type=int, default=4000)
+parser.add_argument('--epochs', type=int, default=2000)
 parser.add_argument('--exp_name', type=str, default='ppo')
-parser.add_argument('--env_setting', type=str, default='AX0_fast')
+parser.add_argument('--env_setting', type=str, default='AX0')
 #parser.add_argument('--gnn_aggr', type=str, default='max')
 parser.add_argument('--save_path', type=str, required=True)
 parser.add_argument('--v_lr', type=float, default=1e-3)
@@ -36,7 +36,7 @@ if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 os.system(f'cp {data_path}/*.py {output_dir}/')
 
-env_kwargs = get_env_kwargs_dict(args.env_setting)
+env_kwargs = get_env_kwargs(args.env_setting)
 env_fn = lambda: GraphObservationEnvWrapper(Arena, env_kwargs)
 '''
 env = env_fn()

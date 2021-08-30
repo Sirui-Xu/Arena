@@ -17,7 +17,7 @@ sys.path.append(root_path)
 
 from arena import Arena, Wrapper
 from examples.rl_dqcnn.nn_utils import PlainCNN, RelationNet
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 from dqcnn_agent import DQCNN_agent
 
 parser = argparse.ArgumentParser()
@@ -37,7 +37,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # The configuration AX0
 # changed to 64x64 for faster training
-kwargs_dict = get_env_kwargs_dict(args.env_setting)
+kwargs_dict = get_env_kwargs(args.env_setting)
 env=Wrapper(Arena(**kwargs_dict))
 env.reset()
 

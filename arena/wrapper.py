@@ -10,8 +10,6 @@ class Wrapper(object):
     def __init__(self, game, rng=24):
 
         self.game = game
-        self.rng = np.random.RandomState(rng)
-        self.game.setRNG(self.rng)
         # self.init()
         self.NOOP = None
         self.last_action = []
@@ -19,6 +17,7 @@ class Wrapper(object):
         self.previous_score = 0.0
         self.frame_count = 0
         pygame.display.set_mode((1, 1), pygame.NOFRAME)
+        self.rng = np.random.RandomState(rng)
         self.game.setRNG(self.rng)
         self.game._setup()
         self.game.init()
@@ -271,3 +270,7 @@ class Wrapper(object):
         self.previous_score = self.game.getScore()
 
         return reward
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState(seed)
+        self.game.setRNG(self.rng)

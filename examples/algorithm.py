@@ -2,6 +2,11 @@ import pygame
 import numpy as np
 import os
 import sys
+
+example_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(example_path)
+sys.path.append(project_root)
+
 from arena.algorithm.utils import load_algorithm
 from arena import Arena
 from log_utils import Logger

@@ -1,4 +1,4 @@
-def get_env_kwargs_dict(setting):
+def get_env_kwargs(setting):
     if(setting=='legacy'):
         ret_kwargs_dict={
             'width':64,

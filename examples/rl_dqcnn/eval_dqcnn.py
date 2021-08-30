@@ -16,7 +16,7 @@ sys.path.append(root_path)
 
 from arena import Arena, Wrapper
 from examples.rl_dqgnn.nn_utils import PointConv, EnvStateProcessor
-from examples.env_setting_kwargs import get_env_kwargs_dict
+from examples.env_setting_kwargs import get_env_kwargs
 
 random.seed(2333)
 np.random.seed(2333)
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     #os.environ.pop("SDL_VIDEODRIVER")
 
     env_fn = lambda kwargs_dict: Wrapper(Arena(**kwargs_dict))
-    env_kwargs_dict = get_env_kwargs_dict(args.env_setting)
+    env_kwargs_dict = get_env_kwargs(args.env_setting)
 
     env_kwargs_dict['num_coins'] = args.num_rewards
 
