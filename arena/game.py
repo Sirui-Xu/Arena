@@ -146,7 +146,7 @@ class Arena(PyGameWrapper):
         # Z[:, 0] = Z[:, -1] = 1
         # Make aisles
         while True:
-           y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1]) 
+           y, x = self.rng.randint(0, shape[0]), self.rng.randint(0, shape[1])
            if Z[y, x] == 1:
                continue
            Z[y, x] = 1
@@ -261,11 +261,12 @@ class Arena(PyGameWrapper):
 
     def _add_rewards(self, shape, edge_x, edge_y):
         for i in range(self.N_REWARDS):
+        #for i in range(50):
             reward = None
             for t in range(50):
                 pos = (self.rng.randint(0, (self.width // shape)), self.rng.randint(0, (self.height // shape)))
-                #pos=0,3
                 if self.maze[pos] == 0:
+                    #print('reward pos:', pos)
                     real_pos = (edge_x + (pos[0] + 0.5) * shape, edge_y + (pos[1] + 0.5) * shape)
                     dist = math.sqrt((self.player.pos.x - real_pos[0])**2 + (self.player.pos.y - real_pos[1])**2)
                     if dist > 2 * self.OBJECT_SIZE:
@@ -277,10 +278,10 @@ class Arena(PyGameWrapper):
                         )
                         self.reward_objects.add(reward)
                         break
-            #if(len(self.reward_objects)==0):
-            #    a=1
             if t >= 49:
                 print("WARNING: Need a bigger map!")
+
+        #print('env done')
     
     def add_projectile(self):
         if len(self.projectiles) < self.N_PROJECTILES and self.shoot > 0:
@@ -349,7 +350,7 @@ class Arena(PyGameWrapper):
                             'velocity': [self.AGENT_SPEED * self.player.direction.x, self.AGENT_SPEED * self.player.direction.y],
                             'speed': self.AGENT_SPEED,
                             'box': [self.player.rect.left, self.player.rect.top, self.player.rect.right, self.player.rect.bottom],
-                        }
+                            }
             state.append(player_state)
         for c in self.reward_objects.sprites():
             reward_state = {'type':'reward', 
@@ -414,6 +415,68 @@ class Arena(PyGameWrapper):
 
         return {'local':state, 'global':{'ticks': self.ticks, 'shape': [self.width, self.height],
                                          'score': self.score, 'bombs_left':self.N_BOMBS - len(self.bombs), 'projectiles_left': self.N_PROJECTILES - len(self.projectiles)}}
+    def setGameState(self, state):
+        new_enemies = pygame.sprite.Group()
+        new_reward_objects = pygame.sprite.Group()
+        new_obstacles = pygame.sprite.Group()
+        new_blasts = pygame.sprite.Group()
+        new_bombs = pygame.sprite.Group()
+        new_projectiles = pygame.sprite.Group()
+
+        for obj_state in state['local']:
+            if (obj_state['type'] == 'agent'):
+                self.player.pos = vec2d(obj_state['position'])
+                self.player.rect.center = obj_state['position']
+                self.player.direction.x = obj_state['velocity'][0]/self.AGENT_SPEED
+                self.player.direction.y = obj_state['velocity'][1]/self.AGENT_SPEED
+            elif(obj_state['type']=='reward'):
+                new_reward = Reward(self.OBJECT_SIZE // 2,
+                                    obj_state['position'],
+                                    1)
+                new_reward_objects.add(new_reward)
+            elif(obj_state['type']=='obstacle'):
+                new_obstacle = Obstacle(
+                    self.OBSTACLE_SIZE // 2, obj_state['position']
+                )
+                new_obstacles.add(new_obstacle)
+            elif(obj_state['type']=='enemy'):
+                new_enemy=Enemy(
+                    self.OBJECT_SIZE // 2,
+                    obj_state['position'],
+                    (obj_state['velocity'][0]/obj_state['speed'], obj_state['velocity'][1]/obj_state['speed']),
+                    self.ENEMY_SPEED,
+                    self.width,
+                    self.height,
+                    self.P_CHANGE_DIRECTION,
+                )
+                new_enemies.add(new_enemy)
+            elif (obj_state['type']=='bomb'):
+                new_bomb=Bombv(
+                self.OBJECT_SIZE // 2,
+                obj_state['position'],
+                self.EXPLOSION_MAX_STEP,
+                self.EXPLOSION_RADIUS,
+                )
+                new_bombs.add(new_bomb)
+            elif (obj_state['type']=='projectile'):
+                new_projectile=Projectile(self.OBJECT_SIZE // 2,
+                                    obj_state['position'],
+                                    (obj_state['velocity'][0]/obj_state['speed'], obj_state['velocity'][1]/obj_state['speed']),
+                                    self.PROJECTILE_SPEED,
+                                    self.width,
+                                    self.height)
+                new_projectiles.add(new_projectile)
+            elif (obj_state['type']=='blast'):
+                new_blast = Blast(self.OBJECT_SIZE // 2, obj_state['position'])
+                new_blasts.add(new_blast)
+            else:
+                raise RuntimeError('unrecognized state')
+        self.reward_objects = new_reward_objects
+        self.enemies = new_enemies
+        self.obstacles = new_obstacles
+        self.blasts = new_blasts
+        self.bombs = new_bombs
+        self.projectiles = new_projectiles
 
     def getScore(self):
         return self.score
@@ -495,8 +558,6 @@ class Arena(PyGameWrapper):
         if self.visualize:
             self.draw()
 
-        if(len(self.reward_objects)==0):
-            a=1
     
     def draw(self):
         self.screen.fill(self.BG_COLOR)

@@ -3,6 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 from typing import List
+import copy
 
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, DataLoader
@@ -300,6 +301,94 @@ class GraphObservationEnvWrapper(Wrapper):
 
     def reset(self):
         self._state_raw = super().reset()
+        state = self.state_processor.process_state(self._state_raw)
+        return state
+
+    def step(self, action):
+        state_raw, reward, done, info = super().step(action)
+        self._last_score = super().score()
+        if(done):
+            state = self.reset()
+        else:
+            self._state_raw = state_raw
+            state=self.state_processor.process_state(self._state_raw)
+        return state, reward, done, info
+
+    def score(self):
+        return self._last_score
+
+
+class EnvStateProcessorSirui:
+    """Provide patches according to GT boxes or proposals"""
+
+    def __init__(self, env_kwargs, use_tianshou=False, star_shaped=False, std=False):
+        self.env_kwargs=env_kwargs
+        self.use_tianshou = use_tianshou
+        self.star_shaped = star_shaped
+        self.std = std
+
+    def process_state(self, state):
+        data = state
+
+        shape = data["global"]["shape"]
+        boxes = []
+        classes = []
+        for local_info in data["local"]:
+            box = local_info["position"] + local_info["box"] + local_info["velocity"] + [local_info["speed"], local_info["speed"]]
+            box = np.array(box, dtype=np.float32)
+            box[::2] /= shape[0]
+            box[1::2] /= shape[1]
+            boxes.append(box)
+            classes.append(local_info["type_index"])
+        gt_boxes = np.array(boxes, dtype=np.float32)
+        gt_classes = np.array(classes, dtype=np.float32)
+
+        boxes = gt_boxes.copy()
+        boxes_tensor = torch.tensor(boxes, dtype=torch.float32)
+
+        # add augmentation
+        #if self.std:
+        #    std_tensor = boxes_tensor.new_tensor(self.std)
+        #    boxes_tensor = Normal(boxes_tensor, std_tensor).sample()
+
+        classes_tensor = torch.tensor(gt_classes, dtype=torch.float32)
+
+        n = boxes_tensor.size(0)
+        if self.star_shaped:
+            edge_index = torch.tensor([[0, j] for j in range(1, n)], dtype=torch.long).transpose(0, 1)
+            # edge_attr = torch.cat([(boxes_tensor[j] - boxes_tensor[0]).unsqueeze(0) for j in range(1, n)], dim=0)
+            edge_attr = torch.tensor([[0] for j in range(1, n)], dtype=torch.float32)
+        else:
+            edge_index = torch.tensor([[i, j] for i in range(n) for j in range(n)], dtype=torch.long).transpose(0, 1)
+            # edge_attr = torch.cat([(boxes_tensor[j] - boxes_tensor[i]).unsqueeze(0) for i in range(n) for j in range(n)], dim=0)
+            edge_attr = torch.tensor([[0] for i in range(n) for j in range(n)], dtype=torch.float32)
+
+        # get target
+        out = Data(
+            x=classes_tensor,
+            edge_index=edge_index.long(),
+            edge_attr=edge_attr.float(),
+            pos=boxes_tensor.float(),
+        )
+        return out
+
+class GraphObservationEnvSiruiWrapper(Wrapper):
+    def __init__(self, env_func, env_kwargs, seed=233, random_reset=True):
+        super().__init__(env_func(**env_kwargs), rng=seed)
+        self.state_processor = EnvStateProcessorSirui(env_kwargs, star_shaped=True)
+        self._init_state_raw = super().reset()
+        self._state_raw = None
+        self._last_score = None
+        self.random_reset=random_reset
+
+    def reset(self):
+        if self.random_reset:
+            self._state_raw = super().reset()
+        else:
+            super().reset()
+            super().setGameState(self._init_state_raw)
+            #self._state_raw = copy.deepcopy(self._init_state_raw)
+            self._state_raw = super().getGameState()
         state = self.state_processor.process_state(self._state_raw)
         return state
 

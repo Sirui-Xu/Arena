@@ -177,6 +177,9 @@ class Wrapper(object):
             It returns a set of local information and a dict of global information.
         """
         return self.game.getGameState()
+
+    def setGameState(self, state):
+        self.game.setGameState(state)
     
     def getEnvState(self):
         state = {"state":self.getGameState(),
